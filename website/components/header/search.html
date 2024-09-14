@@ -1,0 +1,20 @@
+<section role="search">
+  <form action="/${langCode}/${text.search.url ? `${text.search.url}/` : ''}" method="get">
+      <fieldset class="flex items-center text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus-within:border-blue-500 border border-slate-400 dark:border-slate-700 lg:rounded-md">
+          <label class="flex flex-grow items-center" for="search">
+            <svg class="absolute h-5 w-5 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input class="bg-transparent outline-none p-1 pl-7 flex-grow lg:rounded-l-md" type="search" name="${text.search.name}" id="search" placeholder="${text.search.placeholder}" maxlength="200" />
+          </label>
+          <button class="border border-y-0 border-r-0 border-slate-400 border-opacity-15 p-1 px-3 lg:rounded-r-md" type="submit" title="${text.search.label}">${text.search.action}</button>
+      </fieldset>
+  </form>
+</section>
+
+<script target="section">
+  import { getParamByName } from 'pages:info'
+  import { getLanguage } from '../../scripts/translations.mjs'
+  export const langCode = await getParamByName('languages')
+  export const text = await getLanguage(langCode)
+</script>

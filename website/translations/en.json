@@ -1,0 +1,31 @@
+{
+  "lang": {
+    "name": "English",
+    "code": "en"
+  },
+  "title": "Pages",
+  "home": {
+    "title": "",
+    "url": ""
+  },
+  "getting-started": {
+    "title": "Getting Started",
+    "url": "getting-started"
+  },
+  "essentials": {
+    "title": "Essentials",
+    "url": "essentials"
+  },
+  "examples": {
+    "title": "Examples",
+    "url": "examples"
+  },
+  "search": {
+    "title": "Search",
+    "url": "search",
+    "action": "Search",
+    "name": "for",
+    "placeholder": "Search...",
+    "label": "Search this website now"
+  }
+}

@@ -1,0 +1,29 @@
+<nav aria-label="breadcrumb" class="bg-slate-200 dark:bg-slate-700">
+  <ol class="container flex flex-nowrap mx-auto items-center py-1">
+    <li>
+      <span class="text-gray-500 select-none">></span>
+      <select class="px-4 appearance-none bg-transparent focus-within:bg-slate-200 dark:focus-within:bg-slate-700" aria-label="Language">
+        ${translations.map(([lang, name]) => `<option value="${lang}">${name}</option>`).join('')}
+      </select>
+    </li>
+  </ol>
+  <template>
+    <li>
+      <span class="text-gray-500 select-none">></span>
+      <a class="font-normal px-4"></a>
+    </li>
+  </template>
+</nav>
+
+<script target="nav">
+  import { getParamByName } from 'pages:info'
+  import { getLanguage, getLanguages } from '../../scripts/translations.mjs'
+  export const langCode = await getParamByName('languages')
+  export const text = await getLanguage(langCode)
+  export const translations = (await Promise.all((await getLanguages()).map(async lang => [lang, (await getLanguage(lang)).lang.name])))
+    .sort((a, b) => {
+      if (a[0] === langCode) return -1
+      if (b[0] === langCode) return 1
+      return a[1].localeCompare(b[1])
+    })
+</script>

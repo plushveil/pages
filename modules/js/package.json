@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "browserslist": "^4.23.3",
+    "esbuild": "^0.23.0",
+    "esbuild-plugin-browserslist": "^0.14.0"
+  }
+}

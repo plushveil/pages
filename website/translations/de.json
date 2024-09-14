@@ -1,0 +1,31 @@
+{
+  "lang": {
+    "name": "Deutsch",
+    "code": "de"
+  },
+  "title": "Pages",
+  "home": {
+    "title": "",
+    "url": ""
+  },
+  "getting-started": {
+    "title": "Erste Schritte",
+    "url": "erste-schritte"
+  },
+  "essentials": {
+    "title": "Grundlagen",
+    "url": "grundlagen"
+  },
+  "examples": {
+    "title": "Beispiele",
+    "url": "beispiele"
+  },
+  "search": {
+    "title": "Suche",
+    "url": "suche",
+    "action": "Suchen",
+    "name": "nach",
+    "placeholder": "Suche...",
+    "label": "Jetzt diese Website durchsuchen"
+  }
+}
