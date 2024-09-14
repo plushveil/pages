@@ -1,7 +1,7 @@
 import * as url from 'node:url'
 import * as path from 'node:path'
 
-import * as configurarion from './config/config.mjs'
+import getConfig from './config.mjs'
 import resolveSpecifier from '../utils/resolve.mjs'
 
 /**
@@ -49,7 +49,7 @@ let config
  * @param {InitializeData} data - The import options.
  */
 export async function initialize (data) {
-  config = await configurarion.get(data)
+  config = await getConfig(data)
   for (const module of config.modules) {
     if (typeof module.initialize === 'function') {
       await module.initialize(data)
@@ -60,9 +60,9 @@ export async function initialize (data) {
 /**
  * Resolves the specifier.
  * @param {string} specifier - The specifier.
- * @param {import('./utils/getConfig.mjs').ResolveContext} context - The context.
+ * @param {ResolveContext} context - The context.
  * @param {function} nextResolve -  The subsequent resolve hook in the chain.
- * @returns {Promise<import('./utils/getConfig.mjs').ResolveSpecifierResult>} The resolved specifier.
+ * @returns {Promise<ResolveSpecifierResult>} The resolved specifier.
  * @see https://nodejs.org/api/module.html#moduleregisterspecifier-parenturl-options
  */
 export async function resolve (specifier, context, nextResolve) {
@@ -108,10 +108,10 @@ export async function resolve (specifier, context, nextResolve) {
 /**
  * Loads the content.
  * @param {string} fileUrl - The file URL.
- * @param {import('./utils/getConfig.mjs').LoadContext} context - The context.
+ * @param {LoadContext} context - The context.
  * @param {function} nextLoad - The subsequent load hook in the chain.
  * @param  {...any} args - The arguments.
- * @returns {Promise<import('./utils/getConfig.mjs').LoadUrlResult>} The loaded content.
+ * @returns {Promise<LoadUrlResult>} The loaded content.
  */
 export async function load (fileUrl, context, nextLoad) {
   if (!config) return nextLoad(fileUrl, context)

@@ -9,7 +9,7 @@ import mime from 'mime'
 import resolve from '../utils/resolve.mjs'
 import readDir from '../utils/readDir.mjs'
 
-import getConfig from './config/get.mjs'
+import getConfig from './config.mjs'
 
 /**
  * Runs a web server to serve a folder.

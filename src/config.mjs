@@ -1,32 +1,34 @@
 import * as url from 'node:url'
 import * as path from 'node:path'
 
-import resolve from '../../utils/resolve.mjs'
+import resolve from '../utils/resolve.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const defaultConfig = path.resolve(__dirname, '..', '..', 'pages.config.mjs')
+const defaultConfig = path.resolve(__dirname, '..', 'pages.config.mjs')
 
 const defaultConfigNames = [
   'pages.config.mjs',
+  'pages.config.js'
 ]
 
 /**
  * Loads the configuration from the given data.
- * @param {import('../module.mjs').InitializeData} data - The import options.
- * @returns {Promise<import('./config.mjs').Config>} The configuration.
+ * @param {import('./module.mjs').InitializeData} data - The import options.
+ * @returns {Promise<import('./config/config.mjs').Config>} The configuration.
  */
 export default async function get (data) {
-  if (['render', 'sources', 'serve'].includes(data.arguments[0])) {
+  if (['render', 'sources', 'serve', 'build'].includes(data.arguments[0])) {
     const config = await loadConfig(data.arguments[2])
     return getValidatedConfig(config)
   }
+  throw new Error('Invalid arguments.')
 }
 
 /**
  * Loads the configuration.
  * @param {string} input - The user provided input.
- * @returns {Promise<import('./config.mjs').Config>} The configuration.
+ * @returns {Promise<import('./config/config.mjs').Config>} The configuration.
  */
 async function loadConfig (input = '') {
   if (!input) {
@@ -44,8 +46,8 @@ async function loadConfig (input = '') {
 
 /**
  * Validates the configuration.
- * @param {import('./config.mjs').Config} config - The configuration.
- * @returns {import('./config.mjs').Config} The validated configuration.
+ * @param {import('./config/config.mjs').Config} config - The configuration.
+ * @returns {import('./config/config.mjs').Config} The validated configuration.
  */
 function getValidatedConfig (config) {
   // modules

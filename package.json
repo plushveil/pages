@@ -22,14 +22,14 @@
   "author": "Plushveil <plushveil@gray.blue>",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "acorn": "^8.11.3",
-    "acorn-walk": "^8.3.2",
+    "acorn": "^8.12.1",
+    "acorn-walk": "^8.3.4",
     "comment-parser": "^1.4.1",
     "mime": "^4.0.4",
     "node-html-parser": "^6.1.13"
   },
   "devDependencies": {
-    "eslint": "^9.8.0",
-    "neostandard": "^0.11.2"
+    "eslint": "^9.10.0",
+    "neostandard": "^0.11.5"
   }
 }

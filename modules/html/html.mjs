@@ -5,7 +5,7 @@ import * as cmd from 'node:child_process'
 
 import { parse as parseHTML } from 'node-html-parser'
 
-import getConfig from '../../src/config/get.mjs'
+import getConfig from '../../src/config.mjs'
 
 import extractSources from './src/extractSources.mjs'
 

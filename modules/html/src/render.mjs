@@ -11,7 +11,7 @@ import getScriptTagsForElement from './getScriptTagsForElement.mjs'
 
 import * as js from '../../js/js-api.mjs'
 
-import getConfig from '../../../src/config/get.mjs'
+import getConfig from '../../../src/config.mjs'
 
 /**
  * Renders a page.

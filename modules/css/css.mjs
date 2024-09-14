@@ -3,7 +3,7 @@ import * as url from 'node:url'
 import * as fs from 'node:fs'
 import * as cmd from 'node:child_process'
 
-import getConfig from '../../src/config/get.mjs'
+import getConfig from '../../src/config.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

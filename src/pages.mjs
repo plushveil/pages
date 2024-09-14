@@ -3,6 +3,7 @@ import * as url from 'node:url'
 import * as module from 'node:module'
 
 import app from './serve.mjs'
+import buildAllPages from './build.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -23,6 +24,16 @@ const moduleFile = path.resolve(__dirname, 'module.mjs')
 export function serve (folder, config) {
   module.register(url.pathToFileURL(moduleFile), { parentURL: import.meta.url, data: { arguments: ['serve', folder, config] } })
   return app({ folder, config })
+}
+
+/**
+ * Builds a folder.
+ * @param {string} folder - The folder to build.
+ * @param {string} [config] - The configuration file.
+ */
+export function build (folder, config) {
+  module.register(url.pathToFileURL(moduleFile), { parentURL: import.meta.url, data: { arguments: ['build', folder, config] } })
+  return buildAllPages({ folder, config })
 }
 
 /**
