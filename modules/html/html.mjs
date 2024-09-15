@@ -13,6 +13,19 @@ const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
+ * @typedef {object} HTMLConfig
+ * @property {object} references - The references configuration.
+ * @property {boolean} references.resolve - Whether to resolve references.
+ * @property {object} js - The JavaScript configuration.
+ * @property {boolean} js.minify - Whether to minify the JavaScript.
+ * @property {string} js.integrity - Whether to add integrity attributes.
+ * @property {object} css - The CSS configuration.
+ * @property {boolean} css.minify - Whether to minify the CSS.
+ * @property {string} css.integrity - Whether to add integrity attributes.
+ * @property {import('./node_modules/html-minifier-terser/cli.js').mainOptions} minify - The HTML minify options.
+ */
+
+/**
  * The worker data.
  * @type {object}
  * @property {import('../../src/module.mjs').InitializeData} InitializeData - The initialize data.

@@ -11,6 +11,12 @@ const __dirname = path.dirname(__filename)
 let config
 
 /**
+ * @typedef {object} JSConfig
+ * @property {boolean} [minify] - Whether to minify the JavaScript.
+ * @property {string} [target] - The path to the browserlist.
+ */
+
+/**
  * Initializes the module.
  * @param {import('../../src/module.mjs').InitializeData} data - The import options.
  */

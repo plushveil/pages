@@ -2,6 +2,10 @@ import * as url from 'node:url'
 import * as fs from 'node:fs'
 
 /**
+ * @typedef {object} JSONConfig
+ */
+
+/**
  * Loads the content.
  * @param {string} fileUrl - The URL returned by the resolve chain.
  * @param {import('../../src/module.mjs').LoadContext} context - Context information.

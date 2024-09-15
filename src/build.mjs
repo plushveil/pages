@@ -3,6 +3,12 @@ import * as path from 'node:path'
 import getConfig from './config.mjs'
 
 import resolve from '../utils/resolve.mjs'
+import readDir from '../utils/readDir.mjs'
+
+/**
+ * @typedef {object} BuildConfig
+ * @property {string} output - The output folder.
+ */
 
 /**
  * Builds a folder.
@@ -16,5 +22,6 @@ export default async function build (options) {
   const folder = resolve(options.folder, [process.cwd(), path.dirname(config.file)])
   if (!folder) throw new Error(`Folder not found: "${options.folder}".`)
 
-  console.log('Building:', folder)
+  const output = resolve(config.build?.output || './dist', [path.dirname(config.file), process.cwd(), path.dirname(config.file)], { exists: false })
+  console.log(await readDir(folder))
 }

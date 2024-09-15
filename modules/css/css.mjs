@@ -11,6 +11,10 @@ const __dirname = path.dirname(__filename)
 let config
 
 /**
+ * @typedef {object} CSSConfig
+ */
+
+/**
  * Initializes the module.
  * @param {import('../../src/module.mjs').InitializeData} data - The import options.
  */

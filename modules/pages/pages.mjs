@@ -5,6 +5,10 @@ const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 /**
+ * @typedef {object} PagesConfig
+ */
+
+/**
  * Loads the content.
  * @param {string} fileUrl - The URL returned by the resolve chain.
  * @param {import('../../src/module.mjs').LoadContext} context - Context information.

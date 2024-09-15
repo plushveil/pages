@@ -12,6 +12,11 @@ import readDir from '../utils/readDir.mjs'
 import getConfig from './config.mjs'
 
 /**
+ * @typedef {object} ServeConfig
+ * @property {boolean} [partials] - Whether to serve partials.
+ */
+
+/**
  * Runs a web server to serve a folder.
  * @param {object} [options={}] - The options object.
  * @param {string} options.folder - The folder to serve.

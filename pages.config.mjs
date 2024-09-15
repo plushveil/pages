@@ -19,6 +19,10 @@ export const serve = {
   partials: false,
 }
 
+export const build = {
+  output: './dist',
+}
+
 export const js = {
   minify: true,
   target: './.browserslistrc',
@@ -34,6 +38,7 @@ export const html = {
   },
   css: {
     minify: true,
+    integrity: true, // @todo: add support for CSS integrity
   },
   minify: {
     caseSensitive: false,

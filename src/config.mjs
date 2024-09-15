@@ -13,9 +13,23 @@ const defaultConfigNames = [
 ]
 
 /**
+ * @typedef {object} Config
+ * @property {string} file - The configuration file.
+ * @property {URL} baseURI - The base URI.
+ * @property {Array<import('./module.mjs').Module>} modules - The modules.
+ * @property {import('./serve.mjs').ServeConfig} serve - The serve options.
+ * @property {import('./build.mjs').BuildConfig} build - The build options.
+ * @property {import('../modules/js/js.mjs').JSConfig} js - The JavaScript options.
+ * @property {import('../modules/html/html.mjs').HTMLConfig} html - The HTML options.
+ * @property {import('../modules/css/css.mjs').CSSConfig} css - The CSS options.
+ * @property {import('../modules/json/json.mjs').JSONConfig} json - The JSON options.
+ * @property {import('../modules/pages/pages.mjs').PagesConfig} pages - The Pages options.
+ */
+
+/**
  * Loads the configuration from the given data.
  * @param {import('./module.mjs').InitializeData} data - The import options.
- * @returns {Promise<import('./config/config.mjs').Config>} The configuration.
+ * @returns {Promise<Config>} The configuration.
  */
 export default async function get (data) {
   if (['render', 'sources', 'serve', 'build'].includes(data.arguments[0])) {
@@ -28,7 +42,7 @@ export default async function get (data) {
 /**
  * Loads the configuration.
  * @param {string} input - The user provided input.
- * @returns {Promise<import('./config/config.mjs').Config>} The configuration.
+ * @returns {Promise<Config>} The configuration.
  */
 async function loadConfig (input = '') {
   if (!input) {
@@ -46,8 +60,8 @@ async function loadConfig (input = '') {
 
 /**
  * Validates the configuration.
- * @param {import('./config/config.mjs').Config} config - The configuration.
- * @returns {import('./config/config.mjs').Config} The validated configuration.
+ * @param {Config} config - The configuration.
+ * @returns {Config} The validated configuration.
  */
 function getValidatedConfig (config) {
   // modules

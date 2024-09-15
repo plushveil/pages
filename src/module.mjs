@@ -5,6 +5,13 @@ import getConfig from './config.mjs'
 import resolveSpecifier from '../utils/resolve.mjs'
 
 /**
+ * @typedef {Object} Module
+ * @property {function} [initialize] - Initializes the module.
+ * @property {function} [resolve] - Resolves the specifier.
+ * @property {function} [load] - Loads the content.
+ */
+
+/**
  * @typedef {Object} InitializeData
  * @property {any[]} arguments - The arguments used to invoke the module loader.
  */
