@@ -7,9 +7,9 @@ import * as cssModule from './modules/css/css.mjs'
 import * as jsModule from './modules/js/js.mjs'
 
 const host = process.env.PAGE_HOST || 'localhost'
-const port = process.env.PAGE_PORT || 8080
+const port = process.env.PAGE_PORT || '8080'
 const path = process.env.PAGE_PATH || ''
-const protocol = `${port}` === '443' ? 'https' : 'http'
+const protocol = port === '443' ? 'https' : 'http'
 
 export const baseURI = new URL(path, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)
 
@@ -21,6 +21,11 @@ export const serve = {
 
 export const build = {
   output: './dist',
+  ignore: [
+    './translations/**',
+    '**/*.mjs'
+  ],
+  parallel: undefined,
 }
 
 export const js = {
