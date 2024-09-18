@@ -6,6 +6,7 @@
       return `<link rel="alternate" hreflang="${langCode}" href="${await getLanguageUrl(langCode)}">`
     }))).join('')}
     <link rel="canonical" href="/${languages}/${url}">
+    ${noindex ? `<meta name="robots" content="noindex">` : ''}
     <title>${text.title}</title>
   </head>
   <body>
@@ -33,6 +34,7 @@
 
   export const langCode = await getParamByName('languages')
   export const text = await getLanguage(langCode)
+  export const noindex = !(await getParamByName('url') === text.home.url)
 
   export async function getLanguageUrl (langCode) {
     const lang = await getLanguage(langCode)

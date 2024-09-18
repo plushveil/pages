@@ -97,6 +97,9 @@ export default async function build (options) {
   process.stdout.clearLine()
   process.stdout.cursorTo(0)
   process.stdout.write(`Built ${totalSize} pages in ${Math.ceil((Date.now() - start) / 1000)} seconds.\n`)
+
+  // execute post-build script
+  await config.build?.after?.(output, await readDir(output))
 }
 
 /**

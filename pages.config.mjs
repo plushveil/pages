@@ -6,9 +6,11 @@ import * as jsonModule from './modules/json/json.mjs'
 import * as cssModule from './modules/css/css.mjs'
 import * as jsModule from './modules/js/js.mjs'
 
+import sitemap from './build/sitemap.mjs'
+
 const host = process.env.PAGE_HOST || 'localhost'
 const port = process.env.PAGE_PORT || '8080'
-const path = process.env.PAGE_PATH || ''
+const path = process.env.PAGE_PATH || '/'
 const protocol = port === '443' ? 'https' : 'http'
 
 export const baseURI = new URL(path, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)
@@ -26,6 +28,9 @@ export const build = {
     '**/*.mjs'
   ],
   parallel: undefined,
+  async after (output, files) {
+    await sitemap('sitemap.xml', output, files, baseURI)
+  }
 }
 
 export const js = {
