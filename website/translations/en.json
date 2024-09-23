@@ -1,27 +1,34 @@
 {
   "lang": {
     "name": "English",
+    "description": "",
     "code": "en"
   },
   "title": "Pages",
+  "table-of-contents": "On this page:",
   "home": {
     "title": "",
+    "description": "",
     "url": ""
   },
   "getting-started": {
     "title": "Getting Started",
+    "description": "",
     "url": "getting-started"
   },
   "essentials": {
     "title": "Essentials",
+    "description": "",
     "url": "essentials"
   },
   "examples": {
     "title": "Examples",
+    "description": "",
     "url": "examples"
   },
   "search": {
     "title": "Search",
+    "description": "",
     "url": "search",
     "action": "Search",
     "name": "for",

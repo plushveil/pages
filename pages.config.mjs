@@ -24,8 +24,8 @@ export const serve = {
 export const build = {
   output: './dist',
   ignore: [
-    './translations/**',
-    '**/*.mjs'
+    '**/*.mjs',
+    '**/*.json',
   ],
   parallel: undefined,
   async after (output, files) {

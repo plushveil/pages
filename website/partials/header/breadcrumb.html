@@ -1,16 +1,16 @@
-<nav aria-label="breadcrumb" class="bg-slate-200 dark:bg-slate-700">
+<nav aria-label="breadcrumb" class="bg-slate-200 dark:bg-slate-700 overflow-hidden">
   <ol class="container flex flex-nowrap mx-auto items-center py-1">
-    <li>
+    <li class="flex flex-nowrap">
       <span class="text-gray-500 select-none">></span>
       <select class="px-4 appearance-none bg-transparent focus-within:bg-slate-200 dark:focus-within:bg-slate-700" aria-label="Language">
-        ${translations.map(([lang, name]) => `<option value="${lang}">${name}</option>`).join('')}
+        ${translations.map(([lang, name]) => `<option value="${lang}" class="text-nowrap">${name}</option>`).join('')}
       </select>
     </li>
   </ol>
   <template>
-    <li>
+    <li class="flex flex-nowrap">
       <span class="text-gray-500 select-none">></span>
-      <a class="font-normal px-4"></a>
+      <a class="font-normal px-4 text-nowrap"></a>
     </li>
   </template>
 </nav>

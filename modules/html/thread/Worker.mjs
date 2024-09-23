@@ -24,6 +24,12 @@ export default class Worker {
   worker
 
   /**
+   * The file URL.
+   * @type {string}
+   */
+  file
+
+  /**
    * The exit listener.
    * @type {function}
    */
@@ -40,6 +46,7 @@ export default class Worker {
    * @param {import('../../../src/module.mjs').InitializeData} workerData - The worker data.
    */
   constructor (workerData) {
+    this.file = workerData.parentURL
     this.worker = new threads.Worker(workerEntryFile, { workerData })
     this.worker.addListener('exit', this.#exitListener)
   }
@@ -65,7 +72,7 @@ export default class Worker {
           this.worker.removeListener('message', listener)
           if (responseType === 'reject') {
             if (response[0]?.stack) return reject(new Error(response[0]?.stack))
-            else return reject(new Error(JSON.stringify(response, null, 2)))
+            else return reject(new Error(JSON.stringify(response, null, 2) + `\n    while building ${this.file}`))
           } else {
             return resolve(...response)
           }

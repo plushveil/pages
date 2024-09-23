@@ -1,0 +1,50 @@
+<nav id="nav-table-of-contents" aria-label="${text['table-of-contents']}" class="p-4 mt-4 lg:mt-0 lg:mx-4 lg:px-4">
+  <span class="mt-0 mb-2 text-xs font-extralight text-nowrap">${text['table-of-contents']}</span>
+  <ul class="list-none space-y-2">
+  </ul>
+  <script>
+    const toc = document.getElementById('nav-table-of-contents').querySelector('ul')
+    window.addEventListener('load', () => {
+      const context = document.querySelector('main')
+      const headings = [...context.querySelectorAll('h1, h2, h3, h4, h5, h6')]
+
+      headings.forEach((heading) => {
+        const li = document.createElement('li')
+        const a = document.createElement('a')
+        const level = parseInt(heading.tagName[1])
+        a.textContent = heading.textContent
+        a.classList.add('text-nowrap')
+
+        if (level === 1) a.classList.add('text-sm', 'font-bold', 'ml-0')
+        else if (level === 2) a.classList.add('text-sm', 'font-bold', 'ml-0')
+        else if (level === 3) a.classList.add('text-sm', 'font-bold', 'ml-0')
+        else if (level === 4) a.classList.add('text-sm', 'font-medium', 'ml-0')
+        else if (level === 5) a.classList.add('text-sm', 'font-light', 'ml-0')
+        else if (level === 6) a.classList.add('text-sm', 'font-thin', 'ml-0')
+
+        li.appendChild(a)
+        toc.appendChild(li)
+        if (heading.id) a.href = '#' + heading.id
+        else {
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              if (mutation.type === 'attributes' && mutation.attributeName === 'id') {
+                a.href = '#' + heading.id
+                observer.disconnect()
+              }
+            })
+          })
+          observer.observe(heading, { attributes: true, attributeFilter: ['id'] })
+        }
+      })
+    })
+  </script>
+</nav>
+
+<script target="nav">
+  import { getParamByName } from 'pages:info'
+  import { getLanguage } from '../scripts/translations.mjs'
+
+  export const langCode = await getParamByName('languages')
+  export const text = await getLanguage(langCode)
+</script>
