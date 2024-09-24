@@ -53,28 +53,6 @@ export async function render (page, config) {
 /**
  *
  */
-export async function getSources (pageOrfileUrl, config) {
-  const sources = []
-
-  const page = (() => {
-    if (typeof pageOrfileUrl === 'object') return pageOrfileUrl
-    const filepath = url.fileURLToPath(pageOrfileUrl)
-    const page = getPages(pageOrfileUrl, config).find(page => page.params['Content-Type'] === 'application/json')
-    sources.push(filepath)
-    return page
-  })()
-
-  const sourcemap = JSON.parse(await render(page, config))
-  for (const source of sourcemap.sources) {
-    const file = path.resolve(process.cwd(), ...source.split('/'))
-    if (fs.existsSync(file)) sources.push(file)
-  }
-  return sources
-}
-
-/**
- *
- */
 export function getPages (fileUrl, config) {
   const filepath = url.fileURLToPath(fileUrl)
   const baseURI = new URL(config.baseURI)

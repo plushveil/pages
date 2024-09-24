@@ -59,7 +59,6 @@ export async function load (fileUrl, context, nextLoad) {
       `import * as css from '${url.pathToFileURL(path.resolve(__dirname, 'css-api.mjs')).href}'`,
       `const config = ${config}`,
       `export default async function (page) { return css.default(page || '${fileUrl}', config) }`,
-      `export async function getSources (page) { return css.getSources(page || '${fileUrl}', config) }`,
       `export async function getPages () { return css.getPages('${fileUrl}', config) }`,
     ].join('\n'),
   }

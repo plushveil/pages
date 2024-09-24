@@ -61,7 +61,6 @@ export async function load (fileUrl, context, nextLoad) {
       `import * as js from '${url.pathToFileURL(path.resolve(__dirname, 'js-api.mjs')).href}'`,
       `const config = ${config}`,
       `export default async function (page) { return js.default(page || '${fileUrl}', config) }`,
-      `export async function getSources (page) { return js.getSources(page || '${fileUrl}', config) }`,
       `export async function getPages () { return js.getPages('${fileUrl}', config) }`,
     ].join('\n'),
   }

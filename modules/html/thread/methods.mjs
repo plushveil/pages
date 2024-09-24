@@ -26,32 +26,6 @@ export async function getPages (fileUrl) {
 }
 
 /**
- * Get the sources of a file.
- * @param {string} fileUrl - The file URL.
- * @returns {Promise<string[]>} The sources.
- */
-export async function getSources (fileUrl) {
-  const sources = new Set()
-  const pages = await getPages(fileUrl)
-  for (const page of pages) {
-    const workerData = { ...threads.workerData, page, emitSources: true }
-    const worker = new Worker(workerData)
-    worker.worker.on('message', sourceMessageListener)
-    await worker.exec('render', page)
-    worker.worker.off('message', sourceMessageListener)
-    worker.terminate()
-  }
-  return [...sources]
-
-  function sourceMessageListener (message) {
-    if (!Array.isArray(message)) return
-    const messageType = message[1]
-    const data = message[2]
-    if (messageType === 'source') sources.add(data)
-  }
-}
-
-/**
  * Renders a page.
  * @param {import('../html-pages.mjs').Page|string} [pageOrFileUrl] - The page or file URL.
  */
@@ -71,7 +45,7 @@ export async function render (pageOrFileUrl) {
   // check if the passed page params are different from the workerData page params
   let newThread = false
   if (page.params) {
-    const workerParams = threads.workerData.page.params
+    const workerParams = threads.workerData.page?.params || {}
     const pageParams = page.params
 
     for (const key in pageParams) {

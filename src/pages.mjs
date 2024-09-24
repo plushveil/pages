@@ -53,18 +53,7 @@ export async function render (file, config) {
  * @param {string} [config] - The configuration file.
  */
 export async function pages (file, config) {
-  module.register(url.pathToFileURL(moduleFile), { parentURL: import.meta.url, data: { arguments: ['sources', file, config] } })
+  module.register(url.pathToFileURL(moduleFile), { parentURL: import.meta.url, data: { arguments: ['pages', file, config] } })
   const getPages = (await import(file)).getPages
   console.log(typeof getPages === 'function' ? await getPages() : getPages)
-}
-
-/**
- * Prints a list of source files.
- * @param {string} file - The file to parse.
- * @param {string} [config] - The configuration file.
- */
-export async function sources (file, config) {
-  module.register(url.pathToFileURL(moduleFile), { parentURL: import.meta.url, data: { arguments: ['sources', file, config] } })
-  const getSources = (await import(file)).getSources
-  console.log(typeof getSources === 'function' ? await getSources() : getSources)
 }

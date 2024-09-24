@@ -9,7 +9,7 @@ import * as jsModule from './modules/js/js.mjs'
 import sitemap from './build/sitemap.mjs'
 
 const host = process.env.PAGE_HOST || 'localhost'
-const port = process.env.PAGE_PORT || '8080'
+const port = String(process.env.PAGE_PORT || 8080)
 const path = process.env.PAGE_PATH || '/'
 const protocol = port === '443' ? 'https' : 'http'
 

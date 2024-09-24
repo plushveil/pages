@@ -101,7 +101,6 @@ export async function load (fileUrl, context, nextLoad) {
         `const workerData = ${JSON.stringify(workerData)}`,
         'export default async function (...args) { return html.default(fileUrl, workerData, ...args) }',
         'export async function render (...args) { return html.render(fileUrl, workerData, ...args) }',
-        'export async function getSources () { return html.getSources(fileUrl, workerData) }',
         'export async function getPages () { return html.getPages(fileUrl, workerData) }',
       ].join('\n'),
       format: 'module',

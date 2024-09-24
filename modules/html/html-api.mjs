@@ -40,20 +40,6 @@ export function render (fileUrl, workerData, page, config) {
  * @param {import('./html-pages.mjs').Page} page - The page.
  * @returns {string[]} The list of files.
  */
-export async function getSources (fileUrl, workerData) {
-  const worker = new Worker({ ...workerData, parentURL: fileUrl })
-  const result = await worker.exec('getSources', fileUrl)
-  await worker.terminate()
-  return result
-}
-
-/**
- * Retrieves a list of all the files that are used to render the page.
- * @param {string} fileUrl - The file URL.
- * @param {object} workerData - The worker data.
- * @param {import('./html-pages.mjs').Page} page - The page.
- * @returns {string[]} The list of files.
- */
 export async function getPages (fileUrl, workerData) {
   const worker = new Worker({ ...workerData, parentURL: fileUrl })
   const result = await worker.exec('getPages', fileUrl)

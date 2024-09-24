@@ -28,14 +28,9 @@ export default async function render (page, options = {}) {
   })
 
   const root = parseHTML(rawContent)
-  const emitSources = threads.workerData?.emitSources
-
-  // emit current file as a source
-  if (emitSources) threads.parentPort.postMessage([null, 'source', page.file])
 
   // Retrieve the configuration.
   const config = await getConfig(threads.workerData.initializeData)
-  if (emitSources) threads.parentPort.postMessage([null, 'source', config.file])
 
   const contentSecurityPolicy = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
   const csp = contentSecurityPolicy ? parseContentSecurityPolicy(contentSecurityPolicy.getAttribute('content')) : {}
@@ -166,14 +161,6 @@ export default async function render (page, options = {}) {
       const code = await js.render(script, config)
       const textNode = node.childNodes.find(n => n.nodeType === 3)
       textNode.rawText = code
-
-      // Emit the sources.
-      if (emitSources) {
-        const source = { ...script }
-        source.params['Content-Type'] = 'application/json'
-        const sources = await js.getSources(source, config)
-        for (const source of sources) threads.parentPort.postMessage([null, 'source', source])
-      }
     }
 
     // Add content security policy.
