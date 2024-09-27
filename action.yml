@@ -31,8 +31,5 @@ runs:
           GITHUB_OUTPUT: $GITHUB_OUTPUT
           INPUT_FOLDER: ${{ inputs.folder }}
           INPUT_CONFIG: ${{ inputs.config }}
-      - run: |
-          echo "output: $GITHUB_OUTPUT"
-          cat $GITHUB_OUTPUT
-          echo "folder: ${{ steps.build.outputs.folder }}"
+      - run: echo "folder=${{ steps.build.outputs.folder }}" >> $GITHUB_OUTPUT
         shell: bash
