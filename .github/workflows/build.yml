@@ -26,4 +26,4 @@ jobs:
 
     - name: Build output test
       run: |
-        echo "${{join(steps.build.outputs.*, '\n')}}"
+        echo "${{toJSON(steps.build.outputs)}}"
