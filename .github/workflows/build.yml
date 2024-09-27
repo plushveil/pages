@@ -26,4 +26,4 @@ jobs:
 
     - name: Deploy
       run: |
-        echo "Deploying from ${{ steps.build.outputs.folder }}"
+        echo "Deploying from ${{ json(steps.build.outputs) }}"
