@@ -5,8 +5,7 @@ import * as cmd from 'node:child_process'
 
 import getConfig from '../../src/config.mjs'
 
-import extractSources from './src/extractSources.mjs'
-
+/** @type {import('./src/extractSources.mjs').default} */ let extractSources
 /** @type {import('node-html-parser').parse} */ let parseHTML
 
 const __filename = url.fileURLToPath(import.meta.url)
@@ -45,6 +44,7 @@ export async function initialize (data) {
     cmd.execSync('npm install', { cwd: __dirname, stdio: 'ignore' })
   }
   parseHTML = (await import('node-html-parser')).parse
+  extractSources = (await import('./src/extractSources.mjs')).default
 
   // inline scripts depend on the js module
   if (!fs.existsSync(path.resolve(__dirname, '..', 'js', 'node_modules'))) {
