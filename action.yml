@@ -1,0 +1,17 @@
+name: 'Build Pages'
+description: 'A build tool utilizing JavaScripts template literals to render HTML pages.'
+inputs:
+  folder:
+    description: 'The folder containing the pages to build.'
+    required: false
+  config:
+    description: 'The configuration file for the build.'
+    required: false
+outputs:
+  folder:
+    description: 'The folder containing the built pages.'
+runs:
+  using: "composite"
+  steps:
+    - run: $GITHUB_ACTION_PATH/src/action.mjs
+      shell: bash

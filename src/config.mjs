@@ -32,7 +32,7 @@ const defaultConfigNames = [
  * @returns {Promise<Config>} The configuration.
  */
 export default async function get (data) {
-  if (['render', 'sources', 'serve', 'build'].includes(data.arguments[0])) {
+  if (['render', 'sources', 'serve', 'build', 'pages'].includes(data.arguments[0])) {
     const config = await loadConfig(data.arguments[2])
     return getValidatedConfig(config)
   }

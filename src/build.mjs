@@ -100,6 +100,7 @@ export default async function build (options) {
 
   // execute post-build script
   await config.build?.after?.(output, await readDir(output))
+  return folder
 }
 
 /**

@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+import * as cmd from 'node:child_process'
+import * as path from 'node:path'
+import * as url from 'node:url'
+
+import core from '@actions/core'
+
+import { build } from './pages.mjs'
+
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+try {
+  await pre()
+  await main()
+} catch (err) {
+  console.error(err)
+  core.setFailed(err.stack || err.message)
+  process.exit(1)
+}
+
+/**
+ * Pre-action steps.
+ */
+async function pre () {
+  cmd.execSync('npm ci', { cwd: __dirname, stdio: 'inherit' })
+}
+
+/**
+ * Main action steps.
+ */
+async function main () {
+  const folder = core.getInput('folder')
+  const config = core.getInput('config')
+  const output = await build(folder, config)
+  core.setOutput('folder', output)
+}

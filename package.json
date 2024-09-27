@@ -1,7 +1,7 @@
 {
   "name": "@plushveil/pages",
   "version": "0.0.1",
-  "description": "A template engine utilizing JavaScripts template literals to render HTML pages.",
+  "description": "A build tool utilizing JavaScripts template literals to render HTML pages.",
   "main": "src/pages.mjs",
   "type": "module",
   "bin": {
