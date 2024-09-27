@@ -1,5 +1,3 @@
-import * as fs from 'fs'
-
 import core from '@actions/core'
 import { build } from './pages.mjs'
 
@@ -18,8 +16,6 @@ async function main () {
   const folder = core.getInput('folder')
   const config = core.getInput('config')
 
-  console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
   const output = await build(folder, config)
-  console.log(`Built to ${output}`)
-  fs.appendFileSync(process.env.GITHUB_OUTPUT, `folder=${output}\n`)
+  core.setOutput('folder', output)
 }
