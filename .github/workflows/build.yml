@@ -8,12 +8,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - uses: plushveil/pages@latest
+    - id: build
+      uses: plushveil/pages@latest
       with:
         folder: 'website'
+
+    - name: Checkout GitHub Pages Branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+    - name: Deploy
+      run: |
+        cp -r ${{ steps.build.outputs.folder }}/* .
+        git add .
+        git commit -m "Deploy"
+        git push

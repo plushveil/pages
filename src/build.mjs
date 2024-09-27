@@ -121,5 +121,5 @@ function updateProgress (resolved, totalSize) {
 
   process.stdout.clearLine?.()
   process.stdout.cursorTo?.(0)
-  process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%`)
+  process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%${process.stdout.clearLine ? '' : '\n'}`)
 }

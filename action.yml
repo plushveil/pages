@@ -24,7 +24,7 @@ runs:
         shell: bash
       - run: cd modules/js && npm ci
         shell: bash
-      - run: node action/action.mjs
+      - run: node src/action.mjs
         shell: bash
         env:
           INPUT_FOLDER: ${{ inputs.folder }}
