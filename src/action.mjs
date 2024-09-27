@@ -11,7 +11,6 @@ import resolve from '../utils/resolve.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const __main = path.join(__dirname, 'pages.mjs')
 
 try {
   await pre()
@@ -26,10 +25,9 @@ try {
  * Pre-action steps.
  */
 async function pre () {
-  cmd.execSync('npm ci', { cwd: __dirname, stdio: 'inherit' })
+  cmd.execSync('npm install', { cwd: __dirname, stdio: 'ignore' })
   for (const module of fs.readdirSync(path.join(__dirname, '..', 'modules'))) {
-    console.log(`$ npm ci --prefix modules/${module}`)
-    cmd.execSync('npm ci', { cwd: path.join(__dirname, '..', 'modules', module), stdio: 'inherit' })
+    cmd.execSync('npm install', { cwd: path.join(__dirname, '..', 'modules', module), stdio: 'ignore' })
   }
   core = await import('@actions/core')
 }
@@ -40,5 +38,5 @@ async function pre () {
 async function main () {
   const folder = resolve(core.getInput('folder'), [process.cwd()])
   const config = core.getInput('config')
-  cmd.execSync(`npm run pages -- build "${folder}" --config "${config}"`, { stdio: 'inherit' })
+  cmd.execSync(`npm run pages -s -- build "${folder}" --config "${config}"`, { stdio: 'inherit' })
 }
