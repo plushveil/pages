@@ -11,7 +11,5 @@ outputs:
   folder:
     description: 'The folder containing the built pages.'
 runs:
-  using: "composite"
-  steps:
-    - run: $GITHUB_ACTION_PATH/src/action.mjs
-      shell: bash
+  using: "node20"
+  main: "action/action.mjs"
