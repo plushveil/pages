@@ -18,5 +18,14 @@ runs:
           node-version: 'latest'
       - run: npm ci
         shell: bash
+      - run: cd modules/css && npm ci
+        shell: bash
+      - run: cd modules/html && npm ci
+        shell: bash
+      - run: cd modules/js && npm ci
+        shell: bash
       - run: node action/action.mjs
         shell: bash
+        env:
+          INPUT_FOLDER: ${{ inputs.folder }}
+          INPUT_CONFIG: ${{ inputs.config }}
