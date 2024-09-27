@@ -24,9 +24,15 @@ runs:
         shell: bash
       - run: cd modules/js && npm ci
         shell: bash
-      - run: node src/action.mjs
+      - id: build
+        run: node src/action.mjs
         shell: bash
         env:
           GITHUB_OUTPUT: $GITHUB_OUTPUT
           INPUT_FOLDER: ${{ inputs.folder }}
           INPUT_CONFIG: ${{ inputs.config }}
+      - run: |
+          echo "output: $GITHUB_OUTPUT"
+          cat $GITHUB_OUTPUT
+          echo "folder: ${{ steps.build.outputs.folder }}"
+        shell: bash
