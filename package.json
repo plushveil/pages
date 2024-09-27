@@ -22,6 +22,7 @@
   "author": "Plushveil <plushveil@gray.blue>",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
+    "@actions/core": "^1.10.1",
     "@plushveil/cli_from_jsdoc": "^0.0.5",
     "acorn": "^8.12.1",
     "acorn-walk": "^8.3.4",
