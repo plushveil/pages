@@ -11,5 +11,13 @@ outputs:
   folder:
     description: 'The folder containing the built pages.'
 runs:
-  using: "node20"
-  main: "action/action.mjs"
+  using: "composite"
+  steps:
+      - uses: actions/setup-node@v3.6.0
+        with:
+          node-version: 'latest'
+      - run: npm ci
+      - run: npm ci --prefix modules/css
+      - run: npm ci --prefix modules/js
+      - run: npm ci --prefix modules/html
+      - run: node src/action.mjs
