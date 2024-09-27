@@ -20,5 +20,5 @@ async function main () {
 
   console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
   const output = await build(folder, config)
-  fs.writeFileSync(process.env.GITHUB_OUTPUT, `folder=${output}\n`)
+  fs.appendFile(process.env.GITHUB_OUTPUT, `folder=${output}\n`)
 }
