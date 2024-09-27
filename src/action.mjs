@@ -4,9 +4,8 @@ import * as cmd from 'node:child_process'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import core from '@actions/core'
-
-import { build } from './pages.mjs'
+/** @type {import('@actions/core')} */ let core
+/** @type {import('./pages.mjs').build} */ let build
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -25,6 +24,8 @@ try {
  */
 async function pre () {
   cmd.execSync('npm ci', { cwd: __dirname, stdio: 'inherit' })
+  core = await import('@actions/core')
+  build = (await import('./pages.mjs')).build
 }
 
 /**
