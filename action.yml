@@ -27,5 +27,6 @@ runs:
       - run: node src/action.mjs
         shell: bash
         env:
+          GITHUB_OUTPUT: ${{ GITHUB_OUTPUT }}
           INPUT_FOLDER: ${{ inputs.folder }}
           INPUT_CONFIG: ${{ inputs.config }}
