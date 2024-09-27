@@ -10,6 +10,7 @@ inputs:
 outputs:
   folder:
     description: 'The folder containing the built pages.'
+    value: ${{ steps.build.outputs.folder }}
 runs:
   using: "composite"
   steps:
@@ -31,5 +32,3 @@ runs:
           GITHUB_OUTPUT: $GITHUB_OUTPUT
           INPUT_FOLDER: ${{ inputs.folder }}
           INPUT_CONFIG: ${{ inputs.config }}
-      - run: echo "folder=${{ steps.build.outputs.folder }}" >> $GITHUB_OUTPUT
-        shell: bash
