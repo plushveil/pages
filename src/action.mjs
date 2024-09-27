@@ -5,11 +5,13 @@ import * as path from 'node:path'
 import * as url from 'node:url'
 import * as fs from 'node:fs'
 
+import resolve from '../utils/resolve.mjs'
+
 /** @type {import('@actions/core')} */ let core
-/** @type {import('./pages.mjs').build} */ let build
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const __main = path.join(__dirname, 'pages.mjs')
 
 try {
   await pre()
@@ -30,15 +32,13 @@ async function pre () {
     cmd.execSync('npm ci', { cwd: path.join(__dirname, '..', 'modules', module), stdio: 'inherit' })
   }
   core = await import('@actions/core')
-  build = (await import('./pages.mjs')).build
 }
 
 /**
  * Main action steps.
  */
 async function main () {
-  const folder = core.getInput('folder')
+  const folder = resolve(core.getInput('folder'), [process.cwd()])
   const config = core.getInput('config')
-  const output = await build(folder, config)
-  core.setOutput('folder', output)
+  cmd.execSync(`npm run pages -- build "${folder}" --config "${config}"`, { stdio: 'inherit' })
 }
