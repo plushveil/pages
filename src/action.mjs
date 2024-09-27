@@ -1,5 +1,5 @@
 import core from '@actions/core'
-import { build } from '../src/pages.mjs'
+import { build } from './pages.mjs'
 
 try {
   await main()
