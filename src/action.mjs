@@ -19,6 +19,7 @@ async function main () {
   console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
   const output = await build(folder, config)
   console.log(output)
+  core.setOutput('folder', output)
 
   console.log(JSON.stringify(process.env, null, 2))
 }
