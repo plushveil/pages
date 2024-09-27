@@ -24,6 +24,6 @@ jobs:
       with:
         ref: gh-pages
 
-    - name: Deploy
+    - name: Build output test
       run: |
-        echo "Deploying from ${{ json(steps.build.outputs) }}"
+        echo "${{join(steps.build.outputs.*, '\n')}}"
