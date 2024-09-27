@@ -94,9 +94,9 @@ export default async function build (options) {
     await Promise.race(chunk)
   }
   await Promise.all(chunk)
-  process.stdout.clearLine?.()
-  process.stdout.cursorTo?.(0)
-  process.stdout.write(`Built ${totalSize} pages in ${Math.ceil((Date.now() - start) / 1000)} seconds.\n`)
+  // process.stdout.clearLine?.()
+  // process.stdout.cursorTo?.(0)
+  console.log(`Built ${totalSize} pages in ${Math.ceil((Date.now() - start) / 1000)} seconds.`)
 
   // execute post-build script
   await config.build?.after?.(output, await readDir(output))
@@ -119,7 +119,7 @@ function updateProgress (resolved, totalSize) {
 
   const percentage = (progress * 100).toFixed(2)
 
-  process.stdout.clearLine?.()
-  process.stdout.cursorTo?.(0)
-  process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%`)
+  // process.stdout.clearLine?.()
+  // process.stdout.cursorTo?.(0)
+  // process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%`)
 }
