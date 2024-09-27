@@ -13,11 +13,16 @@ outputs:
 runs:
   using: "composite"
   steps:
-      - uses: actions/setup-node@v3.6.0
+      - uses: actions/setup-node@v4.0.4
         with:
           node-version: 'latest'
       - run: npm ci
+        shell: bash
       - run: npm ci --prefix modules/css
+        shell: bash
       - run: npm ci --prefix modules/js
+        shell: bash
       - run: npm ci --prefix modules/html
+        shell: bash
       - run: node src/action.mjs
+        shell: bash
