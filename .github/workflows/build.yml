@@ -26,8 +26,8 @@ jobs:
 
     - name: Deploy
       run: |
-        cp -r ${{ steps.build.outputs.folder }}/* .
         find . -mindepth 1 -maxdepth 1 ! -name 'CNAME' ! -name '.git' -exec rm -rf {} +
+        cp -r ${{ steps.build.outputs.folder }}/* .
         git add .
         git commit -m "Deploy"
         git push
