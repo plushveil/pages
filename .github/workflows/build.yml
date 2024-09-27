@@ -24,6 +24,9 @@ jobs:
       with:
         ref: gh-pages
 
-    - name: Build output test
+    - name: Deploy to GitHub Pages
       run: |
-        echo "${{toJSON(steps.build.outputs)}}"
+        cp -r ${{steps.build.outputs}} .
+        git add .
+        git commit -m "${{ github.actor }}: ${{ github.event.head_commit.message }}"
+        git push
