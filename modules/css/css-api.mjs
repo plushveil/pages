@@ -26,7 +26,7 @@ export async function render (page, config) {
   const content = await fs.promises.readFile(page.file, { encoding: 'utf8' })
   const isTailwindResource = content.includes('tailwind') || content.includes('--tw-')
   const twConfig = (isTailwindResource) ? await getTailwindConfig(page, config) : null
-  const plugins = [nested, (twConfig) ? tailwind(twConfig) : null, cssnano()].filter(Boolean)
+  const plugins = [nested, autoprefixer, (twConfig) ? tailwind(twConfig) : null, cssnano()].filter(Boolean)
   const { css, map } = await postcss(plugins).use(atImport({ plugins })).process(content, { from: page.file, map: { annotation: false } })
 
   if (page.params['Content-Type'] === 'application/json') {
