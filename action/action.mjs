@@ -1,4 +1,5 @@
 import core from '@actions/core'
+import { build } from '../src/pages.mjs'
 
 try {
   await main()
@@ -15,4 +16,5 @@ async function main () {
   const config = core.getInput('config')
 
   console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
+  build(folder, config)
 }
