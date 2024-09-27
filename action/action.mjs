@@ -6,6 +6,7 @@ try {
 } catch (err) {
   console.error(err)
   core.setFailed(err.stack || err.message)
+  process.exit(1)
 }
 
 /**
@@ -16,5 +17,6 @@ async function main () {
   const config = core.getInput('config')
 
   console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
-  build(folder, config)
+  const output = await build(folder, config)
+  core.setOutput('folder', output)
 }

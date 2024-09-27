@@ -119,7 +119,7 @@ function updateProgress (resolved, totalSize) {
 
   const percentage = (progress * 100).toFixed(2)
 
-  // process.stdout.clearLine?.()
-  // process.stdout.cursorTo?.(0)
-  // process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%`)
+  process.stdout.clearLine?.()
+  process.stdout.cursorTo?.(0)
+  process.stdout.write(`Progress: [${filledBar}${emptyBar}] ${percentage}%`)
 }
