@@ -18,5 +18,5 @@ runs:
           node-version: 'latest'
       - run: npm ci
         shell: bash
-      - run: node src/action.mjs
+      - run: node action/action.mjs
         shell: bash
