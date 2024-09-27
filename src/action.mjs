@@ -1,3 +1,5 @@
+import * as fs from 'fs'
+
 import core from '@actions/core'
 import { build } from './pages.mjs'
 
@@ -18,8 +20,5 @@ async function main () {
 
   console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
   const output = await build(folder, config)
-  console.log(output)
-  core.setOutput('folder', output)
-
-  console.log(JSON.stringify(process.env, null, 2))
+  fs.writeFileSync(process.env.GITHUB_OUTPUT, `folder=${output}\n`)
 }
