@@ -26,6 +26,7 @@ try {
 async function pre () {
   cmd.execSync('npm ci', { cwd: __dirname, stdio: 'inherit' })
   for (const module of fs.readdirSync(path.join(__dirname, '..', 'modules'))) {
+    console.log(`$ npm ci --prefix modules/${module}`)
     cmd.execSync('npm ci', { cwd: path.join(__dirname, '..', 'modules', module), stdio: 'inherit' })
   }
   core = await import('@actions/core')
