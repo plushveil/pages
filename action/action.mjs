@@ -1,21 +1,18 @@
-import * as cmd from 'node:child_process'
-
 import core from '@actions/core'
 
 try {
   await main()
 } catch (err) {
   console.error(err)
-  core.setFailed(err.message)
-  process.exit(1)
+  core.setFailed(err.stack || err.message)
 }
 
 /**
  * Main action steps.
  */
 async function main () {
-  console.log('done.')
+  const folder = core.getInput('folder')
+  const config = core.getInput('config')
 
-  // echo current working directory
-  console.log(cmd.execSync('pwd').toString())
+  console.log(`Building ${folder}${config ? ` with ${config}` : ''}`)
 }
