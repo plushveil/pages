@@ -1,0 +1,36 @@
+{
+  "lang": {
+    "name": "Deutsch",
+    "code": "de"
+  },
+  "title": "Pages",
+  "home": {
+    "title": "",
+    "description": "",
+    "url": ""
+  },
+  "getting-started": {
+    "title": "Erste Schritte",
+    "description": "",
+    "url": "erste-schritte"
+  },
+  "essentials": {
+    "title": "Grundlagen",
+    "description": "",
+    "url": "grundlagen"
+  },
+  "examples": {
+    "title": "Beispiele",
+    "description": "",
+    "url": "beispiele"
+  },
+  "search": {
+    "title": "Suche",
+    "description": "",
+    "url": "suche",
+    "action": "Suchen",
+    "name": "nach",
+    "placeholder": "Suche...",
+    "label": "Jetzt diese Website durchsuchen"
+  }
+}
