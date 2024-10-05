@@ -62,8 +62,10 @@ export default async function build (folder, config, output) {
  */
 function render (output, config, page) {
   let file = path.resolve(output, page.url.pathname.slice(1))
-  if (file.endsWith('/')) file += 'index.html'
-  if (!file.includes('.')) file += '.html'
+  if (page.params?.headers?.['Content-Type'] === 'text/html') {
+    if (file.endsWith('/')) file += 'index.html'
+    else if (!(file.split('/').pop().includes('.'))) file += '/index.html'
+  }
 
   return new Promise((resolve, reject) => {
     let done = false
