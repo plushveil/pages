@@ -1,4 +1,7 @@
+import * as crypto from 'node:crypto'
+
 import { minify } from 'html-minifier-terser'
+import { parse } from 'node-html-parser'
 
 const minifyTrueDefault = {
   caseSensitive: false,
@@ -55,8 +58,28 @@ export default async function renderEnd (root, page, config, api) {
     const minifyOptions = { ...((typeof config.html?.minify === 'object' && config.html?.minify) || minifyTrueDefault) }
     if (typeof config.css?.minify !== 'undefined') minifyOptions.minifyCSS = !!config.css?.minify
     if (typeof config.js?.minify !== 'undefined') minifyOptions.minifyJS = !!config.js?.minify
-    return await minify(root.toString(), minifyOptions)
-  } else {
-    return root.toString()
+    root = parse(await minify(root.toString(), minifyOptions))
   }
+
+  if (config?.js?.integrity) {
+    const csp = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
+    if (csp) {
+      if (!csp.getAttribute('content').includes('script-src')) {
+        csp.setAttribute('content', `${csp.getAttribute('content')}; script-src 'sha384'`)
+      } else {
+        csp.setAttribute('content', csp.getAttribute('content').replace(/script-src /, `script-src 'sha384'`))
+      }
+    }
+
+    const scripts = root.querySelectorAll('script:not([src])')
+    for (const script of scripts) {
+      const content = script.innerText
+      const hash = crypto.createHash('sha384').update(content).digest('base64')
+      csp.setAttribute('content', `${csp.getAttribute('content').replace('script-src \'sha384\'', `script-src 'sha384' 'sha384-${hash}' `)}`)
+      script.setAttribute('integrity', `sha384-${hash}`)
+    }
+    csp.setAttribute('content', csp.getAttribute('content').replace(/script-src 'sha384'/, 'script-src'))
+  }
+
+  return root.toString()
 }
