@@ -13,8 +13,8 @@ try {
  * Main action steps.
  */
 async function main () {
-  const folder = core.getInput('folder')
-  const config = core.getInput('config')
+  const folder = core.getInput('folder') || undefined
+  const config = core.getInput('config') || undefined
 
   const output = await build(folder, config)
   core.setOutput('folder', output)
