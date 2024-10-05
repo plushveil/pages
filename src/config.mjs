@@ -19,6 +19,7 @@ const protocol = port === '443' ? 'https' : 'http'
  * @property {URL} fileUrl - The file URL of the configuration.
  * @property {URL} baseURI - The base URI of the website.
  * @property {string} [root] - The root page.
+ * @property {import('../pages.config.mjs').BuildConfig} build - Configuration of the build interface.
  * @property {import('../pages.config.mjs').HtmlConfig} html - Configuration of the html module.
  * @property {import('../pages.config.mjs').JsConfig} js - Configuration of the js module.
  * @property {import('../pages.config.mjs').CssConfig} css - Configuration of the css module.

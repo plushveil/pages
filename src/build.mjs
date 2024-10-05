@@ -25,8 +25,10 @@ export default async function build (folder, config, output) {
   output = getOutput(output)
 
   console.log(`Building ${path.relative(process.cwd(), config.root)} to ${output}`)
-  const pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat()
-    .filter(page => page && (page.params?.headers?.['X-Partial'] !== 'true'))
+  const pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => {
+    if (config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))) return []
+    return getPages(file, config)
+  }))).flat().filter(page => page && (page.params?.headers?.['X-Partial'] !== 'true'))
   const parallel = Math.min(os.cpus().length, pages.length)
 
   let done = 0
@@ -49,7 +51,9 @@ export default async function build (folder, config, output) {
     updateProgress(done, pages.length + done)
   }
 
-  console.log(`\nFinished building ${done} pages`)
+  console.log('')
+  if (typeof config.build?.after === 'function') await config.build.after(output, config)
+  console.log(`Finished building ${done} pages`)
   return output
 }
 

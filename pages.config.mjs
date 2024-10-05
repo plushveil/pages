@@ -2,11 +2,29 @@
  * @file The pages.config.mjs file is used to configure the rendering and serving of the website.
  */
 
+import sitemap from './modules/buildtools/sitemap.mjs'
+
 /**
  * The base URI of the website.
  * @type {URL}
  */
 export { baseURI } from './src/config.mjs'
+
+/**
+ * Configuration of the build module.
+ * @typedef {object} BuildConfig
+ * @property {string[]} [ignore=[]] - The files to ignore.
+ * @property {(output: string, config: import('./src/config.mjs').Config) => Promise<void>} [after] - A function to run after the build.
+ */
+/**
+ * @type {BuildConfig}
+ */
+export const build = {
+  ignore: [],
+  after: async (output, config) => {
+    await sitemap('sitemap.xml', output, config)
+  }
+}
 
 /**
  * Configuration of the html module.
