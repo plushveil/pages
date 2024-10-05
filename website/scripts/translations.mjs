@@ -24,5 +24,5 @@ export async function getLanguages () {
 export async function getLanguage (language) {
   const file = path.resolve(translationsFolder, `${language}.json`)
   if (!fs.existsSync(file)) throw new Error(`Language ${language} not found`)
-  return (await import(file)).default
+  return JSON.parse(fs.readFileSync(file))
 }

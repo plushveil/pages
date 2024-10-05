@@ -16,9 +16,8 @@
 </nav>
 
 <script target="nav">
-  import { getParamByName } from 'pages:info'
   import { getLanguage, getLanguages } from '../../scripts/translations.mjs'
-  export const langCode = await getParamByName('languages')
+  export const langCode = params.languages
   export const text = await getLanguage(langCode)
   export const translations = (await Promise.all((await getLanguages()).map(async lang => [lang, (await getLanguage(lang)).lang.name])))
     .sort((a, b) => {

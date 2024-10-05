@@ -42,9 +42,8 @@
 </nav>
 
 <script target="nav">
-  import { getParamByName } from 'pages:info'
   import { getLanguage } from '../scripts/translations.mjs'
 
-  export const langCode = await getParamByName('languages')
+  export const langCode = params.languages
   export const text = await getLanguage(langCode)
 </script>

@@ -1,116 +1,108 @@
+import * as os from 'node:os'
+import * as threads from 'node:worker_threads'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
 import * as url from 'node:url'
-import * as os from 'node:os'
 
 import getConfig from './config.mjs'
+import * as utils from './utils.mjs'
+import { pages as getPages } from './pages.mjs'
 
-import resolve from '../utils/resolve.mjs'
-import readDir from '../utils/readDir.mjs'
-
-/**
- * @typedef {object} BuildConfig
- * @property {string} output - The output folder.
- * @property {string[]} ignore - The ignore patterns.
- */
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const __worker = path.resolve(__dirname, 'worker.mjs')
 
 /**
  * Builds a folder.
- * @param {object} options - The options.
- * @param {string} options.folder - The folder to build.
- * @param {string} [options.config] - The configuration file.
- * @returns {Promise<void>} A promise that resolves when the folder is built.
+ * @param {string} folder - The folder to build.
+ * @param {string} [config] - A specifier that points to the configuration file.
+ * @param {string} [output] - The output folder.
+ * @returns {Promise<string>} The output folder.
  */
-export default async function build (options) {
-  updateProgress(0, 1)
-  const start = Date.now()
-  const config = await getConfig({ arguments: ['build', options.folder, options.config] })
-  const folder = resolve(options.folder, [process.cwd(), path.dirname(config.file)])
-  if (!folder) throw new Error(`Folder not found: "${options.folder}".`)
+export default async function build (folder, config, output) {
+  config = await getConfig(config)
+  config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
+  output = getOutput(output)
 
-  // build.output
-  const output = resolve(config.build?.output || './dist', [path.dirname(config.file), process.cwd(), path.dirname(config.file)], { exists: false })
-  if (fs.existsSync(output)) await fs.promises.rm(output, { recursive: true })
-  await fs.promises.mkdir(output, { recursive: true })
+  console.log(`Building ${path.relative(process.cwd(), config.root)} to ${output}`)
+  const pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat()
+    .filter(page => page && (page.params?.headers?.['X-Partial'] !== 'true'))
+  const parallel = Math.min(os.cpus().length, pages.length)
 
-  // build.ignore
-  const ignore = (config.build?.ignore || []).map((pattern) => new RegExp(pattern
-    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '.*')
-    .replace(/([^.])\*/g, '$1[^/]*')
-  ))
-
-  // retrieve **all** pages first
-  const pages = (await Promise.all((await readDir(folder)).map(async (file) => {
-    const relative = path.relative(folder, file)
-    if (ignore.some((pattern) => pattern.test(`./${relative}`))) return []
-    try {
-      const pages = []
-      const { default: render, getPages } = (await import(url.pathToFileURL(file).href))
-      for (const page of await getPages()) {
-        if (!page.path) continue /* skip partials */
-        pages.push({
-          render: async (output) => {
-            const content = await render(page)
-            if (!fs.existsSync(path.dirname(output))) await fs.promises.mkdir(path.dirname(output), { recursive: true })
-            await fs.promises.writeFile(output, content)
-          },
-          output: path.join(output, ...page.path.split('/'), page.path.endsWith('/') ? 'index.html' : '')
-        })
-      }
-      return pages
-    } catch (err) {
-      return [{
-        output: path.join(output, relative),
-        render: async (output) => {
-          if (!fs.existsSync(path.dirname(output))) await fs.promises.mkdir(path.dirname(output), { recursive: true })
-          await fs.promises.link(file, output)
-        }
-      }]
-    }
-  }))).flat()
-
-  // perform build
-  const chunkSize = config.build?.parallel || os.cpus().length
-  const totalSize = pages.length
-  let resolved = 0
-  let chunk = []
-
-  while (pages.length) {
-    const { render, output } = pages.shift()
-    const item = new Promise((resolve) => {
-      render(output).then(() => {
-        item.resolved = true
-        resolved++
-        resolve()
-        updateProgress(resolved, totalSize)
+  let done = 0
+  let inProgress = []
+  while (pages.length || inProgress.length) {
+    const page = pages.shift()
+    if (page) {
+      const promise = render(output, config, page).finally(() => { promise.done = true }).catch((err) => {
+        console.error(err)
+        process.exit(1)
       })
-    })
+      inProgress.push(promise)
+    }
 
-    chunk.push(item)
-    chunk = chunk.filter((item) => !(item.resolved))
-    if (chunk.length < chunkSize && pages.length) continue
-
-    await Promise.race(chunk)
+    inProgress = inProgress.filter(promise => !(promise.done))
+    if (inProgress.length < parallel && pages.length) continue
+    if (!inProgress.length) break
+    await Promise.race(inProgress)
+    done += 1
+    updateProgress(done, pages.length + done)
   }
-  await Promise.all(chunk)
-  // process.stdout.clearLine?.()
-  // process.stdout.cursorTo?.(0)
-  console.log(`Built ${totalSize} pages in ${Math.ceil((Date.now() - start) / 1000)} seconds.`)
 
-  // execute post-build script
-  await config.build?.after?.(output, await readDir(output))
+  console.log(`\nFinished building ${done} pages`)
+  return output
+}
+
+/**
+ * Renders a page.
+ * @param {string} output - The output folder.
+ * @param {import('./config.mjs').Config} config - The configuration.
+ * @param {import('./pages.mjs').Page} page - The page.
+ * @returns {Promise} A promise that resolves when the page has been rendered.
+ */
+function render (output, config, page) {
+  let file = path.resolve(output, page.url.pathname.slice(1))
+  if (file.endsWith('/')) file += 'index.html'
+  if (!file.includes('.')) file += '.html'
+
+  return new Promise((resolve, reject) => {
+    let done = false
+    const cb = (fn) => (...args) => (done) ? null : (() => { done = true; return fn(...args) })()
+    const worker = new threads.Worker(url.pathToFileURL(__worker), { workerData: { config: JSON.stringify(config) } })
+    worker.on('message', cb(message => { resolve(message); worker.terminate() }))
+    worker.on('error', cb(err => worker.terminate() || reject(err)))
+    worker.on('exit', cb(code => reject(new Error(`Worker stopped with exit code ${code}`))))
+    worker.postMessage(['pageToFile', JSON.stringify(page), file])
+  })
+}
+
+/**
+ * Retrieves the output folder.
+ * @param {string} output - The output folder.
+ * @returns {string} The output folder.
+ */
+function getOutput (output) {
+  if (!output) {
+    const folder = path.resolve(os.tmpdir(), 'pages')
+    if (fs.existsSync(folder)) fs.rmSync(folder, { recursive: true })
+    fs.mkdirSync(folder, { recursive: true })
+    return folder
+  }
+
+  output = utils.resolve(output, undefined, { exists: false, folder: true })
+  if (fs.existsSync(output)) fs.rmSync(output, { recursive: true })
+  fs.mkdirSync(output, { recursive: true })
   return output
 }
 
 /**
  * Updates the progress bar in the console.
- * @param {number} resolved
- * @param {number} totalSize
+ * @param {number} current - The current size.
+ * @param {number} total - The total size.
  */
-function updateProgress (resolved, totalSize) {
-  const barWidth = process.stdout.columns - 20
-  const progress = resolved / totalSize
+function updateProgress (current, total) {
+  const barWidth = Math.min(process.stdout.columns, 120) - 20
+  const progress = current / total
   const filledBarLength = Math.round(barWidth * progress)
   const emptyBarLength = barWidth - filledBarLength
 

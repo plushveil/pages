@@ -13,6 +13,7 @@ export default function main () {
 
 /**
  * Renders the breadcrumb.
+ * @param {window.HTMLElement[]} elements - Elements to render.
  */
 function renderBreadcrumb (elements) {
   const context = document.querySelector('header')
@@ -24,6 +25,8 @@ function renderBreadcrumb (elements) {
 
   /**
    * Find parent a tag.
+   * @param {window.HTMLElement} element - Element to find parent a tag.
+   * @returns {window.HTMLElement} Parent a tag
    */
   function findParentA (element) {
     if (element.tagName === 'A') return element
@@ -67,8 +70,8 @@ function renderBreadcrumbLanguageSelection () {
 
 /**
  * Gets all previous headers of an element.
- * @param {HTMLElement} element - Element to get all previous headers.
- * @returns {HTMLElement[]} All previous headers.
+ * @param {window.HTMLElement} element - Element to get all previous headers.
+ * @returns {window.HTMLElement[]} All previous headers.
  */
 function getAllPreviousHeaders (element) {
   const allHeadings = [...document.querySelectorAll('h1, h2, h3, h4, h5, h6')]
@@ -100,7 +103,7 @@ function getAllPreviousHeaders (element) {
 
 /**
  * Is called when the visibility of an h1-h6 element changes.
- * @param {IntersectionObserverEntry[]} entries
+ * @param {window.IntersectionObserverEntry[]} entries - Entries.
  */
 function onVisibilityChange (entries) {
   entries.forEach(entry => {

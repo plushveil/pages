@@ -1,257 +1,199 @@
 import * as fs from 'node:fs'
 import * as url from 'node:url'
-import * as threads from 'node:worker_threads'
+import * as module from 'node:module'
+
+import { parse } from 'node-html-parser'
+
+import split from './splitTemplateLiterals.mjs'
+import renderEnd from './renderEnd.mjs'
+
 import * as path from 'node:path'
-import * as crypto from 'node:crypto'
 
-import { parse as parseHTML } from 'node-html-parser'
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-import splitTemplateLiterals from './splitTemplateLiterals.mjs'
-import getScriptTagsForElement from './getScriptTagsForElement.mjs'
-
-import * as js from '../../js/js-api.mjs'
-
-import getConfig from '../../../src/config.mjs'
+// eval-hook.mjs
+module.register(url.pathToFileURL(path.resolve(__dirname, 'eval-hook.mjs')).toString(), {})
 
 /**
- * Renders a page.
- * @param {import('../html-pages.mjs').Page} [page]
- * @param {RenderOptions} [options={}] - The options.
- * @returns {Promise<string>} The rendered page.
+ * Render a page
+ * @param {import('../../../src/pages.mjs').Page} page - The page to render
+ * @param {import('../../../src/config.mjs').Config} config - The configuration
+ * @param {import('../../../src/pages.mjs').API} api - The API
+ * @returns {Promise<string>} The rendered page
  */
-export default async function render (page, options = {}) {
-  const id = Date.now()
-  const placeholders = []
-  const rawContent = (await fs.promises.readFile(page.file, { encoding: 'utf-8' })).replace(/`[^`]*`/g, (match) => {
-    placeholders.push(match)
-    return `"%%${id}_${placeholders.length - 1}%%"`
-  })
+export default async function render (page, config, api) {
+  const content = page.content ?? await fs.promises.readFile(url.fileURLToPath(page.fileUrl), { encoding: 'utf8' })
 
-  const root = parseHTML(rawContent)
+  // mark page as root if it isn't already
+  // this marker will be used to perform minification and other operations only once on the root page
+  if (typeof page.root !== 'boolean') page.root = true
 
-  // Retrieve the configuration.
-  const config = await getConfig(threads.workerData.initializeData)
+  // parse the content
+  const root = await expensiveParse(content)
 
-  const contentSecurityPolicy = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
-  const csp = contentSecurityPolicy ? parseContentSecurityPolicy(contentSecurityPolicy.getAttribute('content')) : {}
-
-  // Render all elements and text nodes.
-  await forEach(root, root.childNodes.filter(n => !isScriptTag(n)), (node, parent) => {
-    if (node.nodeType === 1) return renderElement(node)
-    if (node.nodeType === 3) return renderText(node, parent)
-  })
-
-  // Add the content security policy.
-  if (config.html?.js?.integrity) {
-    const contentSecurityPolicy = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
-    if (contentSecurityPolicy) {
-      const updatedCSP = contentSecurityPolicy ? parseContentSecurityPolicy(contentSecurityPolicy.getAttribute('content')) : {}
-      contentSecurityPolicy.setAttribute('content', stringifyContentSecurityPolicy(csp, updatedCSP))
+  // update the canonical URL. It may contain template literals but these are not evaluated because they are evaluated by the pages method
+  // the render method (here) will use the raw text from the page object
+  if (page.url) {
+    const canonicals = root.querySelectorAll('link[rel="canonical"]')
+    for (let i = 0; i < canonicals.length; i++) {
+      const canonical = canonicals[i]
+      if (i === 0) canonical.setAttribute('href', page.url.toString())
+      else canonical.remove()
     }
   }
 
-  // Retrieve the rendered content, after cleaning up the script tags.
-  root.childNodes.forEach((node) => { if (isScriptTag(node)) node.remove() })
-  let content = root.toString()
+  // get script fields with a target attribute (contexts)
+  // these contexts will be used to evaluate template literals on the page
+  await Promise.all([...(root.querySelectorAll('script[target]'))].map(async (node) => {
+    const nodes = root.querySelectorAll(node.getAttribute('target'))
+    if (nodes.length === 0 || !(nodes.find(n => n.outerHTML.includes('${')))) return node.remove()
+    const specifier = page.content ? `data:application/javascript;base64,${Buffer.from(node.rawText).toString('base64')}` : page.fileUrl
 
-  // Minify the content.
-  if (config.html?.minify) {
-    const minify = (await import('html-minifier-terser')).minify
-    const minifyOptions = { ...(config.html?.minify || {}) }
-    if (typeof config.html?.css?.minify !== 'undefined') minifyOptions.minifyCSS = !!config.html?.css?.minify
-    if (typeof config.html?.js?.minify !== 'undefined') minifyOptions.minifyJS = !!config.html?.js?.minify
-    if (config.html?.js?.integrity) minifyOptions.minifyJS = false
-    content = await minify(content, minifyOptions)
-  }
+    const contextUrl = new URL(specifier)
+    if (!page.content) contextUrl.searchParams.set('code', node.rawText)
+    contextUrl.searchParams.set('format', 'pages-module-html-evaluate')
+    contextUrl.searchParams.set('env', JSON.stringify({
+      params: page.params || {},
+      __filename: page.fileUrl ? url.fileURLToPath(page.fileUrl) : path.resolve(process.cwd(), 'index.html'),
+      __dirname: page.fileUrl ? path.dirname(url.fileURLToPath(page.fileUrl)) : process.cwd(),
+    }))
 
-  // Return the content.
-  return content
+    const params = await import(contextUrl.toString())
+    for (const node of nodes) node._context = Object.assign(node._context || {}, params)
+    node.remove()
+  }))
+
+  // evaluate template literals in the tree
+  await forEach(root, root.childNodes, async (node, parent) => {
+    if (node.nodeType === 1) await renderElement(node, parent)
+    if (node.nodeType === 3) await renderText(node, parent)
+  })
+
+  return page.root ? renderEnd(root, page, config, api) : root.toString()
 
   /**
-   * Evaluates a template literal.
-   * @param {string[]} literals - The literals.
-   * @param {HTMLElement[]} scriptTags - The script tags.
-   * @returns {Promise<string>} The evaluated template literal.
+   * Render a HTML element node.
+   * @param {import('node-html-parser').HTMLElement} node - The node.
+   * @param {import('node-html-parser').HTMLElement} parent - The parent node.
+   * @returns {Promise} A promise that resolves when the node has been processed.
    */
-  async function evaluate (literals, scriptTags) {
-    const parts = []
-    for (const literal of literals) {
-      if (!(literal.startsWith('${') && literal.endsWith('}'))) {
-        parts.push(literal)
-        continue
-      }
+  async function renderElement (node, parent) {
+    if (node.rawAttrs.includes('${') && node.rawAttrs.includes('}')) node.rawAttrs = await evaluateTemplateLiterals(node, node.rawAttrs)
 
-      if (scriptTags.length === 0) {
-        const fileUrl = new URL(url.pathToFileURL(page.file))
-        fileUrl.searchParams.set('format', 'html-script')
-        fileUrl.searchParams.set('index', -1)
-        const context = { ...(await import(fileUrl.toString())) }
-        const result = await context.default(literal.slice(2, -1), context)
-        parts.push(result)
-      }
-
-      for (const scriptTag of scriptTags) {
-        const index = root.childNodes.indexOf(scriptTag)
-        const fileUrl = new URL(url.pathToFileURL(page.file))
-        fileUrl.searchParams.set('format', 'html-script')
-        fileUrl.searchParams.set('index', index)
-        const context = { ...(await import(fileUrl.toString())) }
-        try {
-          const result = await context.default(literal.slice(2, -1), context, options)
-          parts.push(result)
-        } catch (err) {
-          const isReferenceError = err instanceof ReferenceError
-          if (!isReferenceError) throw err
-          else if (scriptTag === scriptTags[scriptTags.length - 1]) throw err
-          continue
+    if (config?.html?.resolve) {
+      for (const [name, values] of Object.entries(node.attrs)) {
+        for (const value of values.split(/\s+/)) {
+          if (!value || value.includes('://') || !value.includes('.')) continue
+          const filepath = path.resolve(path.dirname(url.fileURLToPath(page.fileUrl)), value)
+          if (fs.existsSync(filepath) && fs.statSync(filepath).isFile()) {
+            const pages = await api.pages(filepath, config)
+            const reference = api.utils.getPageMatch(pages, { params: { ...(page.params || {}), lang: getLang(node, pages) || page.params?.lang } })
+            if (reference) node.setAttribute(name, reference.url.toString())
+          }
         }
       }
     }
-
-    return parts.join('')
   }
 
   /**
-   * Renders an element. It is only necessary to render the attributes. InnerText will be rendered by the text nodes.
-   * @param {HTMLElement} node
-   */
-  async function renderElement (node) {
-    const isCanonical = (node.tagName.toUpperCase() === 'LINK' && node.getAttribute('rel') === 'canonical')
-    if (isCanonical) node.setAttribute('href', page.path)
-
-    const always = async () => {
-      if (isCanonical) return
-      if (node.tagName.toUpperCase() === 'SCRIPT') await renderScript(node)
-      await resolveReferences(node)
-    }
-
-    if (!(node.rawAttrs.includes('${'))) {
-      node.rawAttrs = node.rawAttrs.replace(new RegExp(`"%%${id}_(.*?)%%"`, 'g'), (_, index) => placeholders[index])
-      await always()
-      return
-    }
-
-    const literals = splitTemplateLiterals(node.rawAttrs)
-    if (!(literals.find(l => l.startsWith('${') && l.endsWith('}')))) { await always(); return }
-
-    const scriptTags = getScriptTagsForElement(root, node)
-
-    const attrs = []
-    for (let literal of literals) {
-      literal = literal.replace(new RegExp(`"%%${id}_(.*?)%%"`, 'g'), (_, index) => placeholders[index])
-      if (!(literal.startsWith('${') && literal.endsWith('}'))) { attrs.push(literal); continue }
-      const value = await evaluate([literal], scriptTags)
-      attrs.push(value.replaceAll(/"/g, '&quot;'))
-    }
-
-    node.rawAttrs = attrs.join('')
-    await always()
-  }
-
-  /**
-   * Renders a script tag.
-   * @param {HTMLElement} node - The node.
-   */
-  async function renderScript (node, state = {}) {
-    if (node.getAttribute('src')) return
-    if (!(node.childNodes.find(node => node.nodeType === 3))) return
-
-    if (!state.isRendered) {
-      const script = { file: page.file, params: { 'Content-Type': 'application/js', code: node.rawText } }
-      const code = await js.render(script, config)
-      const textNode = node.childNodes.find(n => n.nodeType === 3)
-      textNode.rawText = code
-    }
-
-    // Add content security policy.
-    if (config.html?.js?.integrity) {
-      function addContentSecurityPolicy () {
-        csp['script-src'] = csp['script-src'] || []
-
-        const algorithm = node.getAttribute('integrity') || 'sha384'
-        if (algorithm.includes('-')) { csp['script-src'].push(algorithm.startsWith('\'') ? algorithm : `'${algorithm}'`); return }
-
-        const code = node.childNodes.find(n => n.nodeType === 3).rawText
-        const hash = crypto.createHash(algorithm).update(code).digest('base64')
-        const digest = `${algorithm}-${hash}`
-        node.setAttribute('integrity', digest)
-        csp['script-src'].push(`'${digest}'`)
-      }
-      addContentSecurityPolicy()
-    }
-  }
-
-  /**
-   * Renders a text node.
-   * @param {import('node-html-parser').TextNode} node
-   * @param {import('node-html-parser').HTMLElement} parent
+   * Render a HTML text node.
+   * @param {import('node-html-parser').TextNode} node - The node.
+   * @param {import('node-html-parser').HTMLElement} parent - The parent node.
+   * @returns {Promise} A promise that resolves when the node has been processed.
    */
   async function renderText (node, parent) {
-    if (!(node.rawText && node.rawText.includes('${'))) {
-      node.rawText = node.rawText.replace(new RegExp(`"%%${id}_(.*?)%%"`, 'g'), (_, index) => placeholders[index])
-      return
-    }
-
-    const literals = splitTemplateLiterals(node.rawText).map(literal => {
-      return literal.replace(new RegExp(`"%%${id}_(.*?)%%"`, 'g'), (_, index) => placeholders[index])
-    })
-
-    if (!(literals.find(l => l.startsWith('${') && l.endsWith('}')))) return
-
-    const scriptTags = getScriptTagsForElement(root, node)
-    const text = await evaluate(literals, scriptTags)
-    if (text.includes('<')) {
-      const html = parseHTML(text)
-      parent.exchangeChild(node, html)
-      for (const script of html.querySelectorAll('script')) await renderScript(script, { isRendered: true })
-    } else {
-      node.rawText = text
-    }
+    if (node.rawText.includes('${') && node.rawText.includes('}') && parent.tagName !== 'SCRIPT') node.rawText = await evaluateTemplateLiterals(node, node.rawText)
   }
 
   /**
-   * Resolve references to other pages.
-   * @param {HTMLElement} node - The node.
+   * Replaces template literals in the tree with their evaluated values.
+   * @param {import('node-html-parser').HTMLElement|import('node-html-parser').TextNode} node - The node.
+   * @param {string} code - The code.
+   * @returns {Promise<string>} The evaluated code.
    */
-  async function resolveReferences (node) {
-    if (config.html?.references?.resolve !== true) return
-    const lang = node.getAttribute('lang')
-    for (const attributeName of Object.keys(node.attributes)) {
-      const value = node.getAttribute(attributeName)
-      if (!(value && typeof value === 'string' && value.startsWith('.'))) continue
-      try {
-        const fileUrl = url.pathToFileURL(path.resolve(path.dirname(page.file), ...value.split('/')))
-        const getPages = (await import(fileUrl.toString())).getPages
-        if (typeof getPages !== 'function') continue
-
-        const referencePages = await getPages()
-        const pages = (lang && referencePages.some(p => p.params?.lang === lang)) ? referencePages.filter(p => p.params.lang === lang) : referencePages
-        if (pages.length === 0) continue
-        if (pages.length === 1) node.setAttribute(attributeName, pages[0].path)
-        else node.setAttribute(attributeName, findMatchingParams(page, pages))
-      } catch (err) {
-        console.error(err)
-      }
+  async function evaluateTemplateLiterals (node, code) {
+    // set the default context
+    const context = { params: page.params, ...(page.params || {}) }
+    if (page.fileUrl) {
+      if (!context.__filename) context.__filename = url.fileURLToPath(page.fileUrl)
+      if (!context.__dirname) context.__dirname = path.dirname(context.__filename)
     }
+    context.include = (file) => {
+      const fileUrl = path.isAbsolute(file) ? url.pathToFileURL(file) : new URL(file, page.fileUrl)
+      return render({ ...page, fileUrl, content: undefined, root: false }, config, api)
+    }
+
+    // get the context from targeted scripts
+    let currentNode = node
+    while (currentNode.parentNode) {
+      const ctx = currentNode._context
+      if (ctx) for (const key in ctx) if (!(key in context)) context[key] = ctx[key]
+      currentNode = currentNode.parentNode
+    }
+
+    // evaluate the code
+    const specifier = page.content ? 'data:application/js;base64,' : page.fileUrl
+    const fileUrl = new URL(specifier)
+    fileUrl.searchParams.set('format', 'pages-module-html-evaluate-template-literals')
+    const renderer = (await import(fileUrl.toString())).default
+
+    return await renderer(code, context)
   }
 }
 
 /**
- * Checks if a node is a script tag with a target attribute.
- * @param {HTMLElement} node - The node.
- * @returns {boolean} Whether the node is a script tag.
+ * Parses a string of HTML content.
+ * @param {string} content - The content.
+ * @returns {Promise<import('node-html-parser').HTMLElement>} The root node.
  */
-function isScriptTag (node) {
-  if (node.nodeType !== 1) return false
-  if (node.tagName?.toUpperCase() !== 'SCRIPT') return false
-  if (typeof node.getAttribute('target') === 'undefined') return false
-  return true
+export async function expensiveParse (content) {
+  // replace template literals as they may contain html tags
+  // e.g. ${true ? '<div>1</div>' : '<div>2</div>'}
+  // that would break the parsing
+  const id = Date.now()
+  const macros = {}
+  const text = split(content).map((part, i) => {
+    if (!part.startsWith('${') || !part.endsWith('}')) return part
+    const key = `%%MACRO_${id}_${i}%%`
+    macros[key] = part
+    return key
+  }).join('')
+
+  const root = parse(text)
+
+  // restore the template literals in the tree
+  await forEach(root, root.childNodes, async (node, parent) => {
+    if (node.nodeType === 1 && node.rawAttrs.includes(`%%MACRO_${id}`)) node.rawAttrs = node.rawAttrs.replace(new RegExp(`%%MACRO_${id}_\\d+%%`, 'g'), (match) => macros[match] || match)
+    if (node.nodeType === 3 && node.rawText.includes(`%%MACRO_${id}`)) {
+      node.rawText = node.rawText.replace(new RegExp(`%%MACRO_${id}_\\d+%%`, 'g'), (match) => macros[match] || match)
+    }
+  })
+
+  return root
+}
+
+/**
+ * Retrieves the language of a node.
+ * @param {import('node-html-parser').HTMLElement} node - The node.
+ * @param {import('../../../src/pages.mjs').Page[]} pages - The pages.
+ * @returns {string} The language.
+ */
+function getLang (node, pages) {
+  let lang
+  while (node) {
+    const nodeLang = node.getAttribute('hreflang') || node.getAttribute('lang')
+    const isValidLang = nodeLang && pages.find(page => page.params.lang === nodeLang)
+    if (isValidLang) { lang = nodeLang; break }
+    node = node.parentNode
+  }
+  return lang
 }
 
 /**
  * Executes a callback for each node in the tree.
- * @param {HTMLElement} parent - The parent node.
- * @param {HTMLElement} nodes - The root node.
+ * @param {import('node-html-parser').HTMLElement} parent - The parent node.
+ * @param {import('node-html-parser').HTMLElement} nodes - The root node.
  * @param {Function} callback - The callback.
  * @returns {Promise} A promise that resolves when all nodes have been processed.
  */
@@ -263,76 +205,4 @@ function forEach (parent, nodes, callback) {
     for (const child of (node.childNodes || [])) { promises.push(forEach(node, child, callback)) }
   }
   return Promise.all(promises)
-}
-
-/**
- * Find the page where most params match.
- * @param {import('../html-pages.mjs').Page} page - The page.
- * @param {import('../html-pages.mjs').Page[]} pages - The pages.
- * @returns {import('../html-pages.mjs').Page} The page with the most matching params.
- */
-function findMatchingParams (page, pages) {
-  const params = page.params || {}
-  const matches = pages.map((p) => {
-    const pParams = p.params || {}
-    return Object.keys(pParams).filter((key) => pParams[key] === params[key]).length
-  })
-  const max = Math.max(...matches)
-  return pages[matches.indexOf(max)].path
-}
-
-/**
- * Parses a content security policy string.
- * @param {string} csp - The content security policy string.
- * @returns {object<string, string[]>} The content security policy object.
- */
-function parseContentSecurityPolicy (csp = '') {
-  const cspObject = {}
-  const directives = csp.split(';').map(directive => directive.trim()).filter(Boolean)
-
-  directives.forEach(directive => {
-    const [name, ...values] = directive.split(/\s+/)
-    cspObject[name] = values
-  })
-
-  return cspObject
-}
-
-/**
- * Stringifies a content security policy object.
- * @param {...{[name: string]: string[]}} cspObjects - The content security policy objects.
- * @returns {string} The content security policy string.
- */
-function stringifyContentSecurityPolicy (...cspObjects) {
-  const cspObject = {
-    'default-src': [],
-  }
-
-  for (const obj of cspObjects) {
-    for (const [name, values] of Object.entries(obj)) {
-      cspObject[name] = cspObject[name] || []
-      for (const value of values) {
-        if (cspObject[name].includes(value)) continue
-        cspObject[name].push(value)
-      }
-    }
-  }
-
-  // if unsafe-eval is allowed, remove all integrity hashes
-  if (cspObject['script-src']?.find(value => value === "'unsafe-eval'")) {
-    cspObject['script-src'] = cspObject['script-src'].filter(value => !value.startsWith('sha'))
-  }
-
-  for (const directive of Object.keys(cspObject)) {
-    cspObject[directive] = cspObject[directive].filter((value, index, array) => value && array.indexOf(value) === index)
-    cspObject[directive] = cspObject[directive].sort((a, b) => {
-      if (a === "'self'") return -1
-      if (b === "'self'") return 1
-      if (a.startsWith("'unsafe")) return -1
-      if (b.startsWith("'unsafe")) return 1
-      return a.localeCompare(b)
-    })
-  }
-
-  return Object.entries(cspObject).map(([name, values]) => `${name} ${values.join(' ')}`).join('; ')
 }

@@ -19,12 +19,6 @@ runs:
           node-version: 'latest'
       - run: npm ci
         shell: bash
-      - run: cd modules/css && npm ci
-        shell: bash
-      - run: cd modules/html && npm ci
-        shell: bash
-      - run: cd modules/js && npm ci
-        shell: bash
       - id: build
         run: node src/action.mjs
         shell: bash

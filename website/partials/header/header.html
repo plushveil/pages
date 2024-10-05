@@ -13,32 +13,31 @@
           </svg>
         </li>
       </button>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text['getting-started'].url ? `${text['getting-started'].url}/` : ''}">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text['getting-started'].url}/">
         <li>
           ${text['getting-started'].title}
         </li>
       </a>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.essentials.url ? `${text.essentials.url}/` : ''}">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.essentials.url}/">
         <li>
           ${text.essentials.title}
         </li>
       </a>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.examples.url ? `${text.examples.url}/` : ''}">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.examples.url}/">
         <li>
           ${text.examples.title}
         </li>
       </a>
       <li class="w-full lg:w-fit lg:ml-auto pt-5 lg:pt-0">
-        ${(await import('./search.html')).render()}
+        ${await include('./search.html')}
       </li>
     </ul>
   </nav>
-  ${(await import('./breadcrumb.html')).render()}
+  ${await include('./breadcrumb.html')}
 </header>
 
 <script target="header">
-  import { getParamByName } from 'pages:info'
   import { getLanguage } from '../../scripts/translations.mjs'
-  export const langCode = await getParamByName('languages')
+  export const langCode = params.languages
   export const text = await getLanguage(langCode)
 </script>

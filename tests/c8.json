@@ -1,0 +1,11 @@
+{
+  "all": true,
+  "checkCoverage": true,
+  "lines": 0,
+  "functions": 0,
+  "branches": 0,
+  "include": ["src/**/*", "modules/**/*"],
+  "exclude": ["tests/**/*"],
+  "reporter": ["text"],
+  "reportDir": "./node_modules/c8/coverage"
+}

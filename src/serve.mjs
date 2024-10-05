@@ -1,176 +1,163 @@
-import * as path from 'node:path'
+import * as fs from 'node:fs'
+import * as os from 'node:os'
 import * as url from 'node:url'
+import * as path from 'node:path'
 import * as http from 'node:http'
 import * as https from 'node:https'
-import * as fs from 'node:fs'
+import * as threads from 'node:worker_threads'
+import process from 'node:process'
 
 import mime from 'mime'
 
-import resolve from '../utils/resolve.mjs'
-import readDir from '../utils/readDir.mjs'
-
 import getConfig from './config.mjs'
+import * as utils from './utils.mjs'
+import { pages as getPages } from './pages.mjs'
+
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const __worker = path.resolve(__dirname, 'worker.mjs')
+
+const apps = []
+
+process.on('SIGINT', (event) => {
+  for (const app of apps) {
+    app.closeAllConnections()
+    app.close()
+  }
+  process.exit(0)
+})
 
 /**
- * @typedef {object} ServeConfig
- * @property {boolean} [partials] - Whether to serve partials.
- */
-
-/**
- * Runs a web server to serve a folder.
- * @param {object} [options={}] - The options object.
- * @param {string} options.folder - The folder to serve.
- * @param {string} [options.config] - The configuration file.
+ * Builds a folder.
+ * @param {string} folder - The folder to build.
+ * @param {string} [config] - A specifier that points to the configuration file.
+ * @param {string} [output] - The output folder.
  * @returns {Promise<http.Server>} The server.
  */
-export default async function serve (options = {}) {
-  const config = await getConfig({ arguments: ['serve', options.folder, options.config] })
-  const folder = resolve(options.folder, [process.cwd(), path.dirname(config.file)])
-  if (!folder) throw new Error(`Folder not found: "${options.folder}".`)
+export default async function serve (folder, config, output) {
+  config = await getConfig(config)
+  config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
 
-  const [pages, partials, close] = await watchDir(folder)
+  const watcher = await getPageWatcher(config)
+  const parallel = os.cpus().length
+  const workers = []
+  const createWorkers = () => { while (workers.length < parallel) workers.push(createWorker(config, workers)) }
+  setInterval(createWorkers, 10000).unref()
+  createWorkers()
 
-  if (config.baseURI.protocol === 'https:') {
-    if (!config.ssl) throw new Error('SSL configuration is missing.')
-    if (!config.ssl.key) throw new Error('SSL key is missing.')
-    if (!config.ssl.cert) throw new Error('SSL certificate is missing.')
-  }
-
-  const server = config.baseURI.protocol === 'https:'
-    ? https.createServer(config.ssl, (req, res) => response(req, res, config, pages, partials, folder))
-    : http.createServer((req, res) => response(req, res, config, pages, partials, folder))
-
+  const requestHandler = getRequestHandler(config, watcher, workers, createWorker)
+  const server = (config.baseURI.protocol === 'https:') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
   const app = await new Promise((resolve, reject) => {
-    const app = server.listen(config.baseURI.port, config.baseURI.hostname, (err) => err ? reject(err) : resolve(app))
+    server.on('error', reject)
+    server.listen(Number(config.baseURI.port), config.baseURI.hostname, () => {
+      console.log(`Serving ${path.relative(process.cwd(), config.root)} at ${config.baseURI}`)
+      server.removeListener('error', reject)
+      resolve(server)
+    })
   })
 
-  console.log(`Server running at ${config.baseURI.href}`)
-  const appClose = app.close.bind(app)
-  app.close = () => { close(); return appClose() }
+  const close = app.close.bind(app)
+  app.close = () => {
+    while (workers.length) workers.pop().terminate()
+    watcher.end()
+    close()
+  }
 
+  apps.push(app)
   return app
 }
 
 /**
- * Returns a request handler for the given folder and pages.
- * @param {http.IncomingMessage} request - The request.
- * @param {http.ServerResponse} response - The response.
- * @param {import('./config/config.mjs').Config} config - The configuration object.
- * @param {import('./pages.mjs').Page[]} pages - The pages.
- * @param {import('./pages.mjs').Page[]} partials - The partials.
- * @param {string} folder - The folder.
- * @returns {Promise<function>} The request handler.
+ * Creates a worker.
+ * @param {import('./config.mjs').Config} config - The configuration.
+ * @param {threads.Worker[]} workers - The workers.
+ * @returns {threads.Worker} The worker.
  */
-async function response (request, response, config, pages, partials, folder) {
-  const { pathname } = new url.URL(request.url, 'http://localhost')
-  const page = pages.find(page => (page.path === pathname)) || pages.find(page => {
-    let pagePage = page.path
-    let requestPath = pathname
-    if (pagePage.endsWith('.html')) pagePage = pagePage.slice(0, -5)
-    if (requestPath.endsWith('.html')) requestPath = requestPath.slice(0, -5)
-    if (pagePage.endsWith('index')) pagePage = pagePage.slice(0, -5)
-    if (requestPath.endsWith('index')) requestPath = requestPath.slice(0, -5)
-    while (pagePage.endsWith('/')) pagePage = pagePage.slice(0, -1)
-    while (requestPath.endsWith('/')) requestPath = requestPath.slice(0, -1)
-    if (pagePage === requestPath) return true
-    return false
-  })
+function createWorker (config, workers) {
+  const worker = new threads.Worker(__worker, { workerData: { config: JSON.stringify(config) } })
+  const terminate = worker.terminate.bind(worker)
+  worker.terminate = () => { workers.splice(workers.indexOf(worker), 1); terminate() }
+  return worker
+}
 
-  if (!page) {
-    const file = path.resolve(folder, ...pathname.split('/'))
-
-    if (config.serve?.partials !== true) {
-      const partial = partials.find(partial => partial.file === file)
-      if (partial) {
-        response.writeHead(404, 'Not found', { 'Content-Type': 'application/json' })
-        response.end('{ "type": "error", "error": { "code": 404, "message": "Not found" } }')
-        return
-      }
-    }
-
-    if (file.startsWith(folder) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-      const type = mime.getType(file) || 'application/octet-stream'
-      response.writeHead(200, 'OK', { 'Content-Type': type })
-      fs.createReadStream(file).pipe(response)
+/**
+ * Returns the request handler.
+ * @param {import('./config.mjs').Config} config - The configuration.
+ * @param {{ getPages: () => import('./pages.mjs').Page[], end: () => void }} watcher - The watcher.
+ * @param {threads.Worker[]} workers - The workers.
+ * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
+ */
+function getRequestHandler (config, watcher, workers) {
+  /**
+   * Handles requests.
+   * @param {http.IncomingMessage} req - The request.
+   * @param {http.ServerResponse} res - The response.
+   */
+  return (req, res) => {
+    const reqUrl = new URL(req.url, config.baseURI)
+    const page = watcher.getPages().find(page => page.url.pathname === reqUrl.pathname)
+    if (!page) {
+      res.writeHead(404)
+      res.end('Not found')
       return
     }
 
-    response.writeHead(404, 'Not found', { 'Content-Type': 'application/json' })
-    response.end('{ "type": "error", "error": { "code": 404, "message": "Not found" } }')
-    return
-  }
+    const worker = workers.shift() || createWorker(config, workers)
+    const headers = page.params?.headers || {}
+    if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(page.url.pathname)
 
-  try {
-    const render = (await import(url.pathToFileURL(page.file).href)).default
-    const content = await render(page)
-    const type = (page.path.includes('.') ? mime.getType(page.path) : 'text/html') || 'application/octet-stream'
-    response.writeHead(200, 'OK', { 'Content-Type': type })
-    response.end(content)
-  } catch (err) {
-    console.error(err)
-    response.writeHead(500, 'Internal server error', { 'Content-Type': 'application/json' })
-    response.end('{ "type": "error", "error": { "code": 500, "message": "Internal server error" } }')
+    let done = false
+    worker.on('message', ([type, data]) => {
+      if (done) return
+      done = true
+      if (type === 'content') {
+        headers['Content-Length'] = Buffer.byteLength(data)
+        res.writeHead(200, headers)
+        res.end(data)
+      } else if (type === 'stream') {
+        headers['Transfer-Encoding'] = 'chunked'
+        res.writeHead(200, headers)
+        const rs = fs.createReadStream(url.fileURLToPath(page.fileUrl))
+        rs.pipe(res)
+      } else {
+        res.writeHead(500)
+        res.end('Internal server error')
+      }
+      worker.terminate()
+    })
+
+    worker.on('exit', (code) => {
+      if (code === 0 || done) return
+      done = true
+      res.writeHead(500)
+      res.end('Internal server error')
+    })
+
+    worker.postMessage(['pipe', JSON.stringify(page)])
   }
 }
 
 /**
- * Watches a folder for pages and partials.
- * @param {string} folder - The folder to watch.
- * @returns {Promise<[import('./pages.mjs').Page[], import('./pages.mjs').Page[]]>} The pages and partials.
+ * Watches the configuration root for changes and updates the page list.
+ * @param {import('./config.mjs').Config} config - The configuration.
+ * @returns {Promise<{ getPages: () => import('./pages.mjs').Page[], end: () => void }>} The watcher.
  */
-async function watchDir (folder) {
-  const pages = []
-  const partials = []
+async function getPageWatcher (config) {
+  const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
+  let pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat().filter(filter)
 
-  const files = await readDir(folder)
-  for (const file of files) {
-    try {
-      const filePages = await (await import(url.pathToFileURL(file).href)).getPages?.()
-      if (Array.isArray(filePages)) {
-        pages.push(...filePages.filter(page => !!(page?.path)))
-        partials.push(...filePages.filter(page => !(page?.path)))
-      }
-    } catch (err) {
-      if (err.message.startsWith('Unknown file extension')) continue
-      else throw err
+  const watcher = fs.watch(config.root, { recursive: true }, async (event, filename) => {
+    const file = path.resolve(config.root, filename)
+    const fileUrl = url.pathToFileURL(file).toString()
+
+    if (fs.existsSync(file)) {
+      const pagesUpdate = (await getPages(file, config)).filter(filter)
+      pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
+      pages.push(...pagesUpdate)
+    } else {
+      pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
     }
-  }
+  })
 
-  const pageFilter = (pages) => {
-    const uniquePages = []
-    for (const page of pages.reverse()) {
-      if (uniquePages.find(uniquePage => uniquePage.path === page.path)) continue
-      uniquePages.push(page)
-    }
-    pages.splice(0, pages.length, ...uniquePages)
-  }
-
-  const watchers = []
-  async function watchDirectory (directory) {
-    const watcher = fs.watch(directory, { recursive: true }, async (event, filename) => {
-      try {
-        const filepath = path.resolve(directory, filename)
-        if (fs.existsSync(filepath)) {
-          const filePages = await (await import(url.pathToFileURL(filepath).href)).getPages?.()
-          if (Array.isArray(filePages)) {
-            pageFilter(pages.push(...filePages.filter(page => !!(page?.path))))
-            pageFilter(partials.push(...filePages.filter(page => !(page?.path))))
-          }
-        } else {
-          for (const page of pages.filter(page => page.file === filepath)) pages.splice(pages.indexOf(page), 1)
-          for (const partial of partials.filter(partial => partial.file === filepath)) partials.splice(partials.indexOf(partial), 1)
-        }
-      } catch (err) {}
-    })
-    watchers.push(watcher)
-  }
-
-  const directories = [folder, ...files.map(file => path.dirname(file))].filter((dir, i, arr) => arr.indexOf(dir) === i)
-  for (const directory of directories) await watchDirectory(directory)
-
-  const close = () => {
-    for (const watcher of watchers) watcher.close()
-  }
-
-  return [pages, partials, close]
+  return { getPages: () => pages, end: () => watcher.close() }
 }
