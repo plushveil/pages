@@ -18,16 +18,16 @@ jobs:
       uses: plushveil/pages@latest
       with:
         folder: 'website'
-
+      env:
+        HOST: plushveil.github.io
+        PORT: 443
+        PATHNAME: /pages/
+  
     - name: Checkout GitHub Pages Branch
       uses: actions/checkout@v4
       with:
         ref: gh-pages
         path: gh-pages
-      env:
-        HOST: plushveil.github.io
-        PORT: 443
-        PATHNAME: /pages/
 
     - name: Deploy to GitHub Pages
       run: |
