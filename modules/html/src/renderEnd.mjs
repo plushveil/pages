@@ -47,21 +47,15 @@ const minifyTrueDefault = {
 
 /**
  * Finish rendering the page.
- * @param {import('node-html-parser').HTMLElement} root - The root element.
+ * @param {string} root - The root page.
  * @param {object} page - The page to render.
  * @param {object} config - The configuration.
  * @param {object} api - The API.
  * @returns {Promise<string>} The rendered page.
  */
 export default async function renderEnd (root, page, config, api) {
-  if (config?.html?.minify) {
-    const minifyOptions = { ...((typeof config.html?.minify === 'object' && config.html?.minify) || minifyTrueDefault) }
-    if (typeof config.css?.minify !== 'undefined') minifyOptions.minifyCSS = !!config.css?.minify
-    if (typeof config.js?.minify !== 'undefined') minifyOptions.minifyJS = !!config.js?.minify
-    root = parse(await minify(root.toString(), minifyOptions))
-  }
-
   if (config?.js?.integrity) {
+    root = parse(root)
     const csp = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
     if (csp) {
       if (!csp.getAttribute('content').includes('script-src')) {
@@ -79,7 +73,15 @@ export default async function renderEnd (root, page, config, api) {
       script.setAttribute('integrity', `sha384-${hash}`)
     }
     csp.setAttribute('content', csp.getAttribute('content').replace(/script-src 'sha384'/, 'script-src'))
+    root = root.toString()
   }
 
-  return root.toString()
+  if (config?.html?.minify) {
+    const minifyOptions = { ...((typeof config.html?.minify === 'object' && config.html?.minify) || minifyTrueDefault) }
+    if (typeof config.css?.minify !== 'undefined') minifyOptions.minifyCSS = !!config.css?.minify
+    if (typeof config.js?.minify !== 'undefined') minifyOptions.minifyJS = !!config.js?.minify
+    return await minify(root, minifyOptions)
+  }
+
+  return root
 }

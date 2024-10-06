@@ -70,7 +70,7 @@ export default async function render (page, config, api) {
     if (node.nodeType === 3) await renderText(node, parent)
   })
 
-  return page.root ? renderEnd(root, page, config, api) : root.toString()
+  return page.root ? renderEnd(root.toString(), page, config, api) : root.toString()
 
   /**
    * Render a HTML element node.

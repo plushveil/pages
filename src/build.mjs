@@ -65,7 +65,10 @@ export default async function build (folder, config, output) {
  * @returns {Promise} A promise that resolves when the page has been rendered.
  */
 function render (output, config, page) {
-  let file = path.resolve(output, page.url.pathname.slice(1))
+  let pathname = page.url.pathname.slice(config.baseURI.pathname.length)
+  while (pathname.startsWith('/')) pathname = pathname.slice(1)
+  let file = path.resolve(output, pathname)
+
   if (page.params?.headers?.['Content-Type'] === 'text/html') {
     if (file.endsWith('/')) file += 'index.html'
     else if (!(file.split('/').pop().includes('.'))) file += '/index.html'

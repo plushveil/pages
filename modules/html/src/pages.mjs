@@ -42,9 +42,10 @@ export default async function pages (file, config, api) {
 
   const pages = []
   for (const canonical of canonicals) {
-    const href = canonical.getAttribute('href')
+    let href = canonical.getAttribute('href')
     if (!href) continue
     if (!(href.includes('${'))) {
+      while (href.startsWith('/')) href = href.slice(1)
       pages.push({
         url: new URL(href, config.baseURI),
         params: {
@@ -64,7 +65,8 @@ export default async function pages (file, config, api) {
       const urlParts = await Promise.all(splitTemplateLiterals(href).map(part => getUrlPart(file, part, context)))
       const urlCombinations = getCombinations(urlParts)
       for (const combination of urlCombinations) {
-        const pathname = combination.reduce((path, part) => path + part.value, '')
+        let pathname = combination.reduce((path, part) => path + part.value, '')
+        while (pathname.startsWith('/')) pathname = pathname.slice(1)
         const params = combination.reduce((params, part) => {
           if (part.type !== 'dynamic') return params
           params[part.name] = part.value
