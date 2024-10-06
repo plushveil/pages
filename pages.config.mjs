@@ -20,7 +20,11 @@ export { baseURI } from './src/config.mjs'
  * @type {BuildConfig}
  */
 export const build = {
-  ignore: [],
+  ignore: [
+    /\/utils|src|components\/.*\.(j|cs)s$/,
+    /\.mjs$/,
+    /\.json$/,
+  ],
   after: async (output, config) => {
     await sitemap('sitemap.xml', output, config)
   }

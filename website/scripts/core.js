@@ -1,4 +1,4 @@
-import breadcrumb from './breadcrumb.js'
+import breadcrumb from './utils/breadcrumb.js'
 
 main()
 
