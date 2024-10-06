@@ -62,9 +62,8 @@ function renderBreadcrumbLanguageSelection () {
   const context = document.querySelector('header')
   const breadcrumb = context.querySelector('nav[aria-label="breadcrumb"]')
   breadcrumb.querySelector('select').addEventListener('change', (event) => {
-    const langCode = event.target.value
-    const newUrl = window.location.href.split('/').map((part, index) => index === 3 ? langCode : part).join('/')
-    if (newUrl !== window.location.href) window.location.href = newUrl
+    const alternate = document.querySelector(`link[rel="alternate"][hreflang="${event.target.value}"]`)?.getAttribute('href')
+    if (alternate && alternate !== window.location.href) window.location.href = alternate
   })
 }
 
