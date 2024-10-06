@@ -80,7 +80,14 @@ export default async function render (page, config, api) {
    * @returns {Promise} A promise that resolves when the node has been processed.
    */
   async function renderElement (node, parent) {
-    if (node.rawAttrs.includes('${') && node.rawAttrs.includes('}')) node.rawAttrs = await evaluateTemplateLiterals(node, node.rawAttrs)
+    if (node.rawAttrs.includes('${') && node.rawAttrs.includes('}')) {
+      try {
+        node.rawAttrs = await evaluateTemplateLiterals(node, node.rawAttrs)
+      } catch (err) {
+        err.message = err.message + `\n    in ${node.outerHTML}` + (page.fileUrl ? `\n    in ${page.fileUrl}` : '')
+        throw err
+      }
+    }
 
     if (config?.html?.resolve) {
       for (const [name, values] of Object.entries(node.attrs)) {
@@ -104,7 +111,14 @@ export default async function render (page, config, api) {
    * @returns {Promise} A promise that resolves when the node has been processed.
    */
   async function renderText (node, parent) {
-    if (node.rawText.includes('${') && node.rawText.includes('}') && parent.tagName !== 'SCRIPT') node.rawText = await evaluateTemplateLiterals(node, node.rawText)
+    if (node.rawText.includes('${') && node.rawText.includes('}') && parent.tagName !== 'SCRIPT') {
+      try {
+        node.rawText = await evaluateTemplateLiterals(node, node.rawText)
+      } catch (err) {
+        err.message = err.message + `\n    in ${node.rawText}` + (page.fileUrl ? `\n    in ${page.fileUrl}` : '')
+        throw err
+      }
+    }
   }
 
   /**

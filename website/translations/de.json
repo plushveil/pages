@@ -5,23 +5,28 @@
   },
   "title": "Pages",
   "table-of-contents": "Auf dieser Seite:",
+  "github-repository": "GitHub-Repository",
   "home": {
     "title": "",
+    "long_title": "Einführung in Pages",
     "description": "",
     "url": ""
   },
   "getting-started": {
     "title": "Erste Schritte",
+    "long_title": "Installation",
     "description": "",
     "url": "erste-schritte"
   },
   "essentials": {
     "title": "Grundlagen",
+    "long_title": "Wesentliches Wissen",
     "description": "",
     "url": "grundlagen"
   },
   "examples": {
     "title": "Beispiele",
+    "long_title": "Anleitungen und Beispiele",
     "description": "",
     "url": "beispiele"
   },
@@ -32,6 +37,6 @@
     "action": "Suchen",
     "name": "nach",
     "placeholder": "Suche...",
-    "label": "Jetzt diese Website durchsuchen"
+    "label": "Durchsuche diese Website jetzt"
   }
 }

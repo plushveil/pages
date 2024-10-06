@@ -1,24 +1,24 @@
 <aside class="border-0 lg:border-l border-slate-200 dark:border-slate-700 p-4 min-w-96">
   <nav>
-    <ul class="space-y-4">
+    <ul class="list-none space-y-4">
       <li>
-        <a>
-          Introduction to Pages
+        <a href="${new URL(`${langCode}/${text.home.url ? text.home.url + '/' : ''}`, config.baseURI)}">
+          ${text.home.long_title}
         </a>
       </li>
       <li>
-        <a>
-          Installation
+        <a href="${new URL(`${langCode}/${text['getting-started'].url}/`, config.baseURI)}">
+          ${text['getting-started'].long_title}
         </a>
       </li>
       <li>
-        <a>
-          Essential knowledge
+        <a href="${new URL(`${langCode}/${text.essentials.url}/`, config.baseURI)}">
+          ${text.essentials.long_title}
         </a>
       </li>
       <li>
-        <a>
-          Tutorials and examples
+        <a href="${new URL(`${langCode}/${text.examples.url}/`, config.baseURI)}">
+          ${text.examples.long_title}
         </a>
       </li>
     </ul>
@@ -29,10 +29,16 @@
 
     <ul class="mt-4 space-y-4">
       <li>
-        <a>
-          GitHub repository
+        <a href="https://github.com/plushveil/pages" target="_blank">
+          ${text['github-repository']}
         </a>
       </li>
     </ul>
   </nav>
 </aside>
+
+<script target="aside">
+  import { getLanguage } from '../scripts/translations.mjs'
+  export const langCode = params.languages
+  export const text = await getLanguage(langCode)
+</script>

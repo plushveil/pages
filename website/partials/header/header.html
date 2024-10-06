@@ -1,7 +1,7 @@
 <header class="block lg:sticky top-0 w-full bg-slate-300 dark:bg-slate-900">
   <nav class="container mx-auto" id="main-menu">
     <ul class="w-full flex flex-wrap items-center pt-5 lg:pt-0">
-      <a class="pl-4 sm:pl-0" href="/${langCode}/${text.home.url ? `${text.home.url}/` : ''}">
+      <a class="pl-4 sm:pl-0" href="${new URL(`${langCode}/${text.home.url ? text.home.url + '/' : ''}`, config.baseURI)}">
         <li>
           <h1 class="mt-0">${text.title}</h1>
         </li>
@@ -13,17 +13,17 @@
           </svg>
         </li>
       </button>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text['getting-started'].url}/">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="${new URL(`${langCode}/${text['getting-started'].url}/`, config.baseURI)}">
         <li>
           ${text['getting-started'].title}
         </li>
       </a>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.essentials.url}/">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="${new URL(`${langCode}/${text.essentials.url}/`, config.baseURI)}">
         <li>
           ${text.essentials.title}
         </li>
       </a>
-      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="/${langCode}/${text.examples.url}/">
+      <a aria-hidden="true" class="sm:block w-full sm:w-fit pt-5 lg:pb-5 px-2 sm:px-8" href="${new URL(`${langCode}/${text.examples.url}/`, config.baseURI)}">
         <li>
           ${text.examples.title}
         </li>

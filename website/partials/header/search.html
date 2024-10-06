@@ -1,5 +1,5 @@
 <section role="search">
-  <form action="/${langCode}/${text.search.url ? `${text.search.url}/` : ''}" method="get">
+  <form action="${new URL(`${langCode}/${text.search.url}/`, config.baseURI)}" method="get">
       <fieldset class="flex items-center text-black dark:text-slate-100 bg-slate-50 dark:bg-slate-800 focus-within:border-blue-500 border border-slate-400 dark:border-slate-700 lg:rounded-md">
           <label class="flex flex-grow items-center" for="search">
             <svg class="absolute h-5 w-5 ml-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">

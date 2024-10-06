@@ -6,23 +6,28 @@
   },
   "title": "Pages",
   "table-of-contents": "On this page:",
+  "github-repository": "GitHub repository",
   "home": {
     "title": "",
+    "long_title": "Introduction to Pages",
     "description": "",
     "url": ""
   },
   "getting-started": {
     "title": "Getting Started",
+    "long_title": "Installation",
     "description": "",
     "url": "getting-started"
   },
   "essentials": {
     "title": "Essentials",
+    "long_title": "Essential knowledge",
     "description": "",
     "url": "essentials"
   },
   "examples": {
     "title": "Examples",
+    "long_title": "Tutorials and examples",
     "description": "",
     "url": "examples"
   },
