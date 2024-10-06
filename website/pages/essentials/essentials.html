@@ -42,6 +42,6 @@
 
   export async function getLanguageUrl (langCode) {
     const lang = await getLanguage(langCode)
-    return `/${langCode}/${lang['essentials'].url}/`
+    return new URL(`${langCode}/${lang.essentials.url}/`, config.baseURI)
   }
 </script>
