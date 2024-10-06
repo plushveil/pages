@@ -9,14 +9,15 @@
   </head>
   <body>
     <script data-languages="${languages}">
+      const baseURI = document.head.querySelector('link[rel="canonical"]').href
       const availableLanguages = document.currentScript.getAttribute('data-languages').split(',')
       const language = navigator.language.split('-')[0]
-      if (!availableLanguages.includes(language)) window.location.href = '/en/'
-      else window.location.href = '/' + language + '/'
+      if (!availableLanguages.includes(language)) window.location.href = new URL('en/', baseURI)
+      else window.location.href = new URL(language + '/', baseURI)
     </script>
 
     You will be redirected to the translated version of the website in a moment.<br>
-    If you are not redirected, please click&nbsp;<a href="/en/">here</a>.
+    If you are not redirected, please click&nbsp;<a href="${new URL('en/', config.baseURI)}">here</a>.
   </body>
 </html>
 

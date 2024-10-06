@@ -55,6 +55,7 @@ export default async function render (page, config, api) {
     contextUrl.searchParams.set('format', 'pages-module-html-evaluate')
     contextUrl.searchParams.set('env', JSON.stringify({
       params: page.params || {},
+      config,
       __filename: page.fileUrl ? url.fileURLToPath(page.fileUrl) : path.resolve(process.cwd(), 'index.html'),
       __dirname: page.fileUrl ? path.dirname(url.fileURLToPath(page.fileUrl)) : process.cwd(),
     }))
@@ -114,7 +115,7 @@ export default async function render (page, config, api) {
    */
   async function evaluateTemplateLiterals (node, code) {
     // set the default context
-    const context = { params: page.params, ...(page.params || {}) }
+    const context = { params: page.params, ...(page.params || {}), config }
     if (page.fileUrl) {
       if (!context.__filename) context.__filename = url.fileURLToPath(page.fileUrl)
       if (!context.__dirname) context.__dirname = path.dirname(context.__filename)

@@ -37,6 +37,7 @@ export default async function build (folder, config, output) {
     const page = pages.shift()
     if (page) {
       const promise = render(output, config, page).finally(() => { promise.done = true }).catch((err) => {
+        console.log('')
         console.error(err)
         process.exit(1)
       })
