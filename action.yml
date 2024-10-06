@@ -26,3 +26,6 @@ runs:
           GITHUB_OUTPUT: $GITHUB_OUTPUT
           INPUT_FOLDER: ${{ inputs.folder }}
           INPUT_CONFIG: ${{ inputs.config }}
+          HOST: ${{ env.HOST }}
+          PORT: ${{ env.PORT }}
+          PATHNAME: ${{ env.PATHNAME }}

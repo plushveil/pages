@@ -24,6 +24,10 @@ jobs:
       with:
         ref: gh-pages
         path: gh-pages
+      env:
+        HOST: plushveil.github.io
+        PORT: 443
+        PATHNAME: /pages/
 
     - name: Deploy to GitHub Pages
       run: |
