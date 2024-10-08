@@ -30,7 +30,7 @@ We follow [GitHub Flow](https://docs.github.com/en/get-started/using-github/gith
 
 4. **Push your branch**: Push your branch to your forked repository.
 
-5. **Create a Pull Request (PR)**: When you're ready, open a pull request from your branch to the `main` branch in the main repository. In the PR description, explain what your changes do and reference any related issues.
+5. **Create a Pull Request (PR)**: When you're ready, open a pull request from your branch to the [`latest` branch in the pages repository](https://github.com/plushveil/pages/compare). In the PR description, explain what your changes do and reference any related issues.
 
 6. **Review and merge**: After the pull request is reviewed, changes may be requested. Once everything is approved, your PR will be merged into the main codebase.
 
