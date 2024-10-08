@@ -5,7 +5,8 @@
   },
   "title": "Pages",
   "table-of-contents": "Auf dieser Seite:",
-  "github-repository": "GitHub-Repository",
+  "github-repository": "GitHub Repository",
+  "npm-package": "NPM Paket",
   "home": {
     "title": "",
     "long_title": "Einführung in Pages",
