@@ -1,14 +1,32 @@
-const renderBreadcrumbDebounced = debounce(renderBreadcrumb, 100)
+/**
+ * Current last breadcrumb heading.
+ * @type {window.HTMLElement}
+ */
+let current = null
 
 /**
  * Observes the visibility of h1-h6 elements and updates the breadcrumb navigation.
  */
 export default function main () {
-  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
-  const observer = new window.IntersectionObserver(onVisibilityChange)
-  headings.forEach(el => observer.observe(el))
-
   renderBreadcrumbLanguageSelection()
+  window.addEventListener('scroll', onscroll)
+  onscroll()
+}
+
+/**
+ * When the page is scrolled.
+ */
+function onscroll () {
+  const readHeadings = []
+  for (const heading of document.querySelectorAll('h1, h2, h3, h4, h5, h6')) {
+    const rect = heading.getBoundingClientRect()
+    if (rect.top < window.innerHeight * 0.3) readHeadings.push(heading)
+    else break
+  }
+
+  if (current === readHeadings[readHeadings.length - 1]) return
+  current = readHeadings[readHeadings.length - 1]
+  renderBreadcrumb(getAllPreviousHeaders(current))
 }
 
 /**
@@ -98,30 +116,4 @@ function getAllPreviousHeaders (element) {
   })
 
   return currentTree
-}
-
-/**
- * Is called when the visibility of an h1-h6 element changes.
- * @param {window.IntersectionObserverEntry[]} entries - Entries.
- */
-function onVisibilityChange (entries) {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      renderBreadcrumbDebounced(getAllPreviousHeaders(entry.target))
-    }
-  })
-}
-
-/**
- * Debounces a function.
- * @param {Function} fn - Function to debounce.
- * @param {number} delay - Delay in milliseconds.
- * @returns {Function} Debounced function.
- */
-function debounce (fn, delay) {
-  let timeout
-  return function (...args) {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => fn(...args), delay)
-  }
 }
