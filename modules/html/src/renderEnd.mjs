@@ -61,25 +61,47 @@ export default async function renderEnd (root, page, config, api) {
     root = await minify(root, minifyOptions)
   }
 
-  if (config?.js?.integrity) {
+  if (config?.js?.integrity || config?.css?.integrity) {
     root = parse(root)
     const csp = root.querySelector('meta[http-equiv="Content-Security-Policy"]')
     if (csp) {
-      if (!csp.getAttribute('content').includes('script-src')) {
-        csp.setAttribute('content', `${csp.getAttribute('content')}; script-src 'sha384'`)
-      } else {
-        csp.setAttribute('content', csp.getAttribute('content').replace(/script-src /, `script-src 'sha384'`))
+      if (config?.js?.integrity) {
+        if (!csp.getAttribute('content').includes('script-src')) {
+          csp.setAttribute('content', `${csp.getAttribute('content')}; script-src 'sha384'`)
+        } else {
+          csp.setAttribute('content', csp.getAttribute('content').replace(/script-src/, `script-src 'sha384'`))
+        }
+      }
+      if (config?.css?.integrity) {
+        if (!csp.getAttribute('content').includes('style-src')) {
+          csp.setAttribute('content', `${csp.getAttribute('content')}; style-src 'unsafe-hashes' 'sha256'`)
+        } else {
+          csp.setAttribute('content', csp.getAttribute('content').replace(/style-src/, `style-src 'unsafe-hashes' 'sha256'`))
+        }
       }
     }
 
-    const scripts = root.querySelectorAll('script:not([src])')
-    for (const script of scripts) {
-      const content = script.innerText
-      const hash = crypto.createHash('sha384').update(content).digest('base64')
-      csp.setAttribute('content', `${csp.getAttribute('content').replace('script-src \'sha384\'', `script-src 'sha384' 'sha384-${hash}' `)}`)
-      script.setAttribute('integrity', `sha384-${hash}`)
+    if (config?.js?.integrity) {
+      const scripts = root.querySelectorAll('script:not([src])')
+      for (const script of scripts) {
+        const content = script.innerText
+        const hash = crypto.createHash('sha384').update(content).digest('base64')
+        csp.setAttribute('content', `${csp.getAttribute('content').replace('script-src \'sha384\'', `script-src 'sha384' 'sha384-${hash}'`)}`)
+        script.setAttribute('integrity', `sha384-${hash}`)
+      }
     }
-    csp.setAttribute('content', csp.getAttribute('content').replace(/script-src 'sha384'/, 'script-src'))
+
+    if (config?.css?.integrity) {
+      const styles = root.querySelectorAll('*[style]')
+      for (const style of styles) {
+        const content = style.getAttribute('style')
+        const hash = crypto.createHash('sha256').update(content).digest('base64')
+        csp.setAttribute('content', `${csp.getAttribute('content').replace('style-src \'unsafe-hashes\' \'sha256\'', `style-src 'unsafe-hashes' 'sha256' 'sha256-${hash}' `)}`)
+        style.setAttribute('integrity', `sha256-${hash}`)
+      }
+    }
+
+    csp.setAttribute('content', csp.getAttribute('content').replace(/script-src 'sha384'/, 'script-src').replace(/style-src 'unsafe-hashes' 'sha256'/, 'style-src \'unsafe-hashes\''))
     root = root.toString()
   }
 
