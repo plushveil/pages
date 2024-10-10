@@ -5,6 +5,9 @@
     "code": "en"
   },
   "title": "Pages",
+  "resources": "Resources",
+  "further-reads": "Further reads",
+  "legal": "Legal",
   "table-of-contents": "On this page:",
   "github-repository": "GitHub repository",
   "npm-package": "NPM package",
@@ -13,6 +16,24 @@
     "long_title": "Introduction to Pages",
     "description": "",
     "url": ""
+  },
+  "impressum": {
+    "title": "Impressum",
+    "long_title": "Impressum",
+    "description": "",
+    "url": "impressum"
+  },
+  "privacy-policy": {
+    "title": "Privacy",
+    "long_title": "Data and Privacy Policy",
+    "description": "",
+    "url": "data"
+  },
+  "terms-of-service": {
+    "title": "Terms",
+    "long_title": "Terms and Conditions",
+    "description": "",
+    "url": "terms"
   },
   "getting-started": {
     "title": "Getting Started",

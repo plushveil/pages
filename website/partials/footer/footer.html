@@ -1,4 +1,30 @@
 <footer class="bg-slate-300 dark:bg-slate-900">
-  <nav class="container mx-auto py-10">
+  <nav class="container mx-auto py-10 px-4 flex justify-between">
+    <ul class="space-y-4">
+      <li>
+        <span class="font-extralight text-nowrap text-xs">${text.legal}</span>
+      </li>
+      <li>
+        <a href="${new URL(`${langCode}/${text['privacy-policy'].url}/`, config.baseURI)}">
+          ${text['privacy-policy'].long_title}
+        </a>
+      </li>
+      <li>
+        <a href="${new URL(`${langCode}/${text['terms-of-service'].url}/`, config.baseURI)}">
+          ${text['terms-of-service'].long_title}
+        </a>
+      </li>
+      <li>
+        <a href="${new URL(`${langCode}/${text['impressum'].url}/`, config.baseURI)}">
+          ${text['impressum'].long_title}
+        </a>
+      </li>
+    </ul>
   </nav>
 </footer>
+
+<script target="footer">
+  import { getLanguage } from '../../scripts/translations.mjs'
+  export const langCode = params.languages
+  export const text = await getLanguage(langCode)
+</script>

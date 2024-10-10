@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="${langCode}">
+  <head>
+    ${await include('../../partials/head.html')}
+    ${(await Promise.all(translations.map(async (langCode) => {
+      return `<link rel="alternate" hreflang="${langCode}" href="${await getLanguageUrl(langCode)}">`
+    }))).join('')}
+    <link rel="canonical" href="/${languages}/${url}/">
+    ${noindex ? `<meta name="robots" content="noindex">` : ''}
+    <title>${text.title} - ${text.impressum.title}</title>
+  </head>
+  <body>
+    ${await include('../../partials/header/header.html')}
+    <section class="lg:flex container mx-auto">
+      ${await include('../../partials/table-of-contents.html')}
+      <main class="flex-grow p-4 order-first min-h-screen">
+      </main>
+      ${await include('../../partials/sidebar.html')}
+    </section>
+    ${await include('../../partials/footer/footer.html')}
+  </body>
+</html>
+
+<script target="link[rel=canonical]">
+  import { getLanguages, getLanguage } from '../../scripts/translations.mjs'
+  export const languages = await getLanguages()
+  export const url = [...(await Promise.all(languages.map(async (langCode) => {
+    return (await getLanguage(langCode)).impressum.url
+  })))].filter((arr, i, self) => self.indexOf(arr) === i)
+</script>
+
+<script target="html">
+  import { getLanguages, getLanguage } from '../../scripts/translations.mjs'
+
+  export * as utils from '../../scripts/utils.mjs'
+  export const translations = await getLanguages()
+
+  export const langCode = params.languages
+  export const text = await getLanguage(langCode)
+  export const noindex = params.url !== text.impressum.url
+
+  export async function getLanguageUrl (langCode) {
+    const lang = await getLanguage(langCode)
+    return new URL(`${langCode}/${lang.impressum.url}/`, config.baseURI)
+  }
+</script>

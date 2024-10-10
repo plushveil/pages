@@ -42,7 +42,11 @@
 
 <h3 class="text-2xl font-semibold mt-28">Using the Pages GitHub Action</h3>
 
-<p class="mt-4">To configure the Pages GitHub Action, you'll need to include it in your workflow YAML file (usually found in the <code>.github/workflows/</code> directory of your repository). Below are the steps to use the GitHub Action with the provided configuration:</p>
+<p class="mt-4">This setup allows you to automate the deployment process, making it easier to keep your site updated with every change you make.</p>
+<p class="mt-4">To configure the Pages GitHub Action, you'll need to include it in your workflow YAML file (usually found in the <code>.github/workflows/</code> directory of your repository). For more details, you can refer to the <a href="https://docs.github.com/en/actions" class="text-blue-500 underline mx-1">GitHub Actions documentation</a> and the <a href="https://github.com/plushveil/pages/blob/latest/action.yml" class="text-blue-500 underline ml-1">Pages GitHub Action repository</a>.</p>
+<p class="mt-4">Below is an example configuration for the Pages GitHub Action:</p>
+
+
 
 <h4 class="text-xl font-semibold mt-6">Example Configuration</h4>
 
@@ -65,6 +69,7 @@ jobs:
         uses: plushveil/pages@latest
         with:
           folder: '.'
+          config: 'pages.config.mjs'
         env:
           HOST: website.example
           PORT: 443
@@ -74,6 +79,8 @@ jobs:
         run: |
           cp -r \${{steps.build.outputs.folder}}/* .
 </pre>
+
+
 
 <h4 class="text-xl font-semibold mt-6">Breakdown of the GHA steps</h4>
 
@@ -91,13 +98,4 @@ jobs:
   </li>
 </ol>
 
-<h4 class="text-xl font-semibold mt-6">Running the Workflow</h4>
-
 <p class="mt-4">Once you have set up the above configuration in your workflow file, the GitHub Action will automatically run whenever you push changes to the <code>main</code> branch. This action will not deploy your site to a server, but it will build the static files that you can then deploy to your server yourself.</p>
-
-<h4 class="text-xl font-semibold mt-6">Additional Notes</h4>
-
-<p class="mt-4">Ensure your folder structure matches the specified <code>folder</code> parameter. For instance, if you specified <code>website</code>, make sure your static site files are located in that directory.</p>
-<p class="mt-4">For more details, you can refer to the <a href="https://docs.github.com/en/actions" class="text-blue-500 underline mx-1">GitHub Actions documentation</a> and the <a href="https://github.com/plushveil/pages" class="text-blue-500 underline ml-1">Pages GitHub Action repository</a>.</p>
-
-<p class="mt-4">This setup allows you to automate the deployment process, making it easier to keep your site updated with every change you make.</p>

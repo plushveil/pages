@@ -32,6 +32,11 @@
     @apply hidden;
   }
 
+  pre {
+    @apply overflow-x-auto;
+    scrollbar-width: none;
+  }
+
   code {
     @apply font-mono text-sm bg-gray-200 dark:bg-gray-600 m-1;
   }

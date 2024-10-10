@@ -4,6 +4,9 @@
     "code": "de"
   },
   "title": "Pages",
+  "resources": "Ressourcen",
+  "further-reads": "Weiterführende Lektüre",
+  "legal": "Rechtliches",
   "table-of-contents": "Auf dieser Seite:",
   "github-repository": "GitHub Repository",
   "npm-package": "NPM Paket",
@@ -12,6 +15,24 @@
     "long_title": "Einführung in Pages",
     "description": "",
     "url": ""
+  },
+  "impressum": {
+    "title": "Impressum",
+    "long_title": "Impressum",
+    "description": "",
+    "url": "impressum"
+  },
+  "privacy-policy": {
+    "title": "Datenschutz",
+    "long_title": "Daten- und Datenschutzrichtlinie",
+    "description": "",
+    "url": "daten"
+  },
+  "terms-of-service": {
+    "title": "AGB",
+    "long_title": "Allgemeine Geschäftsbedingungen",
+    "description": "",
+    "url": "agb"
   },
   "getting-started": {
     "title": "Erste Schritte",
