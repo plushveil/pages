@@ -59,7 +59,7 @@ export default async function serve (folder, config, output) {
   const close = app.close.bind(app)
   app.close = () => {
     while (workers.length) workers.pop().terminate()
-    watcher.end()
+    watcher.close()
     close()
   }
 
@@ -83,7 +83,7 @@ function createWorker (config, workers) {
 /**
  * Returns the request handler.
  * @param {import('./config.mjs').Config} config - The configuration.
- * @param {{ getPages: () => import('./pages.mjs').Page[], end: () => void }} watcher - The watcher.
+ * @param {{ getPages: () => import('./pages.mjs').Page[], close: () => void }} watcher - The watcher.
  * @param {threads.Worker[]} workers - The workers.
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
@@ -140,7 +140,7 @@ function getRequestHandler (config, watcher, workers) {
 /**
  * Watches the configuration root for changes and updates the page list.
  * @param {import('./config.mjs').Config} config - The configuration.
- * @returns {Promise<{ getPages: () => import('./pages.mjs').Page[], end: () => void }>} The watcher.
+ * @returns {Promise<{ getPages: () => import('./pages.mjs').Page[], close: () => void }>} The watcher.
  */
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
@@ -159,5 +159,5 @@ async function getPageWatcher (config) {
     }
   })
 
-  return { getPages: () => pages, end: () => watcher.close() }
+  return { getPages: () => pages, close: () => watcher.close() }
 }
