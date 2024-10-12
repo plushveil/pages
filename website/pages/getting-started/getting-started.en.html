@@ -1,55 +1,56 @@
 <h2 class="mt-0">Getting Started</h2>
 
-<p class="mt-4">On this page you'll find instructions on how to install the Pages package and how to set up GitHub actions to deploy your website.</p>
+<p>On this page you'll find instructions on how to install the Pages package and how to set up GitHub actions to deploy your website.</p>
 
 
 
 
-<h3 class="text-2xl font-semibold mt-28">How to Install the Pages Package</h3>
-
-<p class="mt-4">Follow the instructions below to install the Pages package from GitHub:</p>
-
-<ol class="list-decimal pl-6 mt-4">
+<h3 class="text-2xl font-semibold">How to Install the Pages Package</h3>
+<p>
+  Follow the instructions below to install the Pages package from GitHub:
+</p>
+<ol class="list-decimal pl-6">
   <li class="mt-2">
-    <strong class="pr-1">Install Node.js:</strong> Ensure you have Node.js installed on your machine. You can download it from the&nbsp;<a href="https://nodejs.org/" class="text-blue-500 dark:text-blue-200 underline">official Node.js website</a>.
+    <strong class="pr-1">Install Node.js:</strong>
+    Ensure you have Node.js installed on your machine.
+    You can download it from the&nbsp;<a href="https://nodejs.org/" class="text-blue-500 dark:text-blue-200 underline">official Node.js website</a>.
   </li>
   <li class="mt-2">
-    <strong class="pr-1">Open Your Terminal:</strong> Launch your terminal or command prompt.
+    <strong class="pr-1">Open Your Terminal:</strong>
+    Launch your terminal or command prompt.
   </li>
   <li class="mt-2">
     <strong class="pr-1">Run the Installation Command:</strong>
     <pre class="bg-gray-200 dark:bg-gray-600 p-2 rounded mt-2"><code>npm install @plushveil/pages</code></pre>
   </li>
   <li class="mt-2">
-    <strong class="pr-1">Verify Installation:</strong> After installation, verify that the package is added to your <code>node_modules</code> directory and listed in your <code>package.json</code> file.
+    <strong class="pr-1">Verify Installation:</strong>
+    After installation, verify that the package is added to your <code>node_modules</code> directory and listed in your <code>package.json</code> file.
   </li>
   <li class="mt-2">
-    <strong class="pr-1">Add the <code>pages</code> command to Your <code>package.json</code> File:</strong> Add the following line to your <code>scripts</code> section in your <code>package.json</code> file:
-<pre class="bg-gray-200 dark:bg-gray-600 p-2 rounded mt-2">
-{
-  "scripts": {
-    "pages": "pages"
-  }
-}
-</pre>
+    <strong class="pr-1">Add the <code>pages</code> command to Your <code>package.json</code> File:</strong>
+    Add the following line to your <code>scripts</code> section in your <code>package.json</code> file:
+    <pre class="bg-gray-200 dark:bg-gray-600 p-2 rounded mt-2">${JSON.stringify({ "scripts": { "pages": "pages" } }, null, 2)}</pre>
   </li>
 </ol>
 
-<p class="mt-4">You can now use <code>npm run pages -- serve .</code> to serve your website locally.</p>
+<p>You can now use <code>npm run pages -- serve .</code> to serve your website locally.</p>
 
 
 
 
-<h3 class="text-2xl font-semibold mt-28">Using the Pages GitHub Action</h3>
-
-<p class="mt-4">This setup allows you to automate the deployment process, making it easier to keep your site updated with every change you make.</p>
-<p class="mt-4">To configure the Pages GitHub Action, you'll need to include it in your workflow YAML file (usually found in the <code>.github/workflows/</code> directory of your repository). For more details, you can refer to the <a href="https://docs.github.com/en/actions" class="text-blue-500 dark:text-blue-200 underline mx-1">GitHub Actions documentation</a> and the <a href="https://github.com/plushveil/pages/blob/latest/action.yml" class="text-blue-500 dark:text-blue-200 underline ml-1">Pages GitHub Action repository</a>.</p>
-<p class="mt-4">Below is an example configuration for the Pages GitHub Action:</p>
+<h3 class="text-2xl font-semibold">Using the Pages GitHub Action</h3>
+<p>
+  This setup allows you to automate the deployment process, making it easier to keep your site updated with every change you make.
+</p>
+<p>
+  To configure the Pages GitHub Action, you'll need to include it in your workflow YAML file (usually found in the <code>.github/workflows/</code> directory of your repository). For more details, you can refer to the <a href="https://docs.github.com/en/actions" class="text-blue-500 dark:text-blue-200 underline mx-1">GitHub Actions documentation</a> and the <a href="https://github.com/plushveil/pages/blob/latest/action.yml" class="text-blue-500 dark:text-blue-200 underline ml-1">Pages GitHub Action repository</a>.
+</p>
+<p>Below is an example configuration for the Pages GitHub Action:</p>
 
 
 
 <h4 class="text-xl font-semibold mt-6">Example Configuration</h4>
-
 <pre class="bg-gray-200 dark:bg-gray-600 p-4 rounded mt-4 font-mono">
 name: Build and Deploy
 
@@ -86,16 +87,22 @@ jobs:
 
 <ol class="list-decimal pl-6 mt-4">
   <li class="mt-2">
-    <strong class="pr-1">Checkout Step:</strong> Uses <code>actions/checkout</code> to retrieve the repository code.
+    <strong class="pr-1">Checkout Step:</strong>
+    Uses <code>actions/checkout</code> to retrieve the repository code.
   </li>
   <li class="mt-2">
-    <strong class="pr-1">Build Step:</strong> Specifies the Pages action with <code>uses: plushveil/pages@latest</code>, which will build your website.
+    <strong class="pr-1">Build Step:</strong>
+    Specifies the Pages action with <code>uses: plushveil/pages@latest</code>, which will build your website.
     The <code>with</code> block defines the folder where your static site files are located.
     The <code>env</code> block Sets <code>HOST</code>, <code>PORT</code>, and <code>PATHNAME</code>.
   </li>
   <li class="mt-2">
-    <strong class="pr-1">Deploy Step:</strong> Copies the built files from the Pages actions output folder to the root directory.
+    <strong class="pr-1">Deploy Step:</strong>
+    Copies the built files from the Pages actions output folder to the root directory.
   </li>
 </ol>
 
-<p class="mt-4">Once you have set up the above configuration in your workflow file, the GitHub Action will automatically run whenever you push changes to the <code>main</code> branch. This action will not deploy your site to a server, but it will build the static files that you can then deploy to your server yourself.</p>
+<p>
+  Once you have set up the above configuration in your workflow file, the GitHub Action will automatically run whenever you push changes to the <code>main</code> branch.
+  This action will not deploy your site to a server, but it will build the static files that you can then deploy to your server yourself.
+</p>

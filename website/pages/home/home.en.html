@@ -11,21 +11,23 @@
 <h4>Development server</h4>
 <p>
   A built-in development server and live reload feature allow you to preview your site as you work on it.
+  <code class="text-nowrap">npm run pages -- serve .</code> will start the development server for the current directory.
 </p>
 
 
 
 
-<h4>Canonical Placeholder Substitution</h4>
+<h4>Placeholder Substitution</h4>
 <p>
-  Define a single <code>&lt;link rel="canonical" href="/\${lang}/index.html"&gt;</code> tag that can dynamically generate multiple pages, which is useful for creating SEO-friendly pages in different contexts, such as multi-language or multi-region sites.
+  Define a single <code>&lt;link rel="canonical" href="/\${languages}/index.html"&gt;</code> tag to generate multiple pages, which is useful for creating SEO-friendly pages in different contexts, such as multi-language or multi-region sites.
+  Or use script tags to define variables during the build process.
 </p>
 
 
 
 <h4>Built in minification</h4>
 <p>
-  Pages automatically minifies your HTML, CSS, and JavaScript files, reducing the size of your website and improving load times.
+  Out of the box Pages minifies your HTML, CSS, and JavaScript files, reducing the size of your website and improving load times.
 </p>
 
 
