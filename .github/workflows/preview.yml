@@ -14,6 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repository
+      if: github.event.action != 'closed'
       uses: actions/checkout@v4
 
     - id: build
