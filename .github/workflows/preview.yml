@@ -38,7 +38,7 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         rm -rf preview/${{ github.event.number }}
-        mkdir -r preview/${{ github.event.number }}
+        mkdir -p preview/${{ github.event.number }}
         if [ "${{ github.event.action }}" != "closed" ]; then cp -r ${{steps.build.outputs.folder}}/* preview/${{ github.event.number }}; fi
         git add .
         git commit -m "${{ github.actor }}: preview pull request #${{ github.event.number }}" || exit 0
