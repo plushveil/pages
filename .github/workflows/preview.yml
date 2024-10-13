@@ -1,11 +1,13 @@
 name: Website
 
 on:
-  push:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [ latest ]
 
+
 jobs:
-  build:
+  preview:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -15,13 +17,14 @@ jobs:
       uses: actions/checkout@v4
 
     - id: build
+      if: github.event.action != 'closed'
       uses: plushveil/pages@latest
       with:
         folder: 'website'
       env:
         HOST: plushveil.github.io
         PORT: 443
-        PATHNAME: /pages/
+        PATHNAME: /pages/preview/${{ github.event.number }}/
   
     - name: Checkout GitHub Pages Branch
       uses: actions/checkout@v4
@@ -32,10 +35,11 @@ jobs:
     - name: Deploy to GitHub Pages
       run: |
         cd gh-pages
-        ls -A | grep -v '^\.\|CNAME\|preview' | xargs rm -rf
-        cp -r ${{steps.build.outputs.folder}}/* .
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        rm -rf preview/${{ github.event.number }}
+        mkdir preview/${{ github.event.number }}
+        if [ "${{ github.event.action }}" != "closed" ]; then cp -r ${{steps.build.outputs.folder}}/* preview/${{ github.event.number }}; fi
         git add .
-        git commit -m "${{ github.actor }}: ${{ github.event.head_commit.message }}" || exit 0
+        git commit -m "${{ github.actor }}: preview pull request #${{ github.event.number }}" || exit 0
         git push
