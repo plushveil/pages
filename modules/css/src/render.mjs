@@ -31,7 +31,7 @@ export default async function render (page, config, api) {
   const pages = await getPages(file, config, api)
   const mapPage = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
 
-  if (page.url.toString() === mapPage.url.toString()) return map.toString()
+  if (page.url.toString() === mapPage.url.toString()) return map.toString().replace(/"%3Cinput%20css[^"]*/, `"%3C${path.basename(file)}`)
   return css.toString() + `\n/*# sourceMappingURL=${mapPage.url.toString()} */`
 }
 
