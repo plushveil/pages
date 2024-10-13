@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - name: Checkout repository
@@ -46,7 +47,7 @@ jobs:
         git push
 
     - name: Comment on Pull Request
-      if: github.event.action == 'opened'
+      # if: github.event.action == 'opened'
       uses: actions/github-script@v3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
