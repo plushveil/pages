@@ -38,8 +38,21 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         rm -rf preview/${{ github.event.number }}
-        mkdir preview/${{ github.event.number }}
+        mkdir -r preview/${{ github.event.number }}
         if [ "${{ github.event.action }}" != "closed" ]; then cp -r ${{steps.build.outputs.folder}}/* preview/${{ github.event.number }}; fi
         git add .
         git commit -m "${{ github.actor }}: preview pull request #${{ github.event.number }}" || exit 0
         git push
+
+    - name: Comment on Pull Request
+      if: github.event.action == 'opened'
+      uses: actions/github-script@v3
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: 'Preview: https://plushveil.github.io/pages/preview/${{ github.event.number }}/'
+          })
