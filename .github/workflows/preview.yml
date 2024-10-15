@@ -5,7 +5,6 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches: [ latest ]
 
-
 jobs:
   preview:
     runs-on: ubuntu-latest
