@@ -9,8 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      checks: write
+      contents: read
 
     steps:
     - name: Checkout repository
