@@ -1,19 +1,20 @@
-name: Website
+name: CD
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [ latest ]
 
-
 jobs:
   preview:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
     - name: Checkout repository
+      if: github.event.action != 'closed'
       uses: actions/checkout@v4
 
     - id: build

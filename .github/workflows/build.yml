@@ -1,11 +1,11 @@
-name: Website
+name: CD
 
 on:
   push:
     branches: [ latest ]
 
 jobs:
-  build:
+  website:
     runs-on: ubuntu-latest
     permissions:
       contents: write
