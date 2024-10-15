@@ -1,4 +1,4 @@
-name: Website
+name: CD
 
 on:
   pull_request:
