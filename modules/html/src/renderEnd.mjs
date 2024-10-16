@@ -69,7 +69,7 @@ export default async function renderEnd (root, page, config, api) {
         if (!csp.getAttribute('content').includes('script-src')) {
           csp.setAttribute('content', `${csp.getAttribute('content')}; script-src 'sha384'`)
         } else {
-          csp.setAttribute('content', csp.getAttribute('content').replace(/script-src/, `script-src 'sha384'`))
+          csp.setAttribute('content', csp.getAttribute('content').replace(/script-src/, 'script-src \'sha384\''))
         }
 
         const scripts = root.querySelectorAll('script:not([src])')
@@ -87,7 +87,7 @@ export default async function renderEnd (root, page, config, api) {
         if (!csp.getAttribute('content').includes('style-src')) {
           csp.setAttribute('content', `${csp.getAttribute('content')}; style-src 'unsafe-hashes' 'sha256'`)
         } else {
-          csp.setAttribute('content', csp.getAttribute('content').replace(/style-src/, `style-src 'unsafe-hashes' 'sha256'`))
+          csp.setAttribute('content', csp.getAttribute('content').replace(/style-src/, 'style-src \'unsafe-hashes\' \'sha256\''))
         }
 
         const styles = root.querySelectorAll('*[style]')
