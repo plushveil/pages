@@ -1,10 +1,10 @@
 {
   "name": "@plushveil/pages",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "src/pages.mjs",
   "type": "module",
   "bin": {
-    "pages": "node_modules/.bin/cli_from_jsdoc"
+    "pages": "bin/pages.mjs"
   },
   "scripts": {
     "preinstall": "node bin/preinstall.mjs",
