@@ -7,7 +7,7 @@ import * as url from 'node:url'
 import * as cli from '@plushveil/cli_from_jsdoc'
 
 const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(await fs.promises.realpath(__filename))
+const __dirname = path.dirname(path.resolve(await fs.promises.realpath(__filename), '..'))
 
 try {
   await main(__dirname)
