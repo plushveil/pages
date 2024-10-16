@@ -1,6 +1,3 @@
-import * as acorn from 'acorn'
-import * as walk from 'acorn-walk'
-
 /**
  * Splits a text with template literals into parts.
  * @param {string} text - The text.
@@ -9,82 +6,90 @@ import * as walk from 'acorn-walk'
 export default function splitTemplateLiterals (text) {
   if (typeof text !== 'string') throw new TypeError('text must be a string')
 
-  const hasDollar = text.includes('$')
+  const hasDollar = text.includes('${')
   if (!hasDollar) return text ? [text] : []
-
-  // the text can not have backticks because it would be a syntax error
-  // so we can replace them with double quotes or single quotes
-  // if the text has both double quotes and single quotes, we can use a map to convert them back
-  // the map may fail if the replacements produce syntax errors
-  let map = false
-  if (text.includes('`')) {
-    const id = Date.now()
-    const macros = {}
-    for (const alt of ['"', "'"]) {
-      if (!text.includes(alt)) {
-        while (text.match(/`[^`]+`/g)) {
-          text = text.replace(/`([^`]+)`/g, (match, code) => {
-            const key = `%%MACRO_${id}_${Object.keys(macros).length}%%`
-            macros[key] = match
-            return alt + key + alt
-          })
-        }
-        text = text.replace(/`/g, alt)
-        map = (text) => {
-          for (const [key, value] of Object.entries(macros)) text = text.replaceAll(alt + key + alt, value)
-          text = text.replace(new RegExp(alt, 'g'), '`')
-          return text
-        }
-        break
-      }
-    }
-    if (!map) {
-      // we just assume that double quotes parse (might not be true)
-      text = text.replace(/`[^`]+`/g, (match) => {
-        const key = `"%%MACRO_${id}_${Object.keys(macros).length}%%"`
-        macros[key] = match
-        return key
-      }).replace(/`/g, `"%%MACRO_${id}_DQ%%"`)
-      map = (text) => {
-        for (const [key, value] of Object.entries(macros)) text = text.replace(new RegExp(key, 'g'), value)
-        return text.replaceAll(`"%%MACRO_${id}_DQ%%"`, '`')
-      }
-    }
-  }
-
-  const code = `\`${text}\``
-
-  let ast
-  try {
-    ast = acorn.parse(code, { sourceType: 'module', ecmaVersion: 'latest' })
-  } catch (err) {
-    err.message += `\n${text}`
-    throw err
-  }
 
   const parts = []
 
-  walk.simple(ast, {
-    TemplateLiteral (node) {
-      for (const expression of node.expressions) {
-        parts.push({
-          text: code.slice(expression.start - 2, expression.end + 1),
-          start: expression.start,
-        })
-      }
-      for (const quasi of node.quasis) {
-        parts.push({
-          text: quasi.value.raw,
-          start: quasi.start,
-        })
-      }
-    },
-  })
+  let start = 0
+  while (start < text.length) {
+    const dollar = text.indexOf('${', start)
+    if (dollar === -1) {
+      parts.push(text.slice(start))
+      break
+    }
 
-  const result = parts
-    .sort((a, b) => a.start - b.start)
-    .map((part) => map ? map(part.text) : part.text)
-    .filter((part) => part)
+    if (dollar > start) parts.push(text.slice(start, dollar))
 
-  return result
+    const open = dollar + 2
+    let close = open
+    let depth = 1
+    while (depth > 0) {
+      const nextOpen = text.indexOf('${', close)
+      const nextClose = text.indexOf('}', close)
+      if (nextClose === -1) throw new SyntaxError('Unterminated template literal')
+      if (nextOpen === -1 || nextClose < nextOpen) {
+        close = nextClose + 1
+        depth--
+      } else {
+        close = nextOpen + 2
+        depth++
+      }
+    }
+
+    const previous = parts[parts.length - 1]
+
+    // check if the dollar sign is escaped
+    let escaped = 0
+    while (previous?.[previous.length - escaped - 1] === '\\') escaped++
+
+    if (escaped % 2 !== 0) {
+      const nextOpen = text.indexOf('${', close)
+      if (nextOpen === -1) {
+        parts[parts.length - 1] += text.slice(dollar)
+        break
+      } else {
+        parts[parts.length - 1] += text.slice(dollar, nextOpen)
+        start = nextOpen
+        continue
+      }
+    }
+
+    // check if the dollar sign is inside a string
+    if (previous && countOccurrences(previous, '`') % 2 === 1) {
+      const nextOpen = text.indexOf('${', close)
+      if (nextOpen === -1) {
+        parts[parts.length - 1] += text.slice(dollar)
+        break
+      } else {
+        parts[parts.length - 1] += text.slice(dollar, nextOpen)
+        start = nextOpen
+        continue
+      }
+    }
+
+    const part = text.slice(dollar, close)
+    parts.push(part)
+    start = close
+  }
+
+  return parts
+}
+
+/**
+ * Returns the number of occurrences of a substring in a text.
+ * @param {string} text - The text.
+ * @param {string} substring - The substring.
+ * @returns {number} The number of occurrences.
+ */
+function countOccurrences (text, substring) {
+  let count = 0
+  let position = text.indexOf(substring)
+
+  while (position !== -1) {
+    count++
+    position = text.indexOf(substring, position + substring.length)
+  }
+
+  return count
 }

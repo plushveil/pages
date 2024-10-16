@@ -28,7 +28,7 @@ process.on('SIGINT', (event) => {
 })
 
 /**
- * Builds a folder.
+ * Serves a folder.
  * @param {string} folder - The folder to build.
  * @param {string} [config] - A specifier that points to the configuration file.
  * @param {string} [output] - The output folder.
