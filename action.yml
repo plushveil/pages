@@ -17,10 +17,10 @@ runs:
       - uses: actions/setup-node@v4.0.4
         with:
           node-version: 'latest'
-      - run: npm ci
+      - run: cd ${GITHUB_ACTION_PATH} && npm ci
         shell: bash
       - id: build
-        run: node src/action.mjs
+        run: node ${GITHUB_ACTION_PATH}/src/action.mjs
         shell: bash
         env:
           GITHUB_OUTPUT: $GITHUB_OUTPUT
