@@ -21,7 +21,8 @@ export { baseURI } from './src/config.mjs'
  */
 export const build = {
   ignore: [
-    /\/utils|components|node_modules\//,
+    /\/node_modules|.git\//,
+    /\/utils|components\//,
     /\.mjs$/,
     /\.ts$/,
     /\.json$/,

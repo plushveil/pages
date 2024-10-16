@@ -6,11 +6,12 @@ import * as url from 'node:url'
 
 import * as cli from '@plushveil/cli_from_jsdoc'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(path.resolve(await fs.promises.realpath(__filename), '..'))
+const __filename = await fs.promises.realpath(url.fileURLToPath(import.meta.url))
+const __dirname = path.dirname(__filename)
+const __root = path.resolve(__dirname, '..')
 
 try {
-  await main(__dirname)
+  await main(__root)
 } catch (err) {
   console.log(`> pages ${process.argv.slice(2).join(' ')}`)
   console.error(err)
