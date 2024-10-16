@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename)
 try {
   await main(__dirname)
 } catch (err) {
-  console.log(`> pages ${__dirname} -- ${process.argv.slice(2).join(' ')}`)
+  console.log(`> pages ${process.argv.slice(2).join(' ')}`)
   console.error(err)
   process.exit(1)
 }
