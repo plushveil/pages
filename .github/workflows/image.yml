@@ -1,4 +1,4 @@
-name: Publish Docker Image
+name: CD
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - latest
 
 jobs:
-  build:
+  docker:
     runs-on: ubuntu-latest
 
     permissions:

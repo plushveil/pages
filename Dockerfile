@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:latest
 
 # Build arguments
 ARG BASEURI
@@ -11,7 +11,7 @@ ENV BASEURI=$BASEURI
 # Create app directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy the source code
 COPY . .
 
 # Install dependencies
