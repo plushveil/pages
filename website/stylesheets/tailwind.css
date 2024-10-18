@@ -38,6 +38,6 @@
   }
 
   code {
-    @apply font-mono text-sm bg-gray-200 dark:bg-gray-600 m-1;
+    @apply font-mono text-sm bg-gray-200 dark:bg-gray-600 m-1 px-1;
   }
 }

@@ -9,7 +9,7 @@ import process from 'node:process'
 
 import mime from 'mime'
 
-import getConfig from './config.mjs'
+import { default as getConfig, port } from './config.mjs'
 import * as utils from './utils.mjs'
 import { pages as getPages } from './pages.mjs'
 
@@ -46,10 +46,10 @@ export default async function serve (folder, config, output) {
   createWorkers()
 
   const requestHandler = getRequestHandler(config, watcher, workers, createWorker)
-  const server = (config.baseURI.protocol === 'https:') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
+  const server = (port === '443') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
   const app = await new Promise((resolve, reject) => {
     server.on('error', reject)
-    server.listen(Number(config.baseURI.port), config.baseURI.hostname, () => {
+    server.listen(Number(port), () => {
       console.log(`Serving ${path.relative(process.cwd(), config.root)} at ${config.baseURI}`)
       server.removeListener('error', reject)
       resolve(server)

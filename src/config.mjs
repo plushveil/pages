@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename)
 const __root = path.resolve(__dirname, '..')
 
 const host = process.env.HOST || 'localhost'
-const port = String(process.env.PORT || 8080)
+export const port = String(process.env.PORT || 8080)
 const pathname = process.env.PATHNAME || '/'
 const protocol = port === '443' ? 'https' : 'http'
 
@@ -53,4 +53,4 @@ export default async function getConfig (file = 'pages.config.mjs') {
  * The base URI.
  * @type {URL}
  */
-export const baseURI = new URL(pathname, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)
+export const baseURI = process.env.BASEURI ? new URL(process.env.BASEURI) : new URL(pathname, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)

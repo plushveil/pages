@@ -106,3 +106,30 @@ jobs:
   Once you have set up the above configuration in your workflow file, the GitHub Action will automatically run whenever you push changes to the <code>main</code> branch.
   This action will not deploy your site to a server, but it will build the static files that you can then deploy to your server yourself.
 </p>
+
+
+
+<h3>Running the Pages Container</h3>
+
+<p>
+  You can also extend the Pages image to run your website in a container. Below is an example Dockerfile that copies your website files to the container and exposes the default Pages port.
+</p>
+
+<pre class="bg-gray-200 dark:bg-gray-600 p-4 rounded mt-4 font-mono">
+# Use the latest Pages image
+FROM ghcr.io/plushveil/pages:latest
+
+# Set the base URI for the website
+ARG BASEURI
+
+# Copy the website files to the container
+COPY . /var/www/html
+
+# Expose the default Pages port (optional)
+EXPOSE 8080
+</pre>
+
+<p>
+  You can build the Docker image using the following command:
+  <code>docker build -t example-org --build-arg BASEURI=https://example.org/ .</code>
+</p>
