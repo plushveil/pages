@@ -20,9 +20,10 @@ module.register(url.pathToFileURL(path.resolve(__dirname, 'eval-hook.mjs')).toSt
  * @param {import('../../../src/pages.mjs').Page} page - The page to render
  * @param {import('../../../src/config.mjs').Config} config - The configuration
  * @param {import('../../../src/pages.mjs').API} api - The API
+ * @param {any[]} args - Arguments to make available via `args` variable.
  * @returns {Promise<string>} The rendered page
  */
-export default async function render (page, config, api) {
+export default async function render (page, config, api, args) {
   const content = page.content ?? await fs.promises.readFile(url.fileURLToPath(page.fileUrl), { encoding: 'utf8' })
 
   // mark page as root if it isn't already
@@ -55,6 +56,7 @@ export default async function render (page, config, api) {
     contextUrl.searchParams.set('format', 'pages-module-html-evaluate')
     contextUrl.searchParams.set('env', JSON.stringify({
       params: page.params || {},
+      args,
       config,
       __filename: page.fileUrl ? url.fileURLToPath(page.fileUrl) : path.resolve(process.cwd(), 'index.html'),
       __dirname: page.fileUrl ? path.dirname(url.fileURLToPath(page.fileUrl)) : process.cwd(),
@@ -134,9 +136,9 @@ export default async function render (page, config, api) {
       if (!context.__filename) context.__filename = url.fileURLToPath(page.fileUrl)
       if (!context.__dirname) context.__dirname = path.dirname(context.__filename)
     }
-    context.include = (file) => {
+    context.include = (file, ...args) => {
       const fileUrl = path.isAbsolute(file) ? url.pathToFileURL(file) : new URL(file, page.fileUrl)
-      return render({ ...page, fileUrl, content: undefined, root: false }, config, api)
+      return render({ ...page, fileUrl, content: undefined, root: false }, config, api, args)
     }
 
     // get the context from targeted scripts

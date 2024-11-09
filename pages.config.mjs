@@ -23,6 +23,7 @@ export const build = {
   ignore: [
     /\/(node_modules|.git|.github)\//,
     /\/(utils|components)\//,
+    /Dockerfile$/,
     /\.mjs$/,
     /\.ts$/,
     /\.json$/,
