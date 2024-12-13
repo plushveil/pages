@@ -25,7 +25,7 @@ export default function splitTemplateLiterals (text) {
     let close = open
     let depth = 1
     while (depth > 0) {
-      const nextOpen = text.indexOf('${', close)
+      const nextOpen = text.indexOf('{', close)
       const nextClose = text.indexOf('}', close)
       if (nextClose === -1) throw new SyntaxError('Unterminated template literal')
       if (nextOpen === -1 || nextClose < nextOpen) {
