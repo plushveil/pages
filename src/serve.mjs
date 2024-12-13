@@ -9,7 +9,7 @@ import process from 'node:process'
 
 import mime from 'mime'
 
-import { default as getConfig, port } from './config.mjs'
+import getConfig, { port } from './config.mjs'
 import * as utils from './utils.mjs'
 import { pages as getPages } from './pages.mjs'
 
