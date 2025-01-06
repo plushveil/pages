@@ -82,3 +82,5 @@ jobs:
           npm install -g vsce
           vsce package
           vsce publish --pat ${{ secrets.VSCODE_TOKEN }} || true
+        env:
+          NODE_ENV: production

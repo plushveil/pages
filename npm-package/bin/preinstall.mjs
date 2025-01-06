@@ -34,6 +34,6 @@ async function main () {
  */
 async function installModule (folder) {
   if (!fs.existsSync(path.resolve(folder, 'package.json'))) return
-  if (fs.existsSync(path.resolve(folder, 'package-lock.json'))) cmd.execSync('npm ci', { cwd: folder })
+  if (fs.existsSync(path.resolve(folder, 'package-lock.json'))) cmd.execSync('npm ci', { cwd: folder, env: { ...process.env, NODE_ENV: 'production' } })
   else cmd.execSync('npm install', { cwd: folder })
 }

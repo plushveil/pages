@@ -19,8 +19,12 @@ runs:
           node-version: 'latest'
       - run: cd ${GITHUB_ACTION_PATH}/npm-package && npm ci
         shell: bash
+        env:
+          NODE_ENV: production
       - run: cd ${GITHUB_ACTION_PATH}/github-action && npm ci
         shell: bash
+        env:
+          NODE_ENV: production
       - id: build
         run: node ${GITHUB_ACTION_PATH}/github-action/action.mjs
         shell: bash
@@ -31,3 +35,4 @@ runs:
           HOST: ${{ env.HOST }}
           PORT: ${{ env.PORT }}
           PATHNAME: ${{ env.PATHNAME }}
+          NODE_ENV: production
