@@ -14,7 +14,7 @@ export default async function sitemap (filename, output, config) {
   const files = utils.getFilesInFolder(output)
 
   const pages = (await Promise.all(files.map(async (file) => {
-    if (!(file.endsWith('.html'))) return null
+    if (!(file.endsWith('.html') || file.endsWith('.htms') || file.endsWith('.page'))) return null
     const content = await fs.promises.readFile(file, { encoding: 'utf-8' })
     const match = content.match(/<meta[^>]+noindex/i)
     if (match) return null
