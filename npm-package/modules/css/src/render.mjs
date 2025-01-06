@@ -66,7 +66,7 @@ async function getTailwindConfig (page, config) {
 
   return {
     content: [
-      `${config.root}/**/*.{html,js,css}`,
+      `${config.root}/**/*.{page,htms,html,js,css}`,
       '!node_modules/**/*',
     ],
     theme: { extend: {}, },
