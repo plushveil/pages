@@ -1,0 +1,68 @@
+{
+  "name": "pages",
+  "displayName": "Pages",
+  "publisher": "plushveil",
+  "description": "Syntax Highlighting for JavaScript Template Literals in HTML files",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "main": "src/pages.js",
+  "activationEvents": [
+    "onLanguage:pages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "pages",
+        "extensions": [
+          ".htms",
+          ".page"
+        ],
+        "aliases": [
+          "Page"
+        ],
+        "configuration": "./pages.language.json",
+        "icon": {
+           "light": "./icon.png",
+           "dark": "./icon.png"
+         }
+     }
+    ],
+    "grammars": [
+      {
+        "language": "pages",
+        "scopeName": "source.pages",
+        "path": "./pages.textmate.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "pages",
+        "path": "./pages.snippets.json"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "npm run -s test:lint && npm run -s test:unit",
+    "test:lint": "eslint .",
+    "test:unit": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.96.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.16.0",
+    "neostandard": "^0.12.0"
+  },
+  "dependencies": {
+    "node-html-parser": "^7.0.1",
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1"
+  }
+}

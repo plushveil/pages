@@ -1,0 +1,28 @@
+{
+  "scopeName": "source.pages",
+  "patterns": [
+    {
+      "begin": "(\\$\\{)",
+      "end": "(\\})",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.template-expression.begin.js"
+        }
+      },
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.template-expression.end.js"
+        }
+      },
+      "contentName": "source.js",
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    {
+      "include": "text.html.derivative"
+    }
+  ]
+}

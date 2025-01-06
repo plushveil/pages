@@ -42,6 +42,8 @@ export async function pages (file, config, type) {
   const api = await getApi()
 
   switch (type || path.extname(file).slice(1)) {
+    case 'page':
+    case 'htms':
     case 'html':
       return html.pages(file, config, api)
 
@@ -79,6 +81,8 @@ export async function render (page, config, encoding = 'utf-8', type) {
   const api = await getApi()
 
   switch (type || path.extname(url.fileURLToPath(page.fileUrl)).slice(1)) {
+    case 'page':
+    case 'htms':
     case 'html':
       return html.render(page, config, api)
 

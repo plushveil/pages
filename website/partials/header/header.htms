@@ -29,11 +29,11 @@
         </a>
       </li>
       <li class="w-full lg:w-fit lg:ml-auto pt-5 lg:pt-0">
-        ${await include('./search.html')}
+        ${await include('./search.htms')}
       </li>
     </ul>
   </nav>
-  ${await include('./breadcrumb.html')}
+  ${await include('./breadcrumb.htms')}
 </header>
 
 <script target="header">

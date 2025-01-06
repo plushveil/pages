@@ -20,10 +20,10 @@ jobs:
         node-version: 'latest'
 
     - name: Install dependencies
-      run: npm install
+      run: cd npm-package && npm install
 
     - name: Run tests
-      run: npm test
+      run: cd npm-package && npm test
 
   publish:
     needs: build
@@ -44,12 +44,14 @@ jobs:
 
       - name: Publish package
         run: |
+          cd npm-package
           npm publish --access public || true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish package to GitHub Package Registry
         run: |
+          cd npm-package
           npm config set //npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}
           npm config set @plushveil:registry https://npm.pkg.github.com
           npm publish --access public || true

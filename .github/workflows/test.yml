@@ -21,8 +21,12 @@ jobs:
         node-version: 'latest'
 
     - name: Install dependencies
-      run: npm install
+      run: |
+        cd npm-package
+        npm install
 
     - id: check
       name: Run tests
-      run: npm test
+      run: |
+        cd npm-package
+        npm test

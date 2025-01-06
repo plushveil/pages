@@ -32,7 +32,7 @@ jobs:
     - name: Deploy to GitHub Pages
       run: |
         cd gh-pages
-        ls -A | grep -v '^\.\|CNAME\|preview' | xargs rm -rf
+        ls -A | grep -v '^\.git\|CNAME\|preview' | xargs rm -rf
         cp -r ${{steps.build.outputs.folder}}/* .
         git config --local user.name "github-actions[bot]"
         git config --local user.email "github-actions[bot]@users.noreply.github.com"

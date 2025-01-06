@@ -1,24 +1,23 @@
 <!DOCTYPE html>
 <html lang="${langCode}">
   <head>
-    ${await include('../../partials/head.html')}
+    ${await include('../../partials/head.htms')}
     ${(await Promise.all(translations.map(async (langCode) => {
       return `<link rel="alternate" hreflang="${langCode}" href="${await getLanguageUrl(langCode)}">`
     }))).join('')}
     <link rel="canonical" href="/${languages}/${url}/">
     ${noindex ? `<meta name="robots" content="noindex">` : ''}
-    <title>${text.title} - ${text['examples'].title}</title>
+    <title>${text.title} - ${text['terms-of-service'].title}</title>
   </head>
   <body>
-    ${await include('../../partials/header/header.html')}
+    ${await include('../../partials/header/header.htms')}
     <section class="lg:flex container mx-auto">
-      ${await include('../../partials/table-of-contents.html')}
+      ${await include('../../partials/table-of-contents.htms')}
       <main class="flex-grow p-4 order-first min-h-screen">
-        ${await include(`./examples.${langCode}.html`)}
       </main>
-      ${await include('../../partials/sidebar.html')}
+      ${await include('../../partials/sidebar.htms')}
     </section>
-    ${await include('../../partials/footer/footer.html')}
+    ${await include('../../partials/footer/footer.htms')}
   </body>
 </html>
 
@@ -26,7 +25,7 @@
   import { getLanguages, getLanguage } from '../../scripts/translations.mjs'
   export const languages = await getLanguages()
   export const url = [...(await Promise.all(languages.map(async (langCode) => {
-    return (await getLanguage(langCode))['examples'].url
+    return (await getLanguage(langCode))['terms-of-service'].url
   })))].filter((arr, i, self) => self.indexOf(arr) === i)
 </script>
 
@@ -38,10 +37,10 @@
 
   export const langCode = params.languages
   export const text = await getLanguage(langCode)
-  export const noindex = params.url !== text.examples.url
+  export const noindex = params.url !== text['terms-of-service'].url
 
   export async function getLanguageUrl (langCode) {
     const lang = await getLanguage(langCode)
-    return new URL(`${langCode}/${lang.examples.url}/`, config.baseURI)
+    return new URL(`${langCode}/${lang['terms-of-service'].url}/`, config.baseURI)
   }
 </script>
