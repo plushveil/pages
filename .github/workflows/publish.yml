@@ -78,6 +78,7 @@ jobs:
       - name: Publish extension
         run: |
           cd vscode-extension
+          npm ci
           npm install -g vsce
           vsce package
-          vsce publish
+          vsce publish --pat ${{ secrets.VSCODE_TOKEN }}

@@ -27,10 +27,10 @@
         ],
         "configuration": "./pages.language.json",
         "icon": {
-           "light": "./icon.png",
-           "dark": "./icon.png"
-         }
-     }
+          "light": "./icon.png",
+          "dark": "./icon.png"
+        }
+      }
     ],
     "grammars": [
       {
@@ -61,6 +61,7 @@
     "neostandard": "^0.12.0"
   },
   "dependencies": {
+    "@plushveil/pages": "^0.0.13",
     "node-html-parser": "^7.0.1",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1"
