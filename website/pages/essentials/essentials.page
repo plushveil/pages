@@ -14,7 +14,7 @@
     <section class="lg:flex container mx-auto">
       ${await include('../../partials/table-of-contents.htms')}
       <main class="flex-grow p-4 order-first min-h-screen">
-        ${await include(`./essentials.${langCode}.html`)}
+        ${await include(`./essentials.${langCode}.htms`)}
       </main>
       ${await include('../../partials/sidebar.htms')}
     </section>

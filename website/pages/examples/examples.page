@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="${langCode}">
   <head>
-    ${await include('../../partials/head.htms')}
+    ${await include('../../partials/head.html')}
     ${(await Promise.all(translations.map(async (langCode) => {
       return `<link rel="alternate" hreflang="${langCode}" href="${await getLanguageUrl(langCode)}">`
     }))).join('')}
@@ -10,15 +10,15 @@
     <title>${text.title} - ${text['examples'].title}</title>
   </head>
   <body>
-    ${await include('../../partials/header/header.htms')}
+    ${await include('../../partials/header/header.html')}
     <section class="lg:flex container mx-auto">
-      ${await include('../../partials/table-of-contents.htms')}
+      ${await include('../../partials/table-of-contents.html')}
       <main class="flex-grow p-4 order-first min-h-screen">
-        ${await include(`./examples.${langCode}.html`)}
+        ${await include(`./examples.${langCode}.htms`)}
       </main>
-      ${await include('../../partials/sidebar.htms')}
+      ${await include('../../partials/sidebar.html')}
     </section>
-    ${await include('../../partials/footer/footer.htms')}
+    ${await include('../../partials/footer/footer.html')}
   </body>
 </html>
 
