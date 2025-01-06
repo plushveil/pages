@@ -23,7 +23,6 @@
   "author": "Plushveil <plushveil@gray.blue>",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "@actions/core": "^1.11.1",
     "@plushveil/cli_from_jsdoc": "^0.0.8",
     "mime": "^4.0.4"
   },
