@@ -21,7 +21,7 @@
     "pages"
   ],
   "author": "Plushveil <plushveil@gray.blue>",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "SEE LICENSE IN LICENSE FILE",
   "dependencies": {
     "@plushveil/cli_from_jsdoc": "^0.0.8",
     "mime": "^4.0.4"
