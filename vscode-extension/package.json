@@ -2,7 +2,7 @@
   "name": "pages",
   "displayName": "Pages",
   "publisher": "plushveil",
-  "description": "Syntax Highlighting for JavaScript Template Literals in HTML files",
+  "description": "Syntax Highlighting for HTML and JavaScript in Page files",
   "repository": {
     "type": "git",
     "url": "https://github.com/plushveil/pages.git"
