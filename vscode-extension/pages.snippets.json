@@ -2,7 +2,30 @@
   "pages": {
     "${...}": {
       "prefix": ["js", "Template literal (${...})"],
-      "body": "${$0}"
+      "body": "\\${$0}"
+    },
+    "Page HTML": {
+      "prefix": ["page html"],
+      "body": [
+        "<!DOCTYPE html>",
+        "<html lang=\"\\${lang}\">",
+        "  <head>",
+        "    <meta charset=\"UTF-8\">",
+        "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
+        "    <title>\\${title}</title>",
+        "    <link rel=\"canonical\" href=\"/\" />",
+        "  </head>",
+        "  <body>",
+        "    $0",
+        "  </body>",
+        "</html>",
+        "",
+        "<script target=\"html\">",
+        "  export const lang = 'en'",
+        "  export const title = 'Document'",
+        "</script>",
+        ""
+      ]
     }
   }
 }
