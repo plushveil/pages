@@ -118,18 +118,6 @@ function updateDocument (document) {
 
   const scripts = root.querySelectorAll('script[target]')
   for (const script of scripts) {
-    try {
-      const commonjs = getCommonJsFromESM(script.innerText)
-      const exportIndex = commonjs.lastIndexOf('module.exports =')
-      const exportString = commonjs.slice(exportIndex + 18).slice(0, -2)
-      const exports = exportString.split(',').map((exp) => exp.trim().split(':')[0].trim())
-      script._exports = exports.filter((value, index, array) => array.indexOf(value) === index)
-      script._commonjs = `${commonjs.slice(0, exportIndex)}return ${commonjs.slice(exportIndex + 16)}`
-    } catch (err) {
-      console.log(`Extension "Pages" encountered an error while parsing a script in ${document.uri}`)
-      console.error(err)
-    }
-
     const target = script.getAttribute('target')
     for (const element of root.querySelectorAll(target)) {
       element._scripts = element._scripts || []
@@ -174,16 +162,34 @@ function findNodeAndDiffByPosition (root, position) {
 
 function getScripts (document, node) {
   const root = documentMetaData[document.uri].root
-  const scripts = []
+  const scriptsTargets = []
   let element = node
   while (element) {
-    if (element._scripts) scripts.push(...element._scripts)
+    if (element._scripts) scriptsTargets.push(...element._scripts)
     element = element.parentNode
   }
 
-  return scripts.map((target) => {
+  const scripts = scriptsTargets.map((target) => {
     return [...root.querySelectorAll(`script[target="${target}"]`)]
   }).flat().filter((script, index, array) => array.indexOf(script) === index)
+
+  scripts.forEach((script) => {
+    if (script._parsed) return
+    script._parsed = true
+    try {
+      const commonjs = getCommonJsFromESM(script.innerText)
+      const exportIndex = commonjs.lastIndexOf('module.exports =')
+      const exportString = commonjs.slice(exportIndex + 18).slice(0, -2)
+      const exports = exportString.split(',').map((exp) => exp.trim().split(':')[0].trim())
+      script._exports = exports.filter((value, index, array) => array.indexOf(value) === index)
+      script._commonjs = `${commonjs.slice(0, exportIndex)}return ${commonjs.slice(exportIndex + 16)}`
+    } catch (err) {
+      console.log(`Extension "Pages" encountered an error while parsing a script in ${document.uri}`)
+      console.error(err)
+    }
+  })
+
+  return scripts.filter((script) => script._exports?.length)
 }
 
 /**
