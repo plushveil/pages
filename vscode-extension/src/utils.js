@@ -31,7 +31,7 @@ function getContextAndContent (document, position) {
     if (tag.includes(' ')) {
       const tagName = tag.split(' ')[0]
 
-      if (tag.includes('=') && lastCharacter === '"') {
+      if (tag.includes('=') && (substringCount(tag, '"') % 2 === 1 || substringCount(tag, "'") % 2 === 1)) {
         const attributeName = previous.slice(previous.lastIndexOf(' ') + 1, previous.lastIndexOf('='))
         return [`html-${tagName}-${attributeName}-value`, '']
       }

@@ -138,8 +138,10 @@ function enableIntellisense (context) {
   const disposable = vscode.languages.registerCompletionItemProvider(
     { language: 'pages', scheme: 'file' },
     new CompletionItemProvider(client),
-    '<', '$', ' ', '=', '"', '.', '(',
-    'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+    ...[
+      ...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+      ...'!@#$%^&*()-_=+[]{}|;:\'",.<>?/`~ \\'
+    ]
   )
   context.subscriptions.push(disposable)
 

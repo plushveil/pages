@@ -90,7 +90,8 @@ async function onCompletionsRequest (document, position, context, content) {
         return \`${text}\`
       }
     `
-    const start = content.lastIndexOf(marker) + marker.length + 17 + text.slice(0, diff).length
+
+    const start = content.lastIndexOf(marker) + (marker.length + 17) + diff
     const startArr = content.slice(0, start).split('\n')
 
     // console.log(`${content.slice(0, start)}<-- here -->${content.slice(start)}`)
@@ -119,10 +120,12 @@ function updateDocument (document) {
   const scripts = root.querySelectorAll('script[target]')
   for (const script of scripts) {
     const target = script.getAttribute('target')
-    for (const element of root.querySelectorAll(target)) {
-      element._scripts = element._scripts || []
-      if (!element._scripts.includes(target)) element._scripts.push(target)
-    }
+    try {
+      for (const element of root.querySelectorAll(target)) {
+        element._scripts = element._scripts || []
+        if (!element._scripts.includes(target)) element._scripts.push(target)
+      }
+    } catch (err) {}
   }
 }
 
@@ -141,16 +144,21 @@ function findNodeAndDiffByPosition (root, position) {
     if (!skip) {
       const text = node.outerHTML?.slice(0, node.outerHTML.indexOf('>') + 1) || node.textContent
       currentPosition = currentPosition + text.length
+
+      if (currentPosition >= position) {
+        const diff = text.length - (currentPosition - position)
+        return [node, diff]
+      }
     }
-    if (currentPosition >= position) return [node, position - currentPosition + 2]
+
     for (const child of node.childNodes) {
       const result = traverse(child)
       if (result) return result
     }
     if (!skip) {
-      const lastIndex = node.outerHTML?.lastIndexOf('</')
-      if (lastIndex) {
-        const text = node.outerHTML?.slice(lastIndex)
+      const closingTag = node.outerHTML?.lastIndexOf('</')
+      if (closingTag && closingTag !== -1) {
+        const text = node.outerHTML?.slice(closingTag)
         currentPosition = currentPosition + text.length
       }
     }
@@ -197,6 +205,7 @@ function getScripts (document, node) {
  * @param {languageServer.TextDocumentContentChangeEvent[]} contentChanges
  */
 async function onDocumentContentChange (textDocument, contentChanges) {
+  const diagnostics = []
   const response = await connection.sendRequest('getContextAndContent', textDocument, contentChanges)
   const context = response[0]
 
@@ -209,23 +218,65 @@ async function onDocumentContentChange (textDocument, contentChanges) {
     documentMetaData[textDocument.uri].lastHtmlChange = Date.now()
   }
 
-  // @TODO
-  // const diagnostics = []
-  // diagnostics.push({
-  //   severity: languageserver.DiagnosticSeverity.Error,
-  //   range: {
-  //     start: {
-  //       line: i,
-  //       character: match.index + 1
-  //     },
-  //     end: {
-  //       line: i,
-  //       character: match.index + content.length + 1
-  //     }
-  //   },
-  //   message: `HTML text node does not start with $: "${content}"`,
-  //   source: 'pagesLanguageServer'
-  // })
-  // connection.sendDiagnostics({ uri: document.uri, diagnostics })
+  if (context === 'html-script-target-value') {
+    updateDocument(textDocument)
+    const position = contentChanges[0].range.start
+    const offset = getOffset(textDocument, position)
+    const root = documentMetaData[textDocument.uri].root
+    const script = findNodeAndDiffByPosition(root, offset)[0]
+    const target = script.getAttribute('target')
+    let elements
+    try {
+      elements = root.querySelectorAll(target)
+    } catch (err) {
+      elements = []
+      elements._error = err
+    }
 
+    if (elements.length === 0) {
+      const text = documentMetaData[textDocument.uri].text
+
+      const offsetText = text.slice(0, offset)
+      const startIndex = Math.max(offsetText.lastIndexOf('"'), offsetText.lastIndexOf("'")) + 1
+      const startText = text.slice(0, startIndex)
+      const startArr = startText.split('\n')
+      const startLine = startArr.length - 1
+      const startCharacter = Math.max(
+        startArr[startLine].lastIndexOf('"') + 1,
+        startArr[startLine].lastIndexOf("'") + 1
+      )
+
+      const endText = text.slice(startIndex)
+      const end = endText.slice(0, Math.min(endText.indexOf('"'), endText.indexOf("'"), endText.length))
+      const endArr = end.split('\n')
+      const endLine = startLine + endArr.length - 1
+      const endCharacter = endLine === startLine
+        ? (startCharacter + end.length)
+        : Math.max(
+          endArr[endArr.length - 1].lastIndexOf('"') + 1,
+          endArr[endArr.length - 1].lastIndexOf("'") + 1,
+          endArr[endArr.length - 1].length
+        )
+
+      diagnostics.push({
+        severity: languageServer.DiagnosticSeverity.Error,
+        range: {
+          start: {
+            line: startLine,
+            character: startCharacter
+          },
+          end: {
+            line: endLine,
+            character: endCharacter
+          }
+        },
+        message: elements._error
+          ? `Invalid query selector: "${elements._error.message}"`
+          : 'No elements matching the query selector were found',
+        source: 'pages'
+      })
+    }
+  }
+
+  connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 }
