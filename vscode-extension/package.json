@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@plushveil/pages": "^0.0.14",
+    "esm-to-cjs": "^1.2.1",
     "node-html-parser": "^7.0.1",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1"

@@ -1,5 +1,6 @@
 const parser = require('node-html-parser')
 const languageServer = require('vscode-languageserver/node')
+const { runTransform: getCommonJsFromESM } = require('esm-to-cjs')
 
 const connection = languageServer.createConnection(languageServer.ProposedFeatures.all)
 
@@ -79,22 +80,20 @@ async function onCompletionsRequest (document, position, context, content) {
 
     const scripts = getScripts(document, node)
 
-    const marker = 'export default async function () {'
+    const marker = '// @pages-language-server-marker'
     const content = `
-      /**
-       * @fileoverview
-       * @env node
-       */
-      ${scripts.map((script) => script.innerText).join('\n')}
-
       export default async function () {
+        ${scripts.map((script, i) => {
+          return `const { ${script._exports.join(', ')} } = await (async () => {\n${script._commonjs}\n})()\n`
+        }).join('\n')}
+        ${marker}
         return \`${text}\`
       }
     `
-    const start = content.indexOf(marker) + marker.length + 17 + text.slice(0, diff).length
+    const start = content.lastIndexOf(marker) + marker.length + 17 + text.slice(0, diff).length
     const startArr = content.slice(0, start).split('\n')
 
-    // console.log(`${content.slice(0, start)}<-- hier -->${content.slice(start)}`)
+    // console.log(`${content.slice(0, start)}<-- here -->${content.slice(start)}`)
     const localCompletions = await connection.sendRequest('getVsCodeCompletions', {
       uri: document.uri + '.' + Date.now() + '.js',
       position: {
@@ -119,6 +118,18 @@ function updateDocument (document) {
 
   const scripts = root.querySelectorAll('script[target]')
   for (const script of scripts) {
+    try {
+      const commonjs = getCommonJsFromESM(script.innerText)
+      const exportIndex = commonjs.lastIndexOf('module.exports =')
+      const exportString = commonjs.slice(exportIndex + 18).slice(0, -2)
+      const exports = exportString.split(',').map((exp) => exp.trim().split(':')[0].trim())
+      script._exports = exports.filter((value, index, array) => array.indexOf(value) === index)
+      script._commonjs = `${commonjs.slice(0, exportIndex)}return ${commonjs.slice(exportIndex + 16)}`
+    } catch (err) {
+      console.log(`Extension "Pages" encountered an error while parsing a script in ${document.uri}`)
+      console.error(err)
+    }
+
     const target = script.getAttribute('target')
     for (const element of root.querySelectorAll(target)) {
       element._scripts = element._scripts || []
