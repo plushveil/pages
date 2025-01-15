@@ -2,7 +2,10 @@
   "main": "html.mjs",
   "type": "module",
   "dependencies": {
+    "esprima": "^4.0.1",
     "html-minifier-terser": "^7.2.0",
-    "node-html-parser": "^6.1.13"
+    "node-html-parser": "^6.1.13",
+    "vscode-html-languageservice": "^5.3.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }
