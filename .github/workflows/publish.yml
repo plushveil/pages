@@ -2,7 +2,8 @@ name: CD
 
 on:
   push:
-    branches: [ latest ]
+    branches:
+      - latest
 
 jobs:
   build:
@@ -25,7 +26,8 @@ jobs:
     - name: Run tests
       run: cd npm-package && npm test
 
-  publish:
+
+  publish-package:
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -39,8 +41,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: https://registry.npmjs.org/
+          node-version: 'latest'
 
       - name: Publish package
         run: |
@@ -58,12 +59,12 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+
   publish-extension:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     steps:
       - name: Checkout repository
@@ -72,15 +73,86 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: https://registry.npmjs.org/
+          node-version: 'latest'
 
       - name: Publish extension
         run: |
-          cd vscode-extension
-          npm ci
+          cd ${GITHUB_ACTION_PATH}/npm-package && npm ci
+          cd ${GITHUB_ACTION_PATH}/vscode-extension && npm ci
           npm install -g vsce
           vsce package
           vsce publish --pat ${{ secrets.VSCODE_TOKEN }} || true
         env:
           NODE_ENV: production
+
+
+  publish-website:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - id: website
+      uses: plushveil/pages@latest
+      with:
+        folder: 'website'
+      env:
+        HOST: plushveil.github.io
+        PORT: 443
+        PATHNAME: /pages/
+  
+    - name: Checkout GitHub Pages Branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: gh-pages
+
+    - name: Deploy to GitHub Pages
+      run: |
+        cd gh-pages
+        ls -A | grep -v '^\.git\|CNAME\|preview' | xargs rm -rf
+        cp -r ${{steps.website.outputs.folder}}/* .
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add .
+        git commit -m "${{ github.actor }}: ${{ github.event.head_commit.message }}" || exit 0
+        git push
+
+
+  publish-ghcr:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (optional, for multi-arch images)
+        uses: docker/setup-qemu-action@v3.2.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.7.1
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: "{{defaultContext}}:npm-package"
+          file: Dockerfile
+          push: true
+          tags: ghcr.io/plushveil/pages:latest
+
+      - name: Logout from GHCR
+        run: docker logout ghcr.io

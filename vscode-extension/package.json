@@ -14,11 +14,32 @@
   "categories": [
     "Linters"
   ],
-  "main": "src/pages.js",
+  "main": "src/extension.js",
   "activationEvents": [
     "onLanguage:pages"
   ],
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Pages Configuration",
+      "properties": {
+        "pages.suggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable text suggestions."
+        },
+        "pages.diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable diagnostics."
+        },
+        "pages.formatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable formatting."
+        }
+      }
+    },
     "languages": [
       {
         "id": "pages",
@@ -65,10 +86,12 @@
     "neostandard": "^0.12.0"
   },
   "dependencies": {
-    "@plushveil/pages": "^0.0.14",
+    "@plushveil/pages": "file:../npm-package",
     "esm-to-cjs": "^1.2.1",
     "node-html-parser": "^7.0.1",
+    "vscode-html-languageservice": "^5.3.1",
     "vscode-languageclient": "^9.0.1",
-    "vscode-languageserver": "^9.0.1"
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }
