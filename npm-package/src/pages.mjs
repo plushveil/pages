@@ -15,7 +15,7 @@ const api = await getApi()
  * @typedef {object} Page
  * @property {URL} url - The URL of the page.
  * @property {object} params - Key-value pairs of additional information.
- * @property {string} [fileUrl] - The file URL. Either `fileUrl` or `content` must be provided.
+ * @property {URL} [fileUrl] - The file URL. Either `fileUrl` or `content` must be provided.
  * @property {string} [content] - The content. Either `content` or `fileUrl` must be provided.
  * @property {boolean} [root=true] - Whether the page is the root page.
  */
@@ -67,12 +67,13 @@ export async function pages (file, config, type = path.extname(file).slice(1)) {
  * @param {"html"|"js"|"css"|"other"} [type] - The type of the file. Defaults to the file extension.
  * @returns {Promise<string>} The rendered page.
  */
-export async function render (page, config, encoding = 'utf-8', type = path.extname(url.fileURLToPath(page.fileUrl)).slice(1)) {
+export async function render (page, config, encoding = 'utf-8', type = undefined) {
   if (typeof page === 'string') page = (await pages(page, config))[0]
   if (typeof page !== 'object') throw new TypeError('The page must be an object.')
   config = await getConfig(config)
   if (!config.root) config.root = path.dirname(url.fileURLToPath(page.fileUrl))
 
+  if (typeof type === 'undefined') type = path.extname(page.fileUrl.pathname).slice(1)
   switch (type) {
     case 'page':
     case 'htms':
