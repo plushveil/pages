@@ -1,11 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="/${lang}.html">
   <title>Document</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self';">
 </head>
 <body>
-  <h1>Test</h1>
+  ${(await import('./test_head.html')).default({ test: 'hihi' }, p, c)}
+  <link rel="content" href="./test_head.html">
+  <h1>hehe ${test} haha ${test} he</h1>
+  <a hreflang="zh" href="./test.html">test</a>
+  <script>
+    console.log('test');
+  </script>
 </body>
 </html>
+
+<script target="html">
+  import page from 'page:info'
+  import config from 'page:config'
+
+  export const p = page
+  export const c = config
+
+  export const lang = page.params.lang || ['en', 'zh']
+  export const test = 'hoho';
+</script>
