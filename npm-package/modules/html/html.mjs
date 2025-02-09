@@ -7,7 +7,7 @@ import _diagnose from './src/diagnose.mjs'
  * Retrieves a list of pages from a file.
  * @param {string} file - The file.
  * @param {import('../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../src/pages.mjs')} api - The API.
+ * @param {import('../../src/api.mjs').API} api - The API.
  * @returns {Promise<import('../../src/pages.mjs').Page[]>} The list of pages.
  */
 export async function pages (file, config, api) {
@@ -18,7 +18,7 @@ export async function pages (file, config, api) {
  * Renders a page.
  * @param {string | import('../../src/pages.mjs').Page} pageOrFile - The page or file.
  * @param {import('../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../src/pages.mjs')} api - The API.
+ * @param {import('../../src/api.mjs').API} api - The API.
  * @returns {Promise<string>} The rendered page.
  */
 export async function render (pageOrFile, config, api) {
@@ -30,7 +30,7 @@ export async function render (pageOrFile, config, api) {
  * Formats a file.
  * @param {string | import('../../src/pages.mjs').Page} pageOrFile - The page or file.
  * @param {import('../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../src/pages.mjs')} api - The API.
+ * @param {import('../../src/api.mjs').API} api - The API.
  * @returns {Promise<string>} The list of pages.
  */
 export async function format (pageOrFile, config, api) {
@@ -42,7 +42,7 @@ export async function format (pageOrFile, config, api) {
  * Retrieves a list of problems from a file.
  * @param {string | import('../../src/pages.mjs').Page} pageOrFile - The page or file.
  * @param {import('../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../src/pages.mjs')} api - The API.
+ * @param {import('../../src/api.mjs').API} api - The API.
  * @returns {Promise<{ message: string, position: { line: number, character: number } }[]>} The list of pages.
  */
 export async function diagnose (pageOrFile, config, api) {
