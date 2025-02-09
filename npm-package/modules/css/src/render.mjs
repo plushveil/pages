@@ -22,10 +22,9 @@ export default async function render (page, config, api) {
   const file = url.fileURLToPath(page.fileUrl)
   if (!fs.existsSync(file)) return ''
 
-  const content = await fs.promises.readFile(file, { encoding: 'utf8' })
-  const isTailwindResource = content.includes('tailwind') || content.includes('--tw-')
-  const twConfig = (isTailwindResource) ? await getTailwindConfig(page, config) : null
-  const plugins = [nested, autoprefixer, (twConfig) ? tailwind(twConfig) : null, cssnano()].filter(Boolean)
+  const content = page.content || await fs.promises.readFile(file, { encoding: 'utf8' })
+  const twConfig = await getTailwindConfig(page, config)
+  const plugins = [nested, autoprefixer, tailwind(twConfig), config.css.minify && cssnano()].filter(Boolean)
   const { css, map } = await postcss(plugins).use(atImport({ plugins })).process(content, { from: file, map: { annotation: false } })
 
   const pages = await getPages(file, config, api)
