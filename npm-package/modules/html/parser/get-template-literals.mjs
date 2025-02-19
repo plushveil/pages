@@ -13,7 +13,7 @@ import * as acorn from 'acorn'
  * @returns {TemplateLiteral[]} - The template literals
  */
 export default function getTemplateLiterals (textDocument, htmlDocument) {
-  const text = textDocument.getText()
+  const text = escapeHTML(textDocument.getText())
 
   /**
    * @type {TemplateLiteral[]}
@@ -91,4 +91,48 @@ function getOffsetFromPosition (text, position) {
   let offset = 0
   for (let i = 0; i < position.line - 1; i++) offset += lines[i].length + 1
   return offset + position.column
+}
+
+/**
+ * Replace all backticks that are not enclosed in ${} with a " to avoid syntax errors.
+ * @param {string} html - The HTML
+ * @returns {string} - The escaped HTML
+ */
+function escapeHTML (html) {
+  const opens = getAllIndexes(html, '${')
+  const closes = opens.map((_, i) => html.slice(opens[i], opens[i + 1] || html.length).lastIndexOf('}') + opens[i])
+
+  let result = ''
+  let start = 0
+  while (start < html.length) {
+    const open = opens.find(o => o > start)
+    if (typeof open === 'undefined') {
+      result += html.slice(start).replace(/`/g, '"')
+      break
+    }
+
+    const close = closes.find(c => c > open)
+    if (close === undefined) {
+      result += html.slice(start).replace(/`/g, '"')
+      break
+    }
+
+    result += html.slice(start, open).replace(/`/g, '"') + html.slice(open, close + 1)
+    start = close + 1
+  }
+
+  return result
+}
+
+/**
+ * Get all indexes of a string in another string
+ * @param {string} str - The string
+ * @param {string} val - The value
+ * @returns {number[]} - The indexes
+ */
+function getAllIndexes (str, val) {
+  const indexes = []
+  let i = -1
+  while ((i = str.indexOf(val, i + 1)) !== -1) indexes.push(i)
+  return indexes
 }

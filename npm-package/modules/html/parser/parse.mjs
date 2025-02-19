@@ -1,5 +1,7 @@
 import * as fs from 'node:fs'
+import * as os from 'node:os'
 import * as url from 'node:url'
+import * as path from 'node:path'
 
 import vsCodeHtmlLanguageService from 'vscode-html-languageservice'
 import { TextDocument } from 'vscode-languageserver-textdocument'
@@ -7,6 +9,7 @@ import cssSelect from 'css-select'
 
 import getTemplateLiterals from './get-template-literals.mjs'
 import getTextNodes from './get-text-nodes.mjs'
+import iterator from './iterator.mjs'
 
 import CSSSelectAdapter from './css-select-adapter.mjs'
 
@@ -33,19 +36,18 @@ const service = vsCodeHtmlLanguageService.getLanguageService()
  * @property {() => TemplateLiteral[]} getTemplateLiterals Get all template literals from the HTML document
  * @property {() => TextDocument} getTextDocument Get the text document
  * @property {() => TextNode[]} getTextNodes Get all text nodes from the HTML document
+ * @property {() => Iterable<import('./iterator.mjs').Node>} iterator Iterate over all nodes in the HTML document
  */
 
 /**
  * Parse the given HTML content
- * @param {string} content The HTML content to parse or a fileUrl
- * @param {string} fileUrl The file URL
+ * @param {string} fileUrl The HTML content to parse or a fileUrl
  * @returns {HTMLDocument} The parsed HTML document
  */
-export default function parse (content, fileUrl = 'page://tmp.page') {
-  if (content.startsWith('file://')) {
-    fileUrl = content
-    content = fs.readFileSync(url.fileURLToPath(fileUrl), 'utf-8')
-  }
+export default function parse (fileUrl) {
+  if (typeof fileUrl !== 'string') fileUrl = fileUrl.toString()
+  const content = fileUrl.startsWith('file://') ? fs.readFileSync(url.fileURLToPath(fileUrl), 'utf-8') : fileUrl
+  if (!fileUrl.startsWith('file://')) fileUrl = url.pathToFileURL(path.join(os.tmpdir(), '/file.html')).toString()
 
   const textDocument = TextDocument.create(fileUrl, 'page', 0, content)
   const htmlDocument = service.parseHTMLDocument(textDocument)
@@ -55,6 +57,7 @@ export default function parse (content, fileUrl = 'page://tmp.page') {
   htmlDocument.getTemplateLiterals = () => getTemplateLiterals(textDocument, htmlDocument)
   htmlDocument.getTextDocument = () => textDocument
   htmlDocument.getTextNodes = () => getTextNodes(textDocument, htmlDocument)
+  htmlDocument.iterator = () => iterator(htmlDocument)
 
   return htmlDocument
 }

@@ -53,6 +53,22 @@ export default function getTextNodes (textDocument, htmlDocument) {
     const end = textDocument.positionAt(htmlDocument.roots[0].start)
     if (end) textNodes.push({ start, end, text: textDocument.getText({ start, end }) })
   }
-  for (const node of htmlDocument.roots) traverse(node)
+
+  for (let i = 0; i < htmlDocument.roots.length; i++) {
+    if (i > 0 && htmlDocument.roots[i - 1].end !== htmlDocument.roots[i].start) {
+      const start = textDocument.positionAt(htmlDocument.roots[i - 1].end)
+      const end = textDocument.positionAt(htmlDocument.roots[i].start)
+      textNodes.push({ start, end, text: textDocument.getText({ start, end }) })
+    }
+    const node = htmlDocument.roots[i]
+    traverse(node)
+  }
+
+  if (htmlDocument.roots[htmlDocument.roots.length - 1].end < textDocument.getText().length) {
+    const start = textDocument.positionAt(htmlDocument.roots[htmlDocument.roots.length - 1].end)
+    const end = textDocument.positionAt(textDocument.getText().length)
+    textNodes.push({ start, end, text: textDocument.getText({ start, end }) })
+  }
+
   return textNodes
 }
