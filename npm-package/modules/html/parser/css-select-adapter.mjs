@@ -48,7 +48,7 @@ export default class CSSSelectAdapter {
    * @returns {string|undefined} The attribute value
    */
   getAttributeValue (node, name) {
-    return node.attributes[name]?.replace(/^['"]+|['"]+$/g, '')
+    return node.attributes[name]?.replace(/^['"]|['"]$/g, '')
   }
 
   /**
@@ -95,8 +95,8 @@ export default class CSSSelectAdapter {
    */
   getText (node) {
     return this.#textDocument.getText({
-      start: this.#textDocument.positionAt(node.start),
-      end: this.#textDocument.positionAt(node.end)
+      start: this.#textDocument.positionAt(node.startTagEnd),
+      end: this.#textDocument.positionAt(node.endTagStart)
     })
   }
 
