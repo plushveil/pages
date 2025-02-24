@@ -1,6 +1,4 @@
-import * as url from 'node:url'
-
-import parse from '../parser/parse.mjs'
+import executeAddons from '../addons/addons.mjs'
 
 // todo:
 // - [ ] insert canonical link (at head end or position where it was removed, if it was removed)
@@ -29,9 +27,9 @@ import parse from '../parser/parse.mjs'
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
-  const isPartial = (page.params?.headers?.['X-Partial'] === 'true')
-  const sectionFilePath = page.params?.__filename || url.fileURLToPath(page.fileUrl.toString())
-
-  const htmlDocument = parse(page.content || page.fileUrl.toString())
-  const textDocument = htmlDocument.getTextDocument()
+  const nodes = await executeAddons(page, config, api)
+  const canonical = nodes.find(node => node.isCanonical)
+  if (canonical) canonical.textUpdate = `<link rel="canonical" href="${page.url}">`
+  const html = nodes.map(node => typeof node.textUpdate === 'string' ? node.textUpdate : node.text).join('')
+  return html
 }
