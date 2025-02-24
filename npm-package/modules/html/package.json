@@ -2,6 +2,7 @@
   "main": "html.mjs",
   "type": "module",
   "scripts": {
+    "test": "clear && npm run -s pages render modules/html/test/test.html",
     "pages": "cd .. && npm run -s pages"
   },
   "dependencies": {

@@ -36,7 +36,7 @@ const service = vsCodeHtmlLanguageService.getLanguageService()
  * @property {() => TemplateLiteral[]} getTemplateLiterals Get all template literals from the HTML document
  * @property {() => TextDocument} getTextDocument Get the text document
  * @property {() => TextNode[]} getTextNodes Get all text nodes from the HTML document
- * @property {() => Iterable<import('./iterator.mjs').Node>} iterator Iterate over all nodes in the HTML document
+ * @property {() => globalThis.Iterable<import('./iterator.mjs').Node>} iterator Iterate over all nodes in the HTML document
  */
 
 /**

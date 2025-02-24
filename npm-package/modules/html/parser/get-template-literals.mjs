@@ -73,6 +73,7 @@ function getAST (script) {
  * @returns {boolean} - Whether the node has a parent with the given tag
  */
 function isOrHasParent (node, tag) {
+  if (!node.tag) return false
   if (node.tag.toLowerCase() === tag) return true
   while (node.parent) {
     if (node.parent.tag?.toLowerCase() === tag) return true
