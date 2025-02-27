@@ -126,11 +126,11 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   /**
    * @type {import('../utils/exec.mjs').default}
    */
-  const exec = (await import(htmlDocument.getTextDocument().uri + '?' + Date.now())).default
+  const exec = (await import(htmlDocument.getTextDocument().uri + '?' + Date.now() + Math.random())).default
   const scripts = getScriptsForNode(node, nodes, htmlDocument)
 
   let result = await exec(node.text.slice(2, -1), scripts, page, config, api)
-  if (typeof result === 'object' && result && result.default) result = result.default
+  if (typeof result === 'object' && result && 'default' in result) result = result.default
   if (typeof result === 'function') result = await result()
   node.raw = result
   node.textUpdate = `${node.raw}`

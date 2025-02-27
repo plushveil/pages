@@ -20,6 +20,7 @@ const eventEmitter = global.eventEmitter = global.eventEmitter || new EventEmitt
  */
 export default async function pages (file, config, api, options = {}) {
   file = utils.resolve(file, [process.cwd(), path.dirname(url.fileURLToPath(config.fileUrl))], { exists: true, file: true })
+  const fileUrl = url.pathToFileURL(file).toString()
   const canonicals = []
 
   /**
@@ -35,6 +36,7 @@ export default async function pages (file, config, api, options = {}) {
     const linkHtmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
     if (linkHtmlNode.tag !== 'link' || linkHtmlNode.attributes.rel.slice(1, -1) !== 'canonical') return
     const textDocument = htmlDocument.getTextDocument()
+    if (textDocument.uri !== fileUrl) return
     const text = textDocument.getText({ start: textDocument.positionAt(linkHtmlNode.start), end: textDocument.positionAt(linkHtmlNode.startTagEnd) })
     const match = text.match(/href\s*=\s*['"]/)
     if (!match) return
@@ -69,7 +71,7 @@ export default async function pages (file, config, api, options = {}) {
       __dirname: path.dirname(file),
     },
     root: false,
-    alternates: [],
+    getSiblings: () => [],
   }
 
   eventEmitter.on('node', forEachNode)
@@ -80,7 +82,10 @@ export default async function pages (file, config, api, options = {}) {
   for (const canonical of canonicals) {
     const combinations = getCombinations(canonical.href)
     for (const combination of combinations) {
-      let href = combination.map(part => part.type === 'template' ? part.textUpdate : part.text).join('')
+      let href = combination.map(part => {
+        if (!part.value) part.value = typeof part.textUpdate === 'string' ? part.textUpdate : part.text
+        return part.value
+      }).join('')
       while (href.startsWith('/')) href = href.slice(1)
 
       const page = {
@@ -103,7 +108,7 @@ export default async function pages (file, config, api, options = {}) {
 
       for (const part of combination) {
         if (part.type === 'template') {
-          page.params.headers[part.name] = part.textUpdate
+          page.params[part.text.slice(2, -1)] = part.value
         }
       }
 
@@ -112,7 +117,7 @@ export default async function pages (file, config, api, options = {}) {
   }
 
   if (pages.length === 0) {
-    return [{
+    pages.push({
       url: getUrl(path.relative(path.dirname(config.fileUrl.toString()), file), config),
       fileUrl: url.pathToFileURL(file),
       params: {
@@ -123,11 +128,13 @@ export default async function pages (file, config, api, options = {}) {
         __dirname: path.dirname(file),
       },
       root: false,
-      alternates: [],
-    }]
+      getSiblings: () => [],
+    })
   }
 
-  pages.forEach(page => { page.alternates = pages.filter(p => p !== page) })
+  pages.forEach(page => {
+    page.getSiblings = () => pages.filter(p => p !== page)
+  })
 
   return pages
 }
@@ -160,7 +167,7 @@ function getCombinations (input) {
   return product.map(values => {
     return input.map((entry, i) => {
       const dynamicIndex = dynamicEntries.findIndex(({ index }) => index === i)
-      if (dynamicIndex !== -1) return { ...entry, textUpdate: `${values[dynamicIndex]}` }
+      if (dynamicIndex !== -1) return { ...entry, value: `${values[dynamicIndex]}` }
       return { ...entry }
     })
   })

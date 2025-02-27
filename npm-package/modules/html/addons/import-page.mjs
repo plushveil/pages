@@ -26,7 +26,7 @@ module.registerHooks({
    */
   resolve (specifier, context, nextResolve) {
     if (submodules.find(submodule => specifier === `page:${submodule}`)) {
-      const url = specifier + `?${Date.now()}${Math.random()}`
+      const url = specifier + `#${Date.now()}${Math.random()}`
       return { format: 'module', url, importAttributes: { specifier: url }, shortCircuit: true }
     }
     return nextResolve(specifier, context)

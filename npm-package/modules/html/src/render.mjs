@@ -1,15 +1,14 @@
 import executeAddons from '../addons/addons.mjs'
 
 // todo:
-// - [ ] insert canonical link (at head end or position where it was removed, if it was removed)
+// - [x] insert canonical link (at head end or position where it was removed, if it was removed)
+// - [x] minify inline scripts and styles
 // - [ ] add integrity to script and style tags
 // - [ ] add content-security-policy to html tag
-// - [ ] resolve file paths in html to pages urls
+// - [x] resolve file paths in html to pages urls
 // - [ ] <link rel="file" href="header.html">
-// - [ ] ${import('header.html')}
-// - [ ] value from import default export function result (in worker)
-// - [ ] loadHTML change error location to the correct line
-// - [ ] nested worker needs no new thread
+// - [x] ${import('header.html')}
+// - [x] value from import default export function result (in worker)
 
 /**
  * @typedef {object} Node

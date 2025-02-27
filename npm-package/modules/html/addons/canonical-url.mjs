@@ -15,7 +15,10 @@ export function afterAsync (nodes, htmlDocument, page, config, api) {
       if (!(htmlNode.tag === 'link' && htmlNode.attributes.rel.slice(1, -1) === 'canonical')) continue
       node.isCanonical = true
       const nodesInCanonical = getNodesInRange(htmlNode.start, htmlNode.end, nodes)
-      nodesInCanonical.forEach(node => { node.textUpdate = '' })
+      nodesInCanonical.forEach(node => {
+        node.isCanonicalPart = true
+        node.textUpdate = ''
+      })
     }
   }
 }
