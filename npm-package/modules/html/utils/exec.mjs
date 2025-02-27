@@ -26,7 +26,7 @@ module.registerHooks({
       if (specifierUrl.hash.match(/^#[0-9]+$/)) {
         return {
           format: 'module',
-          url: specifier + `?${Date.now()}${Math.random()}`,
+          url: specifier + `${Date.now()}${Math.random()}`,
           importAttributes: {
             script: specifierUrl.hash.slice(1),
             specifier: specifierUrl.toString().slice(0, -specifierUrl.hash.length),
@@ -92,5 +92,25 @@ export default async function exec (code, scripts, page, config, api) {
   }
 
   const fn = new AsyncFunction(...Object.keys(context), codeWithContext)
-  return await fn(...Object.values(context))
+  try {
+    const result = await fn(...Object.values(context))
+    return result
+  } catch (err) {
+    if (err.stack) err.stack = replaceError(err.stack)
+    else err.message = replaceError(err.message)
+    throw err
+  }
+}
+
+/**
+ * Replaces the file paths in the error message.
+ * @param {string} text - The text.
+ * @returns {string} The text with the file paths replaced.
+ */
+function replaceError (text) {
+  return text.replace(/\({0,1}file:\/\/[^\n]*/g, (match) => {
+    const file = match.match(/file:\/\/[^?#)]*/)[0]
+    const pos = match.slice(file.length).split(':').slice(1, 3).map(p => p.match(/\d+/)[0])
+    return `(${file}${pos && pos.length === 2 ? `:${pos.join(':')}` : ''})`
+  })
 }

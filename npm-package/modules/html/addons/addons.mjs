@@ -6,7 +6,16 @@ import parse from '../parser/parse.mjs'
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-const activeAddons = ['event-emitter', 'canonical-url', 'import-page', 'template-literals', 'import-html', 'minify']
+const activeAddons = [
+  'event-emitter',
+  'canonical-url',
+  'minify-inline',
+  'references-to-url',
+  'template-literals',
+  'import-page',
+  'import-html',
+  'minify'
+]
 
 /**
  * Execute all addons for the given config.

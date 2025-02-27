@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    ${import('test_head.html')}
+    <link rel="canonical" href="/">
+    <style>
+      @tailwind base;
+      @tailwind components;
+      @tailwind utilities;
+    </style>
   </head>
-  <body>
-    ${import('test_body.html')}
+  <body class="bg-blue-400">
+    ${import('subpage.html')}
   </body>
 </html>
