@@ -3,11 +3,14 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as cmd from 'node:child_process'
+import * as url from 'node:url'
 
-const __filename = path.resolve(new URL(import.meta.url).pathname)
+const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const __modules = path.resolve(__dirname, '..', 'modules')
+
+const isUpdate = process.argv.find(a => a === '--update-all-modules')
 
 try {
   await main()
@@ -33,7 +36,13 @@ async function main () {
  * @param {string} folder - The folder whose dependencies to install.
  */
 async function installModule (folder) {
-  if (!fs.existsSync(path.resolve(folder, 'package.json'))) return
-  if (fs.existsSync(path.resolve(folder, 'package-lock.json'))) cmd.execSync('npm ci', { cwd: folder, env: { ...process.env, NODE_ENV: 'production' } })
-  else cmd.execSync('npm install', { cwd: folder })
+  const packageJsonFile = path.resolve(folder, 'package-lock.json')
+  if (!fs.existsSync(packageJsonFile)) return
+  if (!isUpdate) {
+    if (fs.existsSync(packageJsonFile)) cmd.execSync('npm ci', { cwd: folder, env: { ...process.env, NODE_ENV: 'production' } })
+    else cmd.execSync('npm install', { cwd: folder })
+  } else {
+    if (fs.existsSync(packageJsonFile)) fs.unlinkSync(packageJsonFile)
+    cmd.execSync('ncu -u && npm install', { cwd: folder })
+  }
 }
