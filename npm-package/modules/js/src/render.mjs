@@ -19,9 +19,6 @@ export default async function render (page, config, api) {
   const file = url.fileURLToPath(page.fileUrl)
   if (!fs.existsSync(file)) return ''
 
-  const pages = await getPages(file, config, api)
-  const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
-
   const target = getTarget(config)
   const build = await esbuild.build({
     stdin: {
@@ -36,15 +33,23 @@ export default async function render (page, config, api) {
     sourcemap: 'inline',
   })
 
-  if (page.url.toString() === map.url.toString()) {
-    const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
-    const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
-    return sourcemap
+  if (['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
+    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+    return js
+  } else {
+    const pages = await getPages(file, config, api)
+    const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
+  
+    if (page.url.toString() === map.url.toString()) {
+      const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
+      const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
+      return sourcemap
+    }
+  
+    const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
+    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+    return js + sourcemap
   }
-
-  const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
-  const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
-  return js + sourcemap
 }
 
 /**

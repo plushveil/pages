@@ -1,7 +1,7 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import parse from '../parser/parse.mjs'
+import getHtmlDocument from '../utils/getHtmlDocument.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -14,7 +14,8 @@ const activeAddons = [
   'template-literals',
   'import-page',
   'import-html',
-  'minify'
+  'minify',
+  'integrity'
 ]
 
 /**
@@ -25,7 +26,7 @@ const activeAddons = [
  * @returns {Promise<Array<import('../parser/iterator.mjs').Node>>} The iterator.
  */
 export default async function executeAddons (page, config, api) {
-  const htmlDocument = parse(page.content || page.params?.__filename ? url.pathToFileURL(page.params.__filename).toString() : page.fileUrl.toString())
+  const htmlDocument = getHtmlDocument(page)
   const iterator = htmlDocument.iterator()
   const addons = await Promise.all(activeAddons.map(addonName => import(url.pathToFileURL(path.join(__dirname, addonName + '.mjs')).href)))
 

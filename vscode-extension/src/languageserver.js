@@ -36,15 +36,16 @@ documents.onDidChangeContent(throwable((event) => {
 
 // Handle document formatting requests
 connection.onDocumentFormatting(throwableAsync(async (event) => {
-  const document = documents.get(event.textDocument.uri)
-  const text = document.getText()
-  const range = languageServer.Range.create(0, 0, text.split('\n').length, text.split('\n').pop().length)
-  const edits = service.format(document, range, {
-    tabSize: settings.editor.tabSize || 2,
-    ...settings.html.format
-  })
+  const textDocument = documents.get(event.textDocument.uri)
+  if (textDocument.languageId !== 'pages' || settings?.pages?.diagnostics === false) {
+    return
+  }
 
-  return edits
+  const format = (await import('@plushveil/pages/modules/html/src/format.mjs')).default
+  const [page, config, api] = await getPageConfigApi(textDocument)
+  const textEdits = await format(page, config, api)
+
+  return textEdits
 }))
 
 // Handle document close events
@@ -89,7 +90,21 @@ connection.onRequest('textDocument/diagnostic', throwableAsync(async (event) => 
 
   const diagnose = (await import('@plushveil/pages/modules/html/src/diagnose.mjs')).default
   const [page, config, api] = await getPageConfigApi(textDocument)
-  const diagnostics = await diagnose(page, config, api)
+  const diagnostics = (await diagnose(page, config, api)).map(problem => {
+    if (problem.offset) {
+      problem.start = textDocument.positionAt(problem.offset.start)
+      problem.end = textDocument.positionAt(problem.offset.end)
+    }
+    return languageServer.Diagnostic.create(
+      languageServer.Range.create(
+        languageServer.Position.create(problem.start.line, problem.start.character),
+        languageServer.Position.create(problem.end.line, problem.end.character)
+      ),
+      problem.message,
+      languageServer.DiagnosticSeverity.Error
+    )
+  })
+
   connection.sendDiagnostics({ uri: textDocument.uri, diagnostics })
 }))
 

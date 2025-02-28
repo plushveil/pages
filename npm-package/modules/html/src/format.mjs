@@ -1,3 +1,5 @@
+import getHtmlDocument from '../utils/getHtmlDocument.mjs'
+
 /**
  * Formats a file.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
@@ -6,4 +8,11 @@
  * @returns {Promise<string>} The list of pages.
  */
 export default async function format (page, config, api) {
+  try {
+    const htmlDocument = getHtmlDocument(page)
+    const textDocument = htmlDocument.getTextDocument()
+    return []
+  } catch (err) {
+    return []
+  }
 }
