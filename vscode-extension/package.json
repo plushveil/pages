@@ -86,7 +86,7 @@
     "neostandard": "^0.12.1"
   },
   "dependencies": {
-    "@plushveil/pages": "file:../npm-package",
+    "@plushveil/pages": "^0.0.15",
     "esm-to-cjs": "^1.2.1",
     "node-html-parser": "^7.0.1",
     "vscode-html-languageservice": "^5.3.1",
