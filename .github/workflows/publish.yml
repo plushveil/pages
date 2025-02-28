@@ -77,7 +77,7 @@ jobs:
 
       - name: Publish extension
         run: |
-          cd npm-package && npm ci
+          cd npm-package && npm install
           cd ../vscode-extension && npm ci
           npm install -g vsce
           vsce package
