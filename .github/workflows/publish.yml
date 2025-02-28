@@ -77,8 +77,8 @@ jobs:
 
       - name: Publish extension
         run: |
-          cd ${{ github.action_path }}/npm-package && npm ci
-          cd ${{ github.action_path }}/vscode-extension && npm ci
+          cd npm-package && npm ci
+          cd ../vscode-extension && npm ci
           npm install -g vsce
           vsce package
           vsce publish --pat ${{ secrets.VSCODE_TOKEN }} || true
