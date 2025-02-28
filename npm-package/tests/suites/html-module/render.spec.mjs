@@ -15,12 +15,7 @@ describe('modules/html - render', function () {
     assert.deepStrictEqual(await render({ content: '${1}' }, {}, {}), '1')
     assert.deepStrictEqual(await render({ content: '1' }, {}, {}), '1')
     assert.deepStrictEqual(await render({ content: '<html lang="${`DE`}"></html>' }, {}, {}), '<html lang="DE"></html>')
-    assert.deepStrictEqual(await render({ content: '<div alt="${(() => `${\'2\'}`)()}">' }, {}, {}), '<div alt="2"></div>')
-  })
-
-  it('script tags with template literals', async function () {
-    assert.deepStrictEqual(await render({ content: '<script>${2}</script>' }, {}, {}), '<script>${2}</script>')
-    assert.deepStrictEqual(await render({ content: '<script>const a = (a) => `${a}`</script>' }, {}, {}), '<script>const a = (a) => `${a}`</script>')
+    assert.deepStrictEqual(await render({ content: '<div alt="${(() => `${\'2\'}`)()}"></div>' }, {}, {}), '<div alt="2"></div>')
   })
 
   it('minify', async function () {

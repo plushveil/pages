@@ -23,7 +23,7 @@ export default async function diagnose (page, config, api) {
         while (node.text.indexOf('`', i) !== -1) {
           const offset = node.offset.start + node.text.indexOf('`', i)
           problems.push({
-            message: 'Backticks in text nodes may cause problems when interpreting template literals. Use `&#96;` instead.',
+            message: 'Backticks in text nodes may cause problems when interpreting template literals. Use &#96; instead.',
             start: textDocument.positionAt(offset),
             end: textDocument.positionAt(offset + 1),
             fix: '&#96;'
