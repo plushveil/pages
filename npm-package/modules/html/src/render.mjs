@@ -1,15 +1,5 @@
 import executeAddons from '../addons/addons.mjs'
 
-// todo:
-// - [x] insert canonical link (at head end or position where it was removed, if it was removed)
-// - [x] minify inline scripts and styles
-// - [ ] add integrity to script and style tags
-// - [ ] add content-security-policy to html tag
-// - [x] resolve file paths in html to pages urls
-// - [ ] <link rel="file" href="header.html">
-// - [x] ${import('header.html')}
-// - [x] value from import default export function result (in worker)
-
 /**
  * @typedef {object} Node
  * @property {string} text - The text node

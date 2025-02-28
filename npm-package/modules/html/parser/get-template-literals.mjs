@@ -28,9 +28,9 @@ export default function getTemplateLiterals (textDocument, htmlDocument) {
       continue
     }
 
-    const outerHtml = text.slice(node.start, node.end)
+    const outerHtml = text.slice(node.start, i < node.startTagEnd ? node.startTagEnd : node.end)
     const script = '`' + outerHtml + '`'
-    const ast = getAST(script)
+    const ast = getAST(script, i)
 
     /**
      * @type {import('estree').TemplateLiteral}
@@ -55,14 +55,17 @@ export default function getTemplateLiterals (textDocument, htmlDocument) {
 
 /**
  * @param {string} script - The script
+ * @param {number} position - The offset
  * @returns {import('acorn').Program} - The AST
  */
-function getAST (script) {
+function getAST (script, position) {
   try {
     const ast = acorn.parse(script, { ecmaVersion: 'latest', locations: true, sourceType: 'module', allowAwaitOutsideFunction: true })
     return ast
   } catch (err) {
-    throw new Error((err.stack || err.message) + `\n    in:\n${script}`)
+    const error = new Error((err.message) + `\n    in:\n${script}`)
+    error.position = position
+    throw error
   }
 }
 

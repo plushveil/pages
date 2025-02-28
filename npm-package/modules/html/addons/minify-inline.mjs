@@ -14,17 +14,10 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   if (node.type !== 'raw' || node.textUpdate === '') return
 
   const tag = htmlDocument.findNodeAt(node.offset.start).tag.toLowerCase()
+  if (tag !== 'script' && tag !== 'style') return
+
   const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
   const snippetPage = { ...page, content: text }
-
-  if (tag === 'script') {
-    const content = (await js.render(snippetPage, config, api))
-      .replace(/\/\/# sourceMappingURL.*/, '')
-    node.textUpdate = content
-  }
-  if (tag === 'style') {
-    const content = (await css.render(snippetPage, config, api))
-      .replace(/\/\*# sourceMappingURL.*/, '')
-    node.textUpdate = content
-  }
+  if (tag === 'script') node.textUpdate = await js.render(snippetPage, config, api)
+  else if (tag === 'style') node.textUpdate = await css.render(snippetPage, config, api)
 }
