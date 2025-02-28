@@ -3,7 +3,6 @@ import * as path from 'node:path'
 
 import postcss from 'postcss'
 import atImport from 'postcss-import'
-import tailwind from '@tailwindcss/postcss'
 import nested from 'postcss-nested'
 import cssnano from 'cssnano'
 
@@ -22,6 +21,7 @@ const __tailwind = path.resolve(__module, 'tailwind.css')
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
+  const tailwind = (await import('@tailwindcss/postcss')).default
   const file = url.fileURLToPath(page.fileUrl)
   const content = typeof page.content === 'string' ? page.content : `@import "${file}";`
   const plugins = [
