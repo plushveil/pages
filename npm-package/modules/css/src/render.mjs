@@ -4,6 +4,7 @@ import * as path from 'node:path'
 import postcss from 'postcss'
 import atImport from 'postcss-import'
 import nested from 'postcss-nested'
+import tailwind from '@tailwindcss/postcss'
 import cssnano from 'cssnano'
 
 import getPages from './pages.mjs'
@@ -21,7 +22,6 @@ const __tailwind = path.resolve(__module, 'tailwind.css')
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
-  const tailwind = (await import('@tailwindcss/postcss')).default
   const file = url.fileURLToPath(page.fileUrl)
   const content = typeof page.content === 'string' ? page.content : `@import "${file}";`
   const plugins = [
@@ -32,7 +32,7 @@ export default async function render (page, config, api) {
       }
     }),
     nested,
-    tailwind(),
+    tailwind({ base: config.root }),
     config.css.minify && cssnano()
   ].filter(Boolean)
   const { css, map } = await postcss(plugins).process(content, { from: file, map: { annotation: false } })

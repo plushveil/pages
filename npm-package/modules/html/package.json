@@ -2,7 +2,7 @@
   "main": "html.mjs",
   "type": "module",
   "scripts": {
-    "test": "clear && npm run -s pages serve modules/html/test/",
+    "test": "clear && npm run -s pages diagnose modules/html/test/page.page",
     "pages": "cd .. && npm run -s pages"
   },
   "dependencies": {

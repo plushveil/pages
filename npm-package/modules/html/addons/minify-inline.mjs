@@ -13,8 +13,10 @@ import * as css from '../../css/css.mjs'
 export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
   if (node.type !== 'raw' || node.textUpdate === '') return
 
-  const tag = htmlDocument.findNodeAt(node.offset.start).tag.toLowerCase()
+  const htmlNode = htmlDocument.findNodeAt(node.offset.start)
+  const tag = htmlNode.tag.toLowerCase()
   if (tag !== 'script' && tag !== 'style') return
+  if (tag === 'script' && htmlNode.attributes?.src) return
 
   const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
   const snippetPage = { ...page, content: text }

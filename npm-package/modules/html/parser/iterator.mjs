@@ -162,8 +162,8 @@ export default function iterator (htmlDocument) {
       if (i !== last && node.offset.start > templateLiteralsInsideNode[i].offset.start) continue
       const textStart = i === 0 ? node.offset.start : templateLiteralsInsideNode[i - 1].offset.end
       const textEnd = i === last ? node.offset.end : templateLiteralsInsideNode[i].offset.start
-      if (i === last && templateLiteralsInsideNode[i - 1].offset.end === node.offset.end) continue
-      nodes.push({
+      if (i === last && templateLiteralsInsideNode[i - 1].offset.end >= node.offset.end) continue
+      const updatedNode = {
         type: node.type,
         text: textDocument.getText({
           start: textDocument.positionAt(textStart),
@@ -177,7 +177,8 @@ export default function iterator (htmlDocument) {
           start: textStart,
           end: textEnd
         }
-      })
+      }
+      nodes.push(updatedNode)
     }
 
     return nodes

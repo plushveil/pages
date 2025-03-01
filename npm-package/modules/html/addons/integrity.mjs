@@ -23,7 +23,7 @@ export async function afterAsync (nodes, htmlDocument, page, config, api) {
   await Promise.all(nodes.filter(node => node.type === 'raw').map(async node => {
     const htmlNode = htmlDocument.findNodeAt(node.offset.start)
 
-    if (htmlNode.tag.toLowerCase() === 'script') {
+    if (htmlNode.tag.toLowerCase() === 'script' && !htmlNode.attributes?.src) {
       const parent = getNodesInRange(htmlNode.start, htmlNode.startTagEnd, nodes)[0]
       const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
       const integrity = (await generateIntegrityFromStringAsync(text, 'SHA-384'))

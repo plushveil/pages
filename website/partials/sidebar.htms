@@ -49,7 +49,9 @@
 </aside>
 
 <script target="aside">
+  import page from 'page:page'
   import { getLanguage } from '../scripts/translations.mjs'
-  export const langCode = params.languages
+  export { default as config } from 'page:config'
+  export const langCode = page.params.languages || 'en'
   export const text = await getLanguage(langCode)
 </script>

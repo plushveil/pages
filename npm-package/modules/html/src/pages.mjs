@@ -8,6 +8,7 @@ import getNodesInRange from '../utils/getNodesInRange.mjs'
 import * as utils from '../../../src/utils.mjs'
 
 const eventEmitter = global.eventEmitter = global.eventEmitter || new EventEmitter()
+eventEmitter.setMaxListeners(0)
 
 /**
  * Retrieves a list of pages from a file.
@@ -83,7 +84,8 @@ export default async function pages (file, config, api, options = {}) {
     const combinations = getCombinations(canonical.href)
     for (const combination of combinations) {
       let href = combination.map(part => {
-        if (!part.value) part.value = typeof part.textUpdate === 'string' ? part.textUpdate : part.text
+        if (part.type === 'tag-open') part.value = part.text
+        else if (!part.value) part.value = typeof part.textUpdate === 'string' ? part.textUpdate : part.text
         return part.value
       }).join('')
       while (href.startsWith('/')) href = href.slice(1)

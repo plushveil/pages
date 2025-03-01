@@ -23,10 +23,11 @@ export default async function render (page, config, api) {
   if (file && !fs.existsSync(file)) return ''
   if (!file && !page.content) return ''
 
+  const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
   const target = getTarget(config)
   const build = await esbuild.build({
     stdin: {
-      contents: page.content || `export * from './${path.relative(path.dirname(file), file)}'\n`,
+      contents: script,
       resolveDir: file ? path.dirname(file) : process.cwd(),
     },
     write: false,
