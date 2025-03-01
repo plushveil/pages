@@ -45,8 +45,9 @@ async function sendPagesToParent () {
  */
 export async function beforeAsync (nodes, htmlDocument, page, config, api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params.__filename ? page.params.__filename : url.pathToFileURL(page.fileUrl.toString())
+  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
   cacheFiles[id] = cacheFiles[id] || {}
+  if (!pageFile) return
   if (!cacheFiles[id][pageFile]) {
     const dirs = [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))]
     cacheFiles[id][pageFile] = (await Promise.all(dirs.map(async dir => {
@@ -66,7 +67,8 @@ export async function beforeAsync (nodes, htmlDocument, page, config, api) {
  */
 export async function afterAsync (nodes, htmlDocument, page, config, api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params.__filename ? page.params.__filename : url.pathToFileURL(page.fileUrl.toString())
+  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
+  if (!pageFile) return
   delete cacheFiles[id][pageFile]
   if (!Object.values(cacheFiles[id]).find(Boolean)) delete cacheFiles[id]
 }
@@ -89,7 +91,8 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   if (!htmlNode || !htmlNode.attributes) return
 
   const id = htmlDocument.getId()
-  const pageFile = page.params.__filename ? page.params.__filename : url.pathToFileURL(page.fileUrl.toString())
+  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
+  if (!pageFile) return
   const files = cacheFiles[id][pageFile]
 
   const before = typeof node.textUpdate === 'string' ? node.textUpdate : node.text

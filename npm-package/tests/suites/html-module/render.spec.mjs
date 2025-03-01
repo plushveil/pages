@@ -1,8 +1,22 @@
 /* eslint no-template-curly-in-string: "off" */
 
+import * as module from 'node:module'
 import * as assert from 'node:assert'
 
 import render from '../../../modules/html/src/render.mjs'
+
+module.registerHooks({
+  load (url, context, nextLoad) {
+    if (url.endsWith('@tailwindcss/postcss/dist/index.mjs')) {
+      return {
+        format: 'module',
+        shortCircuit: true,
+        source: 'export default {}'
+      }
+    }
+    return nextLoad(url, context)
+  }
+})
 
 /**
  * Test the render function from the html module
