@@ -23,5 +23,6 @@
 
 <script target="html">
   import { getLanguages } from './scripts/translations.mjs'
+  export { default as config } from 'page:config'
   export const languages = await getLanguages()
 </script>

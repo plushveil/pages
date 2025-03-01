@@ -145,6 +145,7 @@ function getRequestHandler (config, watcher, workers) {
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
   let pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat().filter(filter)
+  // console.log(pages.map(page => page.url.toString()))
 
   const watcher = fs.watch(config.root, { recursive: true }, async (event, filename) => {
     const file = path.resolve(config.root, filename)

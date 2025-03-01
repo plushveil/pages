@@ -1,8 +1,14 @@
 {
   "main": "html.mjs",
   "type": "module",
+  "scripts": {
+    "test": "clear && npm run -s pages diagnose modules/html/test/page.page",
+    "pages": "cd .. && npm run -s pages"
+  },
   "dependencies": {
-    "html-minifier-terser": "^7.2.0",
-    "node-html-parser": "^6.1.13"
+    "acorn": "^8.14.0",
+    "css-select": "^5.1.0",
+    "vscode-html-languageservice": "^5.3.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }

@@ -8,6 +8,9 @@ import { resolveToEsbuildTarget } from 'esbuild-plugin-browserslist'
 
 import getPages from './pages.mjs'
 
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 /**
  * Renders a page.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
@@ -16,17 +19,16 @@ import getPages from './pages.mjs'
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
-  const file = url.fileURLToPath(page.fileUrl)
-  if (!fs.existsSync(file)) return ''
+  const file = page.fileUrl && url.fileURLToPath(page.fileUrl)
+  if (file && !fs.existsSync(file)) return ''
+  if (!file && !page.content) return ''
 
-  const pages = await getPages(file, config, api)
-  const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
-
+  const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
   const target = getTarget(config)
   const build = await esbuild.build({
     stdin: {
-      contents: page.content || `export * from './${path.relative(path.dirname(file), file)}'\n`,
-      resolveDir: path.dirname(file),
+      contents: script,
+      resolveDir: file ? path.dirname(file) : process.cwd(),
     },
     write: false,
     bundle: true,
@@ -36,15 +38,23 @@ export default async function render (page, config, api) {
     sourcemap: 'inline',
   })
 
-  if (page.url.toString() === map.url.toString()) {
-    const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
-    const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
-    return sourcemap
-  }
+  if (!page.fileUrl || ['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
+    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+    return js
+  } else {
+    const pages = await getPages(file, config, api)
+    const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
 
-  const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
-  const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
-  return js + sourcemap
+    if (page.url.toString() === map.url.toString()) {
+      const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
+      const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
+      return sourcemap
+    }
+
+    const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
+    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+    return js + sourcemap
+  }
 }
 
 /**
@@ -53,8 +63,9 @@ export default async function render (page, config, api) {
  * @returns {esbuild.Target} The target
  */
 function getTarget (config) {
+  const folder = config?.fileUrl ? path.dirname(url.fileURLToPath(config.fileUrl.toString())) : path.resolve(__dirname, '..', '..', '..')
   const target = config?.js?.target || '.browserslistrc'
-  const browserslistFile = path.isAbsolute(target) ? target : path.resolve(path.dirname(url.fileURLToPath(config.fileUrl)), ...target.split('/'))
+  const browserslistFile = path.isAbsolute(target) ? target : path.resolve(folder, ...target.split('/'))
   const browserslistrcContent = (fs.existsSync(browserslistFile) ? fs.readFileSync(browserslistFile, { encoding: 'utf8' }).split('\n') : ['defaults'])
   const browserslistrc = browserslistrcContent.filter(line => line.trim() && !line.startsWith('#'))
 

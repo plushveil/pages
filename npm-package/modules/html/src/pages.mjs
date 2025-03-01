@@ -1,185 +1,176 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
-import * as fs from 'node:fs'
+import EventEmitter from 'node:events'
 
-import { expensiveParse } from './render.mjs'
-import splitTemplateLiterals from './splitTemplateLiterals.mjs'
+import executeAddons from '../addons/addons.mjs'
+import getUrl from '../utils/getUrl.mjs'
+import getNodesInRange from '../utils/getNodesInRange.mjs'
+import * as utils from '../../../src/utils.mjs'
 
-/**
- * @typedef {import('node-html-parser').HTMLElement} HTMLElement
- */
+const eventEmitter = global.eventEmitter = global.eventEmitter || new EventEmitter()
+eventEmitter.setMaxListeners(0)
 
 /**
  * Retrieves a list of pages from a file.
  * @param {string} file - The file.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../../src/pages.mjs').API} api - The API.
+ * @param {import('../../../src/api.mjs').API} api - The API.
+ * @param {object} options - Additional options.
+ * @param {boolean} options.eval - Whether to evaluate the JavaScript code. Defaults to true.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-export default async function pages (file, config, api) {
-  const content = await fs.promises.readFile(file, { encoding: 'utf-8' })
-  const canonRegex = /<link[^>]+canonical[^>]*>/gi
-  const hasCanonical = canonRegex.test(content)
+export default async function pages (file, config, api, options = {}) {
+  file = utils.resolve(file, [process.cwd(), path.dirname(url.fileURLToPath(config.fileUrl))], { exists: true, file: true })
+  const fileUrl = url.pathToFileURL(file).toString()
+  const canonicals = []
 
-  const abort = () => {
-    return [{
-      url: new URL(path.relative(config.root, file), config.baseURI),
-      params: {
-        headers: {
-          'Content-Type': 'text/html',
-          'X-Partial': 'true',
-        },
-      },
-      fileUrl: url.pathToFileURL(file),
-    }]
+  /**
+   * @param {import('../parser/iterator.mjs').Node} node - The node
+   * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
+   * @param {import('vscode-html-languageservice').HTMLDocument} htmlDocument - The HTML document.
+   * @param {import('../../../src/pages.mjs').Page} page - The page.
+   * @param {import('../../../src/config.mjs').Config} config - The configuration.
+   * @param {import('../../../src/api.mjs').API} api - The API.
+   */
+  function forEachNode (node, nodes, htmlDocument, page, config, api) {
+    if (!node.text.match(/rel=['"]canonical['"]/)) return
+    const linkHtmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
+    if (linkHtmlNode.tag !== 'link' || linkHtmlNode.attributes.rel.slice(1, -1) !== 'canonical') return
+    const textDocument = htmlDocument.getTextDocument()
+    if (textDocument.uri !== fileUrl) return
+    const text = textDocument.getText({ start: textDocument.positionAt(linkHtmlNode.start), end: textDocument.positionAt(linkHtmlNode.startTagEnd) })
+    const match = text.match(/href\s*=\s*['"]/)
+    if (!match) return
+    const start = linkHtmlNode.start + match.index + match[0].length
+    const end = start + linkHtmlNode.attributes.href.length - 2
+    const hrefNodes = getNodesInRange(start, end, nodes)
+    if (hrefNodes[0]?.offset.start !== start) {
+      const nodeStart = hrefNodes[0]?.offset.start || end
+      const range = { start: textDocument.positionAt(start), end: textDocument.positionAt(nodeStart), }
+      hrefNodes.unshift({ type: 'tag-open', text: textDocument.getText(range), range, offset: { start, end: nodeStart } })
+    }
+    if (hrefNodes[hrefNodes.length - 1]?.offset.end !== end) {
+      const nodeEnd = hrefNodes[hrefNodes.length - 1]?.offset.end || start
+      const range = { start: textDocument.positionAt(nodeEnd), end: textDocument.positionAt(end), }
+      hrefNodes.push({ type: 'tag-open', text: textDocument.getText(range), range, offset: { start: nodeEnd, end } })
+    }
+    canonicals.push({ text, href: hrefNodes })
   }
 
-  if (!hasCanonical) return abort()
+  /**
+   * @type {import('../../../src/pages.mjs').Page}
+   */
+  const preflightPage = {
+    fileUrl: url.pathToFileURL(file),
+    url: getUrl(path.relative(path.dirname(config.fileUrl.toString()), file), config),
+    params: {
+      headers: {
+        'X-Partial': 'true',
+        'X-Is-Preflight': 'true',
+      },
+      __filename: file,
+      __dirname: path.dirname(file),
+    },
+    root: false,
+    getSiblings: () => [],
+  }
 
-  const root = await expensiveParse(content)
-  const canonicals = [...root.querySelectorAll('link[rel="canonical"]')]
-  if (canonicals.length === 0) return abort()
+  eventEmitter.on('node', forEachNode)
+  await executeAddons(preflightPage, config, api)
+  eventEmitter.off('node', forEachNode)
 
   const pages = []
   for (const canonical of canonicals) {
-    let href = canonical.getAttribute('href')
-    if (!href) continue
-    if (!(href.includes('${'))) {
+    const combinations = getCombinations(canonical.href)
+    for (const combination of combinations) {
+      let href = combination.map(part => {
+        if (part.type === 'tag-open') part.value = part.text
+        else if (!part.value) part.value = typeof part.textUpdate === 'string' ? part.textUpdate : part.text
+        return part.value
+      }).join('')
       while (href.startsWith('/')) href = href.slice(1)
-      pages.push({
-        url: new URL(href, config.baseURI),
+
+      const page = {
+        fileUrl: url.pathToFileURL(file),
+        url: getUrl(href, config),
         params: {
           headers: {
             'Content-Type': 'text/html',
           },
+          __filename: file,
+          __dirname: path.dirname(file),
+          ...combination.reduce((params, param, i) => {
+            if (param.type === 'template') params[param.text.slice(2, -1)] = param.textUpdate
+            params[`urlPart${i}`] = typeof param.textUpdate === 'string' ? param.textUpdate : param.text
+            return params
+          }, {}),
         },
-        fileUrl: url.pathToFileURL(file),
-      })
-    } else {
-      const scripts = await getTargetAttributeMatches(root, canonical, root.querySelectorAll('script[target]'))
-      const context = {}
-      for (const script of scripts) {
-        const ctx = await getContext(script, root, file)
-        for (const key in ctx) if (typeof ctx[key] !== 'undefined') context[key] = ctx[key]
+        root: true,
       }
-      const urlParts = await Promise.all(splitTemplateLiterals(href).map(part => getUrlPart(file, part, context)))
-      const urlCombinations = getCombinations(urlParts)
-      for (const combination of urlCombinations) {
-        let pathname = combination.reduce((path, part) => path + part.value, '')
-        while (pathname.startsWith('/')) pathname = pathname.slice(1)
-        const params = combination.reduce((params, part) => {
-          if (part.type !== 'dynamic') return params
-          params[part.name] = part.value
-          return params
-        }, {})
-        pages.push({
-          url: new URL(pathname, config.baseURI),
-          params: {
-            headers: {
-              'Content-Type': 'text/html',
-            },
-            ...params,
-          },
-          fileUrl: url.pathToFileURL(file),
-        })
+
+      for (const part of combination) {
+        if (part.type === 'template') {
+          page.params[part.text.slice(2, -1)] = part.value
+        }
       }
+
+      pages.push(page)
     }
   }
 
-  if (pages.length === 0) return abort()
+  if (pages.length === 0) {
+    pages.push({
+      url: getUrl(path.relative(path.dirname(config.fileUrl.toString()), file), config),
+      fileUrl: url.pathToFileURL(file),
+      params: {
+        headers: {
+          'X-Partial': 'true',
+        },
+        __filename: file,
+        __dirname: path.dirname(file),
+      },
+      root: false,
+      getSiblings: () => [],
+    })
+  }
+
+  pages.forEach(page => {
+    page.getSiblings = () => pages.filter(p => p !== page)
+  })
+
   return pages
 }
 
 /**
- * Retrieves the elements whose target attribute targets any parent of the given node.
- * @param {HTMLElement} root - The root element.
- * @param {HTMLElement} node - The node.
- * @param {HTMLElement[]} nodeList - The list of nodes.
- * @returns {Promise<HTMLElement[]>} The list of elements.
+ * @typedef {object} HrefPart - A part of a URL.
+ * @property {"tag-open"|"template"} type - The type of the part.
+ * @property {string} text - The text of the part.
+ * @property {string} textUpdate - The template expression evaluation in string form.
+ * @property {string|string[]|any} raw - The raw template expression evaluation.
+ * @property {{ start: import('vscode-html-languageservice').Position, end: import('vscode-html-languageservice').Position }} range - The range of the part.
+ * @property {{ start: number, end: number }} offset - The offset of the part.
  */
-async function getTargetAttributeMatches (root, node, nodeList) {
-  const matches = []
-  for (const candidate of nodeList) {
-    for (const target of root.querySelectorAll(candidate.getAttribute('target'))) {
-      let currentNode = node
-      while (currentNode.parentNode) {
-        if (currentNode === target) { matches.push(candidate); break }
-        currentNode = currentNode.parentNode
-      }
-    }
-  }
-  return matches
-}
-
-/**
- * @typedef {object} UrlPart - A part of a URL.
- * @property {"dynamic"|"static"} type - The type of the part.
- * @property {string} name - The name of the part.
- * @property {string|string[]} [value] - The value of the part.
- */
-
-/**
- * Transforms a part of a URL pathname to an UrlPart object.
- * @param {string} file - The file.
- * @param {string} part - The part.
- * @param {object} context - The context.
- * @returns {Promise<UrlPart>} The UrlPart object.
- */
-async function getUrlPart (file, part, context) {
-  if (!part.startsWith('${') || !part.endsWith('}')) return { type: 'static', name: part, value: part, }
-
-  const code = part.slice(2, -1)
-  const fileUrl = url.pathToFileURL(file)
-  fileUrl.searchParams.set('format', 'pages-module-html-evaluate-template-literals')
-  const renderer = (await import(fileUrl.toString())).evaluate
-  const value = await renderer(code, context)
-  return { type: 'dynamic', name: code, value, }
-}
-
-/**
- * Retrieves the context of a script.
- * @param {HTMLElement} script - The script.
- * @param {HTMLElement} root - The root element.
- * @param {string} file - The file.
- * @returns {Promise<object>} The context.
- */
-async function getContext (script, root, file) {
-  if (script._context) return script._context
-  const fileUrl = url.pathToFileURL(file)
-  fileUrl.searchParams.set('format', 'pages-module-html-evaluate')
-  fileUrl.searchParams.set('code', script.rawText)
-  script._context = await import(fileUrl.toString())
-  return script._context
-}
 
 /**
  * Returns all combinations of static and dynamic entries.
- * @param {UrlPart[]} input - The input.
- * @returns {UrlPart[][]} The combinations.
+ * @param {HrefPart[]} input - The input.
+ * @returns {HrefPart[][]} The combinations.
  */
 function getCombinations (input) {
-  // Identify dynamic entries and collect their value arrays
   const dynamicEntries = input
-    .map((entry, index) => ({
-      index,
-      entry,
-    }))
-    .filter(({ entry }) => entry.type === 'dynamic' && Array.isArray(entry.value))
+    .map((entry, index) => ({ index, entry, }))
+    .filter(({ entry }) => entry.type === 'template' && Array.isArray(entry.raw))
 
-  if (dynamicEntries.length === 0) return [input] // if no dynamic, return input as is
+  if (dynamicEntries.length === 0) return [input]
 
-  // Get Cartesian product of all dynamic entry values
-  const dynamicValues = dynamicEntries.map(({ entry }) => entry.value)
+  const dynamicValues = dynamicEntries.map(({ entry }) => entry.raw)
   const product = cartesianProduct(dynamicValues)
 
-  // Generate output by replacing dynamic values while preserving order
   return product.map(values => {
     return input.map((entry, i) => {
       const dynamicIndex = dynamicEntries.findIndex(({ index }) => index === i)
-      if (dynamicIndex !== -1) {
-        return { ...entry, value: values[dynamicIndex] }
-      }
-      return { ...entry } // static entry or non-dynamic with array value
+      if (dynamicIndex !== -1) return { ...entry, value: `${values[dynamicIndex]}` }
+      return { ...entry }
     })
   })
 }

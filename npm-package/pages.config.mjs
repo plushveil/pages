@@ -45,7 +45,7 @@ export const build = {
  */
 export const html = {
   minify: true,
-  resolve: true,
+  resolve: true
 }
 
 /**

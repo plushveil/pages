@@ -3,26 +3,21 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 
 import getConfig from './config.mjs'
-import * as utils from './utils.mjs'
+import getApi from './api.mjs'
 
 import * as html from '../modules/html/html.mjs'
 import * as js from '../modules/js/js.mjs'
 import * as css from '../modules/css/css.mjs'
 
+const api = await getApi()
+
 /**
  * @typedef {object} Page
  * @property {URL} url - The URL of the page.
  * @property {object} params - Key-value pairs of additional information.
- * @property {string} [fileUrl] - The file URL. Either `fileUrl` or `content` must be provided.
+ * @property {URL} [fileUrl] - The file URL. Either `fileUrl` or `content` must be provided.
  * @property {string} [content] - The content. Either `content` or `fileUrl` must be provided.
  * @property {boolean} [root=true] - Whether the page is the root page.
- */
-
-/**
- * @typedef {object} API
- * @property {import('./pages.mjs').pages} pages - Retrieves a list of pages from a file.
- * @property {import('./pages.mjs').render} render - Renders a page.
- * @property {import('./utils.mjs')} utils - The utilities.
  */
 
 export { default as serve } from './serve.mjs'
@@ -35,13 +30,12 @@ export { default as build } from './build.mjs'
  * @param {"html"|"css"|"js"|"other"} [type] - The type of the file. Defaults to the file extension.
  * @returns {Promise<Page[]>} The list of pages.
  */
-export async function pages (file, config, type) {
-  file = utils.resolve(file)
+export async function pages (file, config, type = path.extname(file).slice(1)) {
+  file = api.utils.resolve(file)
   config = await getConfig(config)
   if (!config.root) config.root = path.dirname(file)
-  const api = await getApi()
 
-  switch (type || path.extname(file).slice(1)) {
+  switch (type) {
     case 'page':
     case 'htms':
     case 'html':
@@ -73,14 +67,14 @@ export async function pages (file, config, type) {
  * @param {"html"|"js"|"css"|"other"} [type] - The type of the file. Defaults to the file extension.
  * @returns {Promise<string>} The rendered page.
  */
-export async function render (page, config, encoding = 'utf-8', type) {
+export async function render (page, config, encoding = 'utf-8', type = undefined) {
   if (typeof page === 'string') page = (await pages(page, config))[0]
   if (typeof page !== 'object') throw new TypeError('The page must be an object.')
   config = await getConfig(config)
   if (!config.root) config.root = path.dirname(url.fileURLToPath(page.fileUrl))
-  const api = await getApi()
 
-  switch (type || path.extname(url.fileURLToPath(page.fileUrl)).slice(1)) {
+  if (typeof type === 'undefined') type = path.extname(page.fileUrl.pathname).slice(1)
+  switch (type) {
     case 'page':
     case 'htms':
     case 'html':
@@ -104,9 +98,57 @@ export async function render (page, config, encoding = 'utf-8', type) {
 }
 
 /**
- * Retrieve the API.
- * @returns {Promise<API>} The API.
+ * Formats a file.
+ * @param {string} file - A specifier that points to the file.
+ * @param {string|import('./config.mjs').Config} [config] - A specifier that points to the configuration file or the configuration itself.
+ * @param {string} [encoding] - The encoding of the file. Defaults to 'utf-8'.
+ * @param {"html"} [type] - The type of the file. Defaults to the file extension.
+ * @returns {Promise<string|fs.ReadStream>} The list of pages.
  */
-async function getApi () {
-  return { pages, render, utils }
+export async function format (file, config, encoding = 'utf-8', type = path.extname(file).slice(1)) {
+  file = api.utils.resolve(file)
+  config = await getConfig(config)
+  if (!config.root) config.root = path.dirname(file)
+
+  switch (type) {
+    case 'page':
+    case 'htms':
+    case 'html':
+      return html.format(file, config, api)
+
+    case 'other':
+    default:
+      break
+  }
+
+  const rs = fs.createReadStream(file)
+  if (encoding) rs.setEncoding(encoding)
+
+  return rs
+}
+
+/**
+ * Runs a diagnosis on a file.
+ * @param {string} file - A specifier that points to the file.
+ * @param {string|import('./config.mjs').Config} [config] - A specifier that points to the configuration file or the configuration itself.
+ * @param {"html"} [type] - The type of the file. Defaults to the file extension.
+ * @returns {Promise<{ message: string, position: { line: number, character: number } }[]>} The list of pages.
+ */
+export async function diagnose (file, config, type = path.extname(file).slice(1)) {
+  file = api.utils.resolve(file)
+  config = await getConfig(config)
+  if (!config.root) config.root = path.dirname(file)
+
+  switch (type) {
+    case 'page':
+    case 'htms':
+    case 'html':
+      return html.diagnose(file, config, api)
+
+    case 'other':
+    default:
+      break
+  }
+
+  return []
 }

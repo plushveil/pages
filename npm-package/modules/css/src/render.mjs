@@ -1,15 +1,18 @@
-import * as fs from 'node:fs'
 import * as url from 'node:url'
 import * as path from 'node:path'
 
 import postcss from 'postcss'
-import tailwind from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
-import nested from 'postcss-nested'
 import atImport from 'postcss-import'
+import nested from 'postcss-nested'
+import tailwind from '@tailwindcss/postcss'
 import cssnano from 'cssnano'
 
 import getPages from './pages.mjs'
+
+const __filename = url.fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const __module = path.resolve(__dirname, '..')
+const __tailwind = path.resolve(__module, 'tailwind.css')
 
 /**
  * Renders a page.
@@ -20,56 +23,26 @@ import getPages from './pages.mjs'
  */
 export default async function render (page, config, api) {
   const file = url.fileURLToPath(page.fileUrl)
-  if (!fs.existsSync(file)) return ''
+  const content = typeof page.content === 'string' ? page.content : `@import "${file}";`
+  const plugins = [
+    atImport({
+      resolve: (id, basedir) => {
+        if (id === 'tailwindcss' && basedir !== __module) return __tailwind
+        return id
+      }
+    }),
+    nested,
+    tailwind({ base: config.root }),
+    config.css.minify && cssnano()
+  ].filter(Boolean)
+  const { css, map } = await postcss(plugins).process(content, { from: file, map: { annotation: false } })
 
-  const content = await fs.promises.readFile(file, { encoding: 'utf8' })
-  const isTailwindResource = content.includes('tailwind') || content.includes('--tw-')
-  const twConfig = (isTailwindResource) ? await getTailwindConfig(page, config) : null
-  const plugins = [nested, autoprefixer, (twConfig) ? tailwind(twConfig) : null, cssnano()].filter(Boolean)
-  const { css, map } = await postcss(plugins).use(atImport({ plugins })).process(content, { from: file, map: { annotation: false } })
-
-  const pages = await getPages(file, config, api)
-  const mapPage = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
-
-  if (page.url.toString() === mapPage.url.toString()) return map.toString().replace(/"%3Cinput%20css[^"]*/, `"%3C${path.basename(file)}`)
-  return css.toString() + `\n/*# sourceMappingURL=${mapPage.url.toString()} */`
-}
-
-/**
- * Retrieves the tailwind configuration.
- * @param {import('../../../src/pages.mjs').Page} page - The page.
- * @param {import('../../../src/config.mjs').Config} config - The configuration.
- * @returns {Promise<import('tailwindcss').Configuration>} The tailwind configuration.
- */
-async function getTailwindConfig (page, config) {
-  if (config?.css?.tailwind) {
-    const file = path.isAbsolute(config.css.tailwind)
-      ? config.css.tailwind
-      : path.resolve(path.dirname(url.fileURLToPath(config.fileUrl)), ...config.css.tailwind.split('/'))
-    if (fs.existsSync(file)) return file
-  }
-
-  const folders = [
-    path.dirname(url.fileURLToPath(page.fileUrl)),
-    path.dirname(url.fileURLToPath(config.fileUrl)),
-    process.cwd(),
-  ].filter((item, index, array) => array.indexOf(item) === index).filter(Boolean)
-
-  const filenames = ['tailwind.config.mjs', 'tailwind.config.js', 'tailwind.config.cjs']
-
-  for (const folder of folders) {
-    for (const filename of filenames) {
-      const file = path.resolve(folder, filename)
-      if (fs.existsSync(file)) return file
-    }
-  }
-
-  return {
-    content: [
-      `${config.root}/**/*.{page,htms,html,js,css}`,
-      '!node_modules/**/*',
-    ],
-    theme: { extend: {}, },
-    plugins: [],
+  if (['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
+    return css.toString()
+  } else {
+    const pages = await getPages(file, config, api)
+    const mapPage = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
+    if (page.url.toString() === mapPage.url.toString()) return map.toString().replace(/"%3Cinput%20css[^"]*/, `"%3C${path.basename(file)}`)
+    return css.toString() + `\n/*# sourceMappingURL=${mapPage.url.toString()} */`
   }
 }

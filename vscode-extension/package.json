@@ -7,18 +7,39 @@
     "type": "git",
     "url": "https://github.com/plushveil/pages.git"
   },
-  "version": "0.0.1",
+  "version": "0.0.3",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.97.0"
   },
   "categories": [
     "Linters"
   ],
-  "main": "src/pages.js",
+  "main": "src/extension.js",
   "activationEvents": [
     "onLanguage:pages"
   ],
   "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Pages Configuration",
+      "properties": {
+        "pages.suggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable text suggestions."
+        },
+        "pages.diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable diagnostics."
+        },
+        "pages.formatting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable formatting."
+        }
+      }
+    },
     "languages": [
       {
         "id": "pages",
@@ -57,18 +78,20 @@
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
-    "@types/node": "20.x",
-    "@types/vscode": "^1.96.0",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.97.0",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1",
-    "eslint": "^9.16.0",
-    "neostandard": "^0.12.0"
+    "eslint": "^9.21.0",
+    "neostandard": "^0.12.1"
   },
   "dependencies": {
-    "@plushveil/pages": "^0.0.14",
+    "@plushveil/pages": "latest",
     "esm-to-cjs": "^1.2.1",
     "node-html-parser": "^7.0.1",
+    "vscode-html-languageservice": "^5.3.1",
     "vscode-languageclient": "^9.0.1",
-    "vscode-languageserver": "^9.0.1"
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
   }
 }
