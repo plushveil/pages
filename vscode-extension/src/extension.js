@@ -83,16 +83,14 @@ async function connectToLanguageServer (context) {
   await client.start()
   console.log(`Extension "Pages" language server client is running (${client.isRunning()})`)
 
-  // Enable trigger characters
-  const triggerCharacters = ['>']
-  const triggerCharacterListener = vscode.workspace.onDidChangeTextDocument((event) => {
+  // Enable triggerSuggest
+  const triggerSuggestListener = vscode.workspace.onDidChangeTextDocument(debounce((event) => {
     const editor = vscode.window.activeTextEditor
     if (!editor || event.document !== editor.document) return
     if (event.contentChanges.length === 0) return
-    const change = event.contentChanges[0]
-    if (triggerCharacters.find(c => change.text.endsWith(c))) vscode.commands.executeCommand('editor.action.triggerSuggest')
-  })
-  context.subscriptions.push(triggerCharacterListener)
+    vscode.commands.executeCommand('editor.action.triggerSuggest')
+  }, 30))
+  context.subscriptions.push(triggerSuggestListener)
 }
 
 /**
@@ -100,4 +98,18 @@ async function connectToLanguageServer (context) {
  */
 function deactivate () {
   console.log('Extension "Pages" is now deactivated.')
+}
+
+/**
+ * A utility function to debounce a function. This is useful to prevent a function from being called too frequently.
+ * @param {function} fn - The function to debounce
+ * @param {number} delay - The delay in milliseconds
+ * @returns {function} - The debounced function
+ */
+function debounce (fn, delay) {
+  let timeout
+  return (...args) => {
+    clearTimeout(timeout)
+    timeout = setTimeout(() => fn(...args), delay)
+  }
 }

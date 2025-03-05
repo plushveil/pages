@@ -1,7 +1,7 @@
 {
   "pages": {
     "${...}": {
-      "prefix": ["js", "Template literal (${...})"],
+      "prefix": ["js", "Template literal"],
       "body": "\\${$0}"
     },
     "Page HTML": {

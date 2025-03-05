@@ -12,10 +12,10 @@ import * as config from '../config.mjs'
  * @param {import('./parse.mjs').HTMLDocument} htmlDocument - The HTML content to interpret
  * @returns {Node[]} The nodes.
  */
-export default function iterator (htmlDocument) {
+export default function iterator (htmlDocument, ignoreErrors) {
   const textDocument = htmlDocument.getTextDocument()
   const textNodes = htmlDocument.getTextNodes()
-  const templateLiterals = htmlDocument.getTemplateLiterals()
+  const templateLiterals = htmlDocument.getTemplateLiterals(ignoreErrors)
   const roots = htmlDocument.roots
 
   // First all nodes are collected.

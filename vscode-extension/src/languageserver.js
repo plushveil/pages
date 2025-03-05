@@ -6,11 +6,11 @@ const languageServer = require('vscode-languageserver/node')
 const languageService = require('vscode-html-languageservice')
 const languageServerTextDocument = require('vscode-languageserver-textdocument')
 
-util.inspect.defaultOptions.depth = null
-
 const connection = languageServer.createConnection(languageServer.ProposedFeatures.all)
 const documents = new languageServer.TextDocuments(languageServerTextDocument.TextDocument)
 const service = languageService.getLanguageService()
+
+util.inspect.defaultOptions.depth = null
 
 /**
  * @type {Map<string, languageService.HTMLDocument>}
@@ -59,15 +59,36 @@ connection.onDidChangeConfiguration(throwable((event) => {
 }))
 
 // Handle completion requests
-connection.onCompletion(throwable((event) => {
+connection.onCompletion(throwableAsync(async (event) => {
+  await new Promise(resolve => setTimeout(resolve, 10))
+
   const completions = []
 
   if (settings?.pages?.suggestions) {
     const document = documents.get(event.textDocument.uri)
     const position = event.position
-    const htmlDocument = htmlDocuments.get(event.textDocument.uri)
-    const htmlCompletions = service.doComplete(document, position, htmlDocument)
-    completions.push(...htmlCompletions.items)
+    const offset = document.offsetAt(position)
+    const text = document.getText()
+    const parse = (await import('@plushveil/pages/modules/html/parser/parse.mjs')).default
+    const htmlDocument = parse(text)
+
+    const node = htmlDocument.iterator(true).filter(node => {
+      if (node.offset.start <= offset && offset <= node.offset.end) return true
+      return false
+    }).reduce((node, next) => {
+      if (!node) return next
+      if (node.offset.start > next.offset.start) return node
+      return next
+    }, null)
+
+    const isTemplateStringWithSyntaxError = (node.type === 'text' && node.text.trim().startsWith('${') && node.text.trim().endsWith('}'))
+    if (node.type === 'template' || isTemplateStringWithSyntaxError) {
+      completions.push(...(await getScriptCompletions(node, htmlDocument, offset, event.textDocument.uri)))
+    } else {
+      const htmlDocument = htmlDocuments.get(event.textDocument.uri)
+      const htmlCompletions = service.doComplete(document, position, htmlDocument)
+      completions.push(...htmlCompletions.items)
+    }
   }
 
   return {
@@ -75,6 +96,78 @@ connection.onCompletion(throwable((event) => {
     items: completions
   }
 }))
+
+/**
+ * @param {import('@plushveil/pages/modules/html/parser/iterator.mjs').Node} node
+ * @param {import('@plushveil/pages/modules/html/parser/parse.mjs').HTMLDocument} htmlDocument
+ * @param {number} offset
+ * @param {string} fileUrl
+ * @returns {Promise<languageServer.CompletionItem[]>}
+ */
+async function getScriptCompletions (node, htmlDocument, offset, fileUrl) {
+  const script = node.text.trim().slice(2, -1)
+  const position = offset - node.offset.start - 2 - (node.text.match(/^\s*/)[0].length)
+  const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
+
+  const getCompletions = (await import('./languageservice-ts.mjs')).default
+  const getContexts = (await import('@plushveil/pages/modules/html/utils/getContexts.mjs')).default
+  const getExports = (await import('@plushveil/pages/modules/html/utils/getExports.mjs')).default
+
+  const exported = []
+  const importToCodeMap = {}
+  const context = Object.entries(getContexts(htmlDocument, closestHtmlNode)).map(([index, code]) => {
+    const exports = getExports(code).filter(e => exported.indexOf(e) === -1)
+    if (exports.length === 0) return ''
+    exported.push(...exports)
+    const importSpecifier = (fileUrl.includes('.') ? fileUrl.replace(/\.([^.]*)$/, `.${index}.$1`) : `${fileUrl}.${index}`).replaceAll('.', '-') + '.ts'
+    importToCodeMap[importSpecifier] = code
+    return `import { ${exports.join(', ')} } from '${importSpecifier}'`
+  }).join('\n') + '\n'
+
+  const tscompletions = await getCompletions(fileUrl, context + script, importToCodeMap, context.length + position)
+
+  const completions = tscompletions?.entries?.map(entry => {
+    const item = languageServer.CompletionItem.create(entry.name)
+    for (const key in entry) {
+      if (key === 'name') continue
+      if (key === 'kind') {
+        const scriptElementKindToCompletionItemKind = {
+          alias: languageServer.CompletionItemKind.Reference,
+          class: languageServer.CompletionItemKind.Class,
+          interface: languageServer.CompletionItemKind.Interface,
+          module: languageServer.CompletionItemKind.Module,
+          type: languageServer.CompletionItemKind.TypeParameter,
+          enum: languageServer.CompletionItemKind.Enum,
+          'enum member': languageServer.CompletionItemKind.EnumMember,
+          function: languageServer.CompletionItemKind.Function,
+          method: languageServer.CompletionItemKind.Method,
+          property: languageServer.CompletionItemKind.Property,
+          var: languageServer.CompletionItemKind.Variable,
+          'local var': languageServer.CompletionItemKind.Variable,
+          parameter: languageServer.CompletionItemKind.Variable,
+          'type parameter': languageServer.CompletionItemKind.TypeParameter,
+          keyword: languageServer.CompletionItemKind.Keyword,
+          string: languageServer.CompletionItemKind.Text,
+          primitive: languageServer.CompletionItemKind.Text,
+          'JSX attribute': languageServer.CompletionItemKind.Property,
+          constructor: languageServer.CompletionItemKind.Constructor,
+          directory: languageServer.CompletionItemKind.Folder,
+          'external module name': languageServer.CompletionItemKind.Module,
+          const: languageServer.CompletionItemKind.Constant,
+          let: languageServer.CompletionItemKind.Variable
+        }
+        item.kind = scriptElementKindToCompletionItemKind[entry.kind] || languageServer.CompletionItemKind.Snippet
+      }
+      item[key] = entry[key]
+    }
+    return item
+  }) || []
+
+  return completions.filter(completion => {
+    if (completion.sortText === '15') return false
+    return true
+  })
+}
 
 // Handle completion resolve requests
 connection.onCompletionResolve(throwable((item) => {

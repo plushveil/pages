@@ -47,17 +47,17 @@ const service = vsCodeHtmlLanguageService.getLanguageService()
 export default function parse (fileUrl) {
   if (typeof fileUrl !== 'string') fileUrl = fileUrl.toString()
   const content = fileUrl.startsWith('file://') ? fs.readFileSync(url.fileURLToPath(fileUrl), 'utf-8') : fileUrl
-  if (!fileUrl.startsWith('file://')) fileUrl = url.pathToFileURL(path.join(os.tmpdir(), '/file.html')).toString()
+  if (!fileUrl.startsWith('file://')) fileUrl = url.pathToFileURL(path.resolve(os.tmpdir(), 'file.page')).toString()
 
   const textDocument = TextDocument.create(fileUrl, 'page', 0, content)
   const htmlDocument = service.parseHTMLDocument(textDocument)
   const adapter = new CSSSelectAdapter(textDocument, htmlDocument)
 
   htmlDocument.select = (selector, node = htmlDocument.roots) => cssSelect(selector, node, { adapter })
-  htmlDocument.getTemplateLiterals = () => getTemplateLiterals(textDocument, htmlDocument)
+  htmlDocument.getTemplateLiterals = (ignoreErrors) => getTemplateLiterals(textDocument, htmlDocument, ignoreErrors)
   htmlDocument.getTextDocument = () => textDocument
   htmlDocument.getTextNodes = () => getTextNodes(textDocument, htmlDocument)
-  htmlDocument.iterator = () => iterator(htmlDocument)
+  htmlDocument.iterator = (ignoreErrors) => iterator(htmlDocument, ignoreErrors)
 
   return htmlDocument
 }

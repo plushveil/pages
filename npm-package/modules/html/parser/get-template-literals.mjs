@@ -10,9 +10,10 @@ import * as acorn from 'acorn'
 /**
  * @param {import('vscode-languageserver-textdocument').TextDocument} textDocument - The HTML document
  * @param {import('vscode-html-languageservice').HTMLDocument} htmlDocument - The HTML document
+ * @param {boolean} ignoreErrors - `true` to ignore errors.
  * @returns {TemplateLiteral[]} - The template literals
  */
-export default function getTemplateLiterals (textDocument, htmlDocument) {
+export default function getTemplateLiterals (textDocument, htmlDocument, ignoreErrors) {
   const text = escapeHTML(textDocument.getText())
 
   /**
@@ -30,7 +31,7 @@ export default function getTemplateLiterals (textDocument, htmlDocument) {
 
     const outerHtml = text.slice(node.start, i < node.startTagEnd ? node.startTagEnd : node.end)
     const script = '`' + outerHtml + '`'
-    const ast = getAST(script, i)
+    const ast = getAST(script, i, ignoreErrors)
 
     /**
      * @type {import('estree').TemplateLiteral}
@@ -56,13 +57,25 @@ export default function getTemplateLiterals (textDocument, htmlDocument) {
 /**
  * @param {string} script - The script
  * @param {number} position - The offset
+ * @param {boolean} ignoreErrors - `true` to ignore errors.
  * @returns {import('acorn').Program} - The AST
  */
-function getAST (script, position) {
+function getAST (script, position, ignoreErrors) {
   try {
     const ast = acorn.parse(script, { ecmaVersion: 'latest', locations: true, sourceType: 'module', allowAwaitOutsideFunction: true })
     return ast
   } catch (err) {
+    if (ignoreErrors) {
+      return {
+        body: [
+          {
+            expression: {
+              expressions: []
+            }
+          }
+        ]
+      }
+    }
     const error = new Error((err.message) + `\n    in:\n${script}`)
     error.position = position
     throw error
