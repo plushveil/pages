@@ -44,6 +44,11 @@
           ${text['npm-package']}
         </a>
       </li>
+      <li>
+        <a href="https://marketplace.visualstudio.com/items?itemName=plushveil.pages" target="_blank">
+          ${text['vscode-extension']}
+        </a>
+      </li>
     </ul>
   </nav>
 </aside>

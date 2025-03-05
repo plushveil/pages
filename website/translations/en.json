@@ -12,6 +12,7 @@
   "table-of-contents": "On this page:",
   "github-repository": "GitHub repository",
   "npm-package": "NPM package",
+  "vscode-extension": "VS Code extension",
   "home": {
     "title": "",
     "long_title": "Introduction to Pages",
