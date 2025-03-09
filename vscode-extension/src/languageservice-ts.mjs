@@ -12,8 +12,8 @@ let folder = path.resolve('.')
 const serviceHost = {
   getCompilationSettings: (...args) => ({
     ...ts.getDefaultCompilerOptions(),
-    allowJs: true, // In case it's treated as JS
-    moduleResolution: ts.ModuleResolutionKind.Node10, // Ensure module resolution
+    allowJs: true,
+    moduleResolution: ts.ModuleResolutionKind.Node16,
     resolveJsonModule: true,
     allowSyntheticDefaultImports: true
   }),

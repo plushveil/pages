@@ -1,6 +1,6 @@
 import * as module from 'node:module'
 
-const submodules = ['page', 'config', 'api']
+const submodules = ['page', 'config', 'api', 'args']
 
 global.context = {}
 
@@ -26,8 +26,9 @@ module.registerHooks({
    */
   resolve (specifier, context, nextResolve) {
     if (submodules.find(submodule => specifier === `page:${submodule}`)) {
-      const url = specifier + `#${Date.now()}${Math.random()}`
-      return { format: 'module', url, importAttributes: { specifier: url }, shortCircuit: true }
+      const hash = (new URL(context.parentURL)).hash || `#${Date.now()}${Math.random()}`
+      const url = specifier + `${hash}`
+      return { format: 'module', url, importAttributes: { specifier: url, ...context.importAttributes }, shortCircuit: true }
     }
     return nextResolve(specifier, context)
   },
@@ -39,6 +40,13 @@ module.registerHooks({
    * @see https://nodejs.org/api/module.html#loadurl-context-nextload
    */
   load (url, context, nextLoad) {
+    if (url.startsWith('page:args')) {
+      const ids = url.slice(url.lastIndexOf('#')).split('|').reverse()
+      const id = ids.find(id => `${id}` in global.importAttributes) || ('#' + (ids.find(id => `#${id}` in global.importAttributes) || ''))
+      if (id === '#') return { format: 'module', shortCircuit: true, source: `export default {}` }
+      const i = global.importAttributes[id].length - 1
+      return { format: 'module', shortCircuit: true, source: `export default global.importAttributes['${id}']?.[${i}] || {}` }
+    }
     for (const key of submodules) {
       if (url.startsWith(`page:${key}`)) {
         return {

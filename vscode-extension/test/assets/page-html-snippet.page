@@ -7,16 +7,11 @@
 		<link rel="canonical" href="/" />
 	</head>
 	<body>
-		<div>
-		</div>
+
 	</body>
 </html>
 
 <script target="html">
 	export const lang = 'en'
 	export const title = 'Document'
-</script>
-
-<script target="body">
-	export const content = "content"
 </script>

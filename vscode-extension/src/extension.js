@@ -84,12 +84,41 @@ async function connectToLanguageServer (context) {
   console.log(`Extension "Pages" language server client is running (${client.isRunning()})`)
 
   // Enable triggerSuggest
-  const triggerSuggestListener = vscode.workspace.onDidChangeTextDocument(debounce((event) => {
+  const triggerSuggest = debounce(() => vscode.commands.executeCommand('editor.action.triggerSuggest'), 3000)
+  const triggerSuggestListener = vscode.workspace.onDidChangeTextDocument((event) => {
     const editor = vscode.window.activeTextEditor
     if (!editor || event.document !== editor.document) return
     if (event.contentChanges.length === 0) return
-    vscode.commands.executeCommand('editor.action.triggerSuggest')
-  }, 30))
+    triggerSuggest()
+
+    const content = event.document.getText()
+    const change = event.contentChanges[0]
+    const before = content.slice(0, change.rangeOffset)
+    const lastCharacter = change.text.slice(-1)
+    const isInTemplateLiteral = before.includes('${') && (() => {
+      const tl = before.slice(before.lastIndexOf('${'))
+      const openCount = tl.split('{').length - 1
+      const closeCount = tl.split('}').length - 1
+      return openCount > closeCount
+    })()
+    const isInScript = !!before.match(/<script/i) && (() => {
+      const script = before.slice(before.toLowerCase().lastIndexOf('<script'))
+      const openCount = script.split('<script').length - 1
+      const closeCount = script.split('</script').length - 1
+      return openCount > closeCount
+    })()
+
+    // trigger characters for scripts and template literals
+    if (isInTemplateLiteral || isInScript) {
+      const triggerCharacters = '."\'[(:'.split('')
+      if (triggerCharacters.includes(lastCharacter)) vscode.commands.executeCommand('editor.action.triggerSuggest')
+      return
+    }
+
+    const triggerCharacters = '</="\' .{'.split('')
+    if (triggerCharacters.includes(lastCharacter)) vscode.commands.executeCommand('editor.action.triggerSuggest')
+    else if (change.text === '${}') vscode.commands.executeCommand('editor.action.triggerSuggest')
+  })
   context.subscriptions.push(triggerSuggestListener)
 }
 

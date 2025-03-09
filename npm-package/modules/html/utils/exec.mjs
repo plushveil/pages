@@ -21,20 +21,22 @@ module.registerHooks({
    * @see https://nodejs.org/api/module.html#resolvespecifier-context-nextresolve
    */
   resolve (specifier, context, nextResolve) {
-    if (context.parentURL === import.meta.url && specifier.startsWith(import.meta.url)) {
-      const specifierUrl = new URL(specifier)
-      if (specifierUrl.hash.match(/^#[0-9]+$/)) {
-        return {
-          format: 'module',
-          url: specifier + `${Date.now()}${Math.random()}`,
-          importAttributes: {
-            script: specifierUrl.hash.slice(1),
-            specifier: specifierUrl.toString().slice(0, -specifierUrl.hash.length),
-            parentURL: import.meta.url
-          },
-          shortCircuit: true
+    if (context.parentURL === import.meta.url && specifier.includes('id=')) {
+      try {
+        const specifierUrl = new URL(specifier)
+        if (specifierUrl.searchParams.has('id')) {
+          return {
+            format: 'module',
+            url: specifierUrl.toString(),
+            importAttributes: {
+              ...context.importAttributes,
+              script: specifierUrl.searchParams.get('id'),
+              parentURL: import.meta.url
+            },
+            shortCircuit: true
+          }
         }
-      }
+      } catch (err) {}
     }
     return nextResolve(specifier, context)
   },
@@ -68,18 +70,20 @@ module.registerHooks({
  * @returns {Promise<any>} The result.
  */
 export default async function exec (code, scripts, page, config, api) {
-  for (const script of scripts) scriptsMap[`${script.id}`] = script.node.text
+  for (const script of (scripts || [])) scriptsMap[`${script.id}`] = script.node.text
 
   const imported = ['default']
   const codeWithContext = [
-    ...scripts.map(script => {
+    ...(scripts || []).map(script => {
       const imports = script.exports.filter(exportName => {
         if (imported.includes(exportName)) return false
         imported.push(exportName)
         return true
       })
       if (imports.length === 0) return ''
-      return `const { ${imports.join(', ')} } = await import('${import.meta.url}#${script.id}')`
+      const url = new URL(import.meta.url)
+      url.searchParams.set('id', script.id)
+      return `const { ${imports.join(', ')} } = await import('${url}')`
     }),
     `return ${code}`,
   ].join('\n')
@@ -96,7 +100,7 @@ export default async function exec (code, scripts, page, config, api) {
     const result = await fn(...Object.values(context))
     return result
   } catch (err) {
-    if (err.stack) err.stack = replaceError(err.stack)
+    if (err.stack) err.message = replaceError(err.stack)
     else err.message = replaceError(err.message)
     throw err
   }

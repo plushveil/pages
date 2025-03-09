@@ -7,6 +7,8 @@ const __dirname = path.dirname(__filename)
 
 const extensions = ['.html', '.htms', '.page']
 
+global.importAttributes = global.importAttributes || {}
+
 module.registerHooks({
   /**
    * @param {string} specifier - The specifier to resolve
@@ -20,11 +22,13 @@ module.registerHooks({
       const parentPath = url.fileURLToPath(context.parentURL)
       const resolved = path.resolve(path.dirname(parentPath), ...specifier.split('/'))
       const fileUrl = url.pathToFileURL(resolved)
-      fileUrl.hash = `${Date.now()}${Math.random()}`
+      const hash = (new URL(context.parentURL)).hash || `#${Date.now()}${Math.random()}`
+      fileUrl.hash = hash
       return {
         format: 'module',
         url: fileUrl.href,
         importAttributes: {
+          ...context.importAttributes,
           specifier,
           parentURL: import.meta.url
         },
@@ -42,6 +46,10 @@ module.registerHooks({
    */
   load (url, context, nextLoad) {
     if (context.importAttributes?.parentURL === import.meta.url) {
+      const keys = (new URL(url)).hash.split('|').filter(Boolean)
+      const key = keys[keys.length - 1]
+      global.importAttributes[key] = global.importAttributes[key] || []
+      global.importAttributes[key].push(context.importAttributes)
       return {
         format: 'module',
         shortCircuit: true,
@@ -54,13 +62,19 @@ module.registerHooks({
           import render from '${path.resolve(__dirname, '..', 'src', 'render.mjs')}'
           const subpage = {
             ...page,
+            importAttributes: '${key}',
             params: {
               ...page.params,
               __filename: url.fileURLToPath(import.meta.url),
-              __dirname: path.dirname(url.fileURLToPath(import.meta.url))
+              __dirname: path.dirname(url.fileURLToPath(import.meta.url)),
             }
           }
-          export default await render(subpage, config, api)
+          const renderPromise = render(subpage, config, api)
+          renderPromise.then(() => {
+            global.importAttributes['${key}'].pop()
+            if (global.importAttributes['${key}'].length === 0) delete global.importAttributes['${key}']
+          })
+          export default await renderPromise
         `
       }
     }
