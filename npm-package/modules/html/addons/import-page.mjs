@@ -43,7 +43,7 @@ module.registerHooks({
     if (url.startsWith('page:args')) {
       const ids = url.slice(url.lastIndexOf('#')).split('|').reverse()
       const id = ids.find(id => `${id}` in global.importAttributes) || ('#' + (ids.find(id => `#${id}` in global.importAttributes) || ''))
-      if (id === '#') return { format: 'module', shortCircuit: true, source: `export default {}` }
+      if (id === '#') return { format: 'module', shortCircuit: true, source: 'export default {}' }
       const i = global.importAttributes[id].length - 1
       return { format: 'module', shortCircuit: true, source: `export default global.importAttributes['${id}']?.[${i}] || {}` }
     }

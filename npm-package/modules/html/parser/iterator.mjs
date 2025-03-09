@@ -10,6 +10,7 @@ import * as config from '../config.mjs'
 
 /**
  * @param {import('./parse.mjs').HTMLDocument} htmlDocument - The HTML content to interpret
+ * @param {boolean} ignoreErrors - Whether to ignore errors. Defaults to false.
  * @returns {Node[]} The nodes.
  */
 export default function iterator (htmlDocument, ignoreErrors) {
