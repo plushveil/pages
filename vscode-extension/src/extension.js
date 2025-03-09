@@ -84,16 +84,16 @@ async function connectToLanguageServer (context) {
   console.log(`Extension "Pages" language server client is running (${client.isRunning()})`)
 
   // Enable triggerSuggest
-  const triggerSuggest = debounce(() => vscode.commands.executeCommand('editor.action.triggerSuggest'), 3000)
+  const triggerSuggest = () => vscode.commands.executeCommand('editor.action.triggerSuggest')
   const triggerSuggestListener = vscode.workspace.onDidChangeTextDocument((event) => {
     const editor = vscode.window.activeTextEditor
     if (!editor || event.document !== editor.document) return
     if (event.contentChanges.length === 0) return
-    triggerSuggest()
+    if (editor.document.languageId !== 'pages') return
 
     const content = event.document.getText()
     const change = event.contentChanges[0]
-    const before = content.slice(0, change.rangeOffset)
+    const before = content.slice(0, change.rangeOffset + 1)
     const lastCharacter = change.text.slice(-1)
     const isInTemplateLiteral = before.includes('${') && (() => {
       const tl = before.slice(before.lastIndexOf('${'))
@@ -111,13 +111,25 @@ async function connectToLanguageServer (context) {
     // trigger characters for scripts and template literals
     if (isInTemplateLiteral || isInScript) {
       const triggerCharacters = '."\'[(:'.split('')
-      if (triggerCharacters.includes(lastCharacter)) vscode.commands.executeCommand('editor.action.triggerSuggest')
+      if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
       return
     }
 
-    const triggerCharacters = '</="\' .{'.split('')
-    if (triggerCharacters.includes(lastCharacter)) vscode.commands.executeCommand('editor.action.triggerSuggest')
-    else if (change.text === '${}') vscode.commands.executeCommand('editor.action.triggerSuggest')
+    const triggerCharacters = '</="\'.{'.split('')
+    if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
+    else if (change.text === '${}') triggerSuggest()
+
+    const openHtmlTag = (() => {
+      const tag = before.slice(before.lastIndexOf('<'))
+      const openCount = tag.split('<').length - 1
+      const closeCount = tag.split('>').length - 1
+      return openCount > closeCount
+    })()
+
+    if (openHtmlTag) {
+      const triggerCharacters = ' '.split('')
+      if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
+    }
   })
   context.subscriptions.push(triggerSuggestListener)
 }
