@@ -16,8 +16,8 @@ const __dirname = path.dirname(__filename)
 
 const articles = (await recursiveReadDir(__dirname)).map(file => {
   if (!file.endsWith('.html')) return
-  const pathname = file.replace(__dirname, '').replaceAll(path.sep, '/').replace(/\.html$/, '')
-  const lang = pathname.split('/')[1] || 'en'
+  const pathname = file.replace(__dirname, '').replaceAll(path.sep, '/').replace(/\.html$/, '').replace(/^\/+/g, '')
+  const lang = pathname.split('/')[0] || 'en'
   const content = fs.readFileSync(file, 'utf8')
   const title = content.match(/<h\d>(.*?)<\/h\d>/)?.[1]
   return { pathname, lang, title, file: path.relative(path.resolve(__dirname, '..'), file) }
@@ -30,7 +30,7 @@ export default articles
 
 const articleTranslations = {
   en: {
-    tos: articles.find(article => article.pathname === '/en/terms-of-service')
+    tos: articles.find(article => article.pathname === 'en/terms-of-service')
   }
 }
 
