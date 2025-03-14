@@ -95,7 +95,7 @@ function getPagesLoaderPluginSetup (page, config, api) {
           __dirname: path.dirname(args.path),
         }
       }
-      const content = await renderPage(subpage, config, 'utf-8', args.path.endsWith('.css') ? 'css': 'html')
+      const content = await renderPage(subpage, config, 'utf-8', args.path.endsWith('.css') ? 'css' : 'html')
       return {
         contents: 'export default ' + JSON.stringify(content),
         loader: 'js',
