@@ -12,7 +12,7 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}/vscode-extension/",
 				"--inspect=6009",
-				"${workspaceFolder}/vscode-extension/"
+				"${workspaceFolder}/website/"
 			]
 		}
 	]

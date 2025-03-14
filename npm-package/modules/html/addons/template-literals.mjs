@@ -127,7 +127,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
    * @type {import('../utils/exec.mjs').default}
    */
   const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
-  const hash = '#' + Date.now() + Math.random() + (ia ? `|${ia}` : '')
+  const hash = '#' + htmlDocument.getId() + '|' + Date.now() + Math.random() + (ia ? `|${ia}` : '')
   const exec = (await import(htmlDocument.getTextDocument().uri + hash)).default
   const scripts = getScriptsForNode(node, nodes, htmlDocument)
 

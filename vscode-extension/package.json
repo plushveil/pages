@@ -87,8 +87,7 @@
   },
   "dependencies": {
     "@plushveil/pages": "latest",
-    "esm-to-cjs": "^1.2.1",
-    "node-html-parser": "^7.0.1",
+    "typescript": "^5.8.2",
     "vscode-html-languageservice": "^5.3.1",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",

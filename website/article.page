@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="${lang}">
+  <head>
+    ${import('./partials/head.htms', { with: { title } })}
+    <link rel="canonical" href="${articleUrl}" />
+    ${alternate}
+  </head>
+  <body>
+    ${import('./partials/header.htms')}
+    <main>
+      <aside><toc-progress></toc-progress></aside>
+      <article>${article ? import(article.file) : ''}</article>
+      <aside><toc-sidebar></toc-sidebar></aside>
+    </main>
+    ${import('./partials/footer.htms')}
+  </body>
+</html>
+
+<script target="link[rel=canonical]">
+  import articles from './articles/articles.mjs'
+  export const articleUrl = articles.map(({ pathname }) => pathname)
+</script>
+
+<script target="html">
+  import page from 'page:page'
+  import config from 'page:config'
+  import * as articles from './articles/articles.mjs'
+  export const article = articles.default.find(({ pathname }) => pathname === page.params.articleUrl)
+  export const lang = article?.lang || 'en'
+  export const title = article?.title || 'Untitled'
+  export const alternate = articles.getTranslationsOfArticle(article, config.baseURI)
+    .map(article => `<link rel="alternate" hreflang="${article.lang}" href="${article.href}" />`)
+    .join('')
+</script>

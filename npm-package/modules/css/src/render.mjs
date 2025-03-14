@@ -22,7 +22,7 @@ const __tailwind = path.resolve(__module, 'tailwind.css')
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
-  const file = url.fileURLToPath(page.fileUrl)
+  const file = page.params?.__filename ? page.params.__filename : url.fileURLToPath(page.fileUrl)
   const content = typeof page.content === 'string' ? page.content : `@import "${file}";`
   const plugins = [
     atImport({
@@ -37,7 +37,7 @@ export default async function render (page, config, api) {
   ].filter(Boolean)
   const { css, map } = await postcss(plugins).process(content, { from: file, map: { annotation: false } })
 
-  if (['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
+  if (['.html', '.htms', '.page', '.js'].find(ext => page.fileUrl.toString().endsWith(ext))) {
     return css.toString()
   } else {
     const pages = await getPages(file, config, api)

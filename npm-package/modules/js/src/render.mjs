@@ -7,6 +7,7 @@ import browserslist from 'browserslist'
 import { resolveToEsbuildTarget } from 'esbuild-plugin-browserslist'
 
 import getPages from './pages.mjs'
+import { render as renderPage } from '../../../src/pages.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -23,6 +24,8 @@ export default async function render (page, config, api) {
   if (file && !fs.existsSync(file)) return ''
   if (!file && !page.content) return ''
 
+  const pagesLoaderPlugin = { name: 'pages-loader', setup: getPagesLoaderPluginSetup(page, config, api) }
+
   const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
   const target = getTarget(config)
   const build = await esbuild.build({
@@ -36,6 +39,7 @@ export default async function render (page, config, api) {
     minify: !!(config?.js?.minify),
     format: 'iife',
     sourcemap: 'inline',
+    plugins: [pagesLoaderPlugin],
   })
 
   if (!page.fileUrl || ['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
@@ -71,4 +75,31 @@ function getTarget (config) {
 
   const browsers = browserslist(browserslistrc, { path: path.dirname(browserslistFile) })
   return resolveToEsbuildTarget(browsers, { printUnknownTargets: false })
+}
+
+/**
+ * Renders a page.
+ * @param {import('../../../src/pages.mjs').Page} page - The page.
+ * @param {import('../../../src/config.mjs').Config} config - The configuration.
+ * @param {import('../../../src/pages.mjs')} api - The API.
+ * @returns {Promise<string>} The rendered page.
+ */
+function getPagesLoaderPluginSetup (page, config, api) {
+  return async ({ onLoad }) => {
+    onLoad({ filter: /\.(htms|page|html|css)$/ }, async (args) => {
+      const subpage = {
+        ...page,
+        params: {
+          ...page.params,
+          __filename: args.path,
+          __dirname: path.dirname(args.path),
+        }
+      }
+      const content = await renderPage(subpage, config, 'utf-8', args.path.endsWith('.css') ? 'css': 'html')
+      return {
+        contents: 'export default ' + JSON.stringify(content),
+        loader: 'js',
+      }
+    })
+  }
 }
