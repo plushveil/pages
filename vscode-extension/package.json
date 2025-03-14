@@ -16,7 +16,8 @@
   ],
   "main": "src/extension.js",
   "activationEvents": [
-    "onLanguage:pages"
+    "onLanguage:pages",
+    "onCommand:pages.serve"
   ],
   "contributes": {
     "configuration": {
@@ -68,6 +69,12 @@
       {
         "language": "pages",
         "path": "./pages.snippets.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "pages.serve",
+        "title": "Run Pages Development Server in Workspace"
       }
     ]
   },

@@ -4,6 +4,8 @@ const vscode = require('vscode')
 const languageClient = require('vscode-languageclient/node')
 const serverPath = path.join(__dirname, 'languageserver.js')
 
+const terminalName = 'pages serve'
+
 /**
  * @type {languageClient.LanguageClient}
  */
@@ -23,10 +25,32 @@ module.exports = {
 function activate (context) {
   console.log('Extension "Pages" is now active.')
 
+  enableCommands(context)
   enableLanguageServer(context)
   enableConfigurationWatcher(context)
   enableEmmet()
   connectToLanguageServer(context)
+}
+
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function enableCommands (context) {
+  const disposable = vscode.commands.registerCommand('pages.serve', async () => {
+    const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+    const openTerminal = vscode.window.terminals.find(t => t.name === terminalName)
+    const terminal = openTerminal || vscode.window.createTerminal(terminalName)
+    terminal.show()
+
+    if (openTerminal) {
+      terminal.sendText('\u0003')
+      terminal.sendText(process.platform === 'win32' ? 'cls' : 'clear')
+    }
+
+    if (!workspace) terminal.sendText('npx @plushveil/pages serve ', false)
+    else terminal.sendText(`npx @plushveil/pages serve "${workspace}"`, true)
+  })
+  context.subscriptions.push(disposable)
 }
 
 /**
@@ -94,7 +118,7 @@ async function connectToLanguageServer (context) {
     const content = event.document.getText()
     const change = event.contentChanges[0]
     const before = content.slice(0, change.rangeOffset + 1)
-    const lastCharacter = change.text.slice(-1)
+    const insertCharacter = change.text.slice(0, 1)
     const isInTemplateLiteral = before.includes('${') && (() => {
       const tl = before.slice(before.lastIndexOf('${'))
       const openCount = tl.split('{').length - 1
@@ -111,12 +135,12 @@ async function connectToLanguageServer (context) {
     // trigger characters for scripts and template literals
     if (isInTemplateLiteral || isInScript) {
       const triggerCharacters = '."\'[(:'.split('')
-      if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
+      if (triggerCharacters.includes(insertCharacter)) triggerSuggest()
       return
     }
 
     const triggerCharacters = '</="\'.{'.split('')
-    if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
+    if (triggerCharacters.includes(insertCharacter)) triggerSuggest()
     else if (change.text === '${}') triggerSuggest()
 
     const openHtmlTag = (() => {
@@ -127,8 +151,8 @@ async function connectToLanguageServer (context) {
     })()
 
     if (openHtmlTag) {
-      const triggerCharacters = ' '.split('')
-      if (triggerCharacters.includes(lastCharacter)) triggerSuggest()
+      const triggerCharacters = ' "'.split('')
+      if (triggerCharacters.includes(insertCharacter)) triggerSuggest()
     }
   })
   context.subscriptions.push(triggerSuggestListener)
@@ -139,18 +163,5 @@ async function connectToLanguageServer (context) {
  */
 function deactivate () {
   console.log('Extension "Pages" is now deactivated.')
-}
-
-/**
- * A utility function to debounce a function. This is useful to prevent a function from being called too frequently.
- * @param {function} fn - The function to debounce
- * @param {number} delay - The delay in milliseconds
- * @returns {function} - The debounced function
- */
-function debounce (fn, delay) {
-  let timeout
-  return (...args) => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => fn(...args), delay)
-  }
+  vscode.window.terminals.find(t => t.name === terminalName)?.dispose()
 }

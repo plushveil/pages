@@ -39,7 +39,7 @@ async function installModule (folder) {
   const packageJsonFile = path.resolve(folder, 'package-lock.json')
   if (!fs.existsSync(packageJsonFile)) return
   if (!isUpdate) {
-    if (fs.existsSync(packageJsonFile)) cmd.execSync('npm ci', { cwd: folder, env: { ...process.env, NODE_ENV: 'production' } })
+    if (fs.existsSync(packageJsonFile)) cmd.execSync('npm ci || npm install', { cwd: folder, env: { ...process.env, NODE_ENV: 'production' } })
     else cmd.execSync('npm install', { cwd: folder })
   } else {
     if (fs.existsSync(packageJsonFile)) fs.unlinkSync(packageJsonFile)

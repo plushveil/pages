@@ -33,9 +33,10 @@ export default async function pages (file, config, api, options = {}) {
    * @param {import('../../../src/api.mjs').API} api - The API.
    */
   function forEachNode (node, nodes, htmlDocument, page, config, api) {
-    if (!node.text.match(/rel=['"]canonical['"]/)) return
+    if (!node.text.match(/rel=['"]canonical['"]/i)) return
     const linkHtmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
     if (linkHtmlNode.tag !== 'link' || linkHtmlNode.attributes.rel.slice(1, -1) !== 'canonical') return
+    if (canonicals.find(({ start }) => start === linkHtmlNode.start)) return
     const textDocument = htmlDocument.getTextDocument()
     if (textDocument.uri !== fileUrl) return
     const text = textDocument.getText({ start: textDocument.positionAt(linkHtmlNode.start), end: textDocument.positionAt(linkHtmlNode.startTagEnd) })
@@ -54,7 +55,7 @@ export default async function pages (file, config, api, options = {}) {
       const range = { start: textDocument.positionAt(nodeEnd), end: textDocument.positionAt(end), }
       hrefNodes.push({ type: 'tag-open', text: textDocument.getText(range), range, offset: { start: nodeEnd, end } })
     }
-    canonicals.push({ text, href: hrefNodes })
+    canonicals.push({ text, href: hrefNodes, start: linkHtmlNode.start })
   }
 
   /**

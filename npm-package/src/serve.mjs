@@ -144,20 +144,30 @@ function getRequestHandler (config, watcher, workers) {
  */
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
-  let pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat().filter(filter)
-  // console.log(pages.map(page => page.url.toString()))
+  let pages
+  const refreshAll = async () => { pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat().filter(filter) }
+  await refreshAll()
 
+  const inProgress = {}
   const watcher = fs.watch(config.root, { recursive: true }, async (event, filename) => {
     const file = path.resolve(config.root, filename)
     const fileUrl = url.pathToFileURL(file).toString()
+    const isIgnored = config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))
+    if (isIgnored || inProgress[filename]) return
+    inProgress[filename] = true
 
     if (fs.existsSync(file)) {
-      const pagesUpdate = (await getPages(file, config)).filter(filter)
-      pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
-      pages.push(...pagesUpdate)
+      if (fs.statSync(file).isDirectory()) {
+        refreshAll()
+      } else {
+        const pagesUpdate = (await getPages(file, config)).filter(filter)
+        pages = [...pages.filter(page => page.fileUrl.toString() !== fileUrl), ...pagesUpdate]
+      }
     } else {
       pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
     }
+
+    delete inProgress[filename]
   })
 
   return { getPages: () => pages, close: () => watcher.close() }

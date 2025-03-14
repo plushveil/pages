@@ -82,7 +82,42 @@ connection.onCompletion(throwableAsync(async (event) => {
     }, null)
 
     const isTemplateStringWithSyntaxError = (node.type === 'text' && node.text.trim().startsWith('${') && node.text.trim().endsWith('}'))
-    if (node.type === 'template' || isTemplateStringWithSyntaxError) {
+    if (isTemplateStringWithSyntaxError) {
+      const fixedNode = { ...node }
+
+      // fix whitespace in beginning
+      const whitespaceStart = fixedNode.text.match(/^\s*/)[0]
+      fixedNode.text = fixedNode.text.slice(whitespaceStart.length)
+      fixedNode.offset.start += whitespaceStart.length
+
+      // approximate closing brace position
+      const closingBracePosition = (() => {
+        let depth = 1
+        let i = 2
+        while (i < fixedNode.text.length) {
+          const char = fixedNode.text[i]
+          if (char === '{') depth++
+          if (char === '}') depth--
+          if (depth === 0) return i
+          i++
+        }
+        return -1
+      })()
+      if (closingBracePosition !== -1) {
+        fixedNode.text = fixedNode.text.slice(0, closingBracePosition + 1)
+        fixedNode.offset.end = fixedNode.offset.start + closingBracePosition + 1
+      }
+
+      // fix whitespace in end
+      const whitespaceEnd = fixedNode.text.match(/\s*$/)[0]
+      fixedNode.text = fixedNode.text.slice(0, fixedNode.text.length - whitespaceEnd.length)
+      fixedNode.offset.end -= whitespaceEnd.length
+
+      fixedNode.range.start = htmlDocument.getTextDocument().positionAt(fixedNode.offset.start)
+      fixedNode.range.end = htmlDocument.getTextDocument().positionAt(fixedNode.offset.end)
+
+      completions.push(...(await getScriptCompletions(fixedNode, htmlDocument, offset, event.textDocument.uri)))
+    } else if (node.type === 'template') {
       completions.push(...(await getScriptCompletions(node, htmlDocument, offset, event.textDocument.uri)))
     } else {
       const htmlDocument = htmlDocuments.get(event.textDocument.uri)
@@ -105,8 +140,8 @@ connection.onCompletion(throwableAsync(async (event) => {
  * @returns {Promise<languageServer.CompletionItem[]>}
  */
 async function getScriptCompletions (node, htmlDocument, offset, fileUrl) {
-  const script = node.text.trim().slice(2, -1)
-  const position = offset - node.offset.start - 2 - (node.text.match(/^\s*/)[0].length)
+  const script = node.text.slice(2, -1)
+  const position = offset - node.offset.start - 2
   const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
 
   const getCompletions = (await import('./languageservice-ts.mjs')).default

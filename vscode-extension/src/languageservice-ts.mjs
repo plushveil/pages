@@ -15,7 +15,6 @@ const serviceHost = {
     allowJs: true,
     moduleResolution: ts.ModuleResolutionKind.Node16,
     resolveJsonModule: true,
-    allowSyntheticDefaultImports: true
   }),
   getScriptFileNames: () => [...scripts.keys()],
   getScriptVersion: (fileName) => scripts.has(fileName) ? new Date().getTime().toString() : '0',
@@ -65,18 +64,38 @@ export default async function getCompletions (fileUrl, script, importToCodeMap, 
   const filePath = url.fileURLToPath(fileUrl)
   const fileName = path.basename(filePath) + '.ts'
   folder = path.dirname(filePath)
+  setImports(importToCodeMap)
+  scripts.set(fileName, script)
 
+  const issues = languageService.getSemanticDiagnostics(fileName)
+  for (const issue of issues) console.log(issue.messageText || issue)
+
+  const completions = languageService.getCompletionsAtPosition(fileName, offset)
+  clearImports(importToCodeMap)
+  scripts.delete(fileName)
+  return completions
+}
+
+/**
+ * @param {Object<string, string>} importToCodeMap - Inline imports.
+ */
+function setImports (importToCodeMap) {
   for (const [importSpecifier, code] of Object.entries(importToCodeMap)) {
     scripts.set(importSpecifier, code)
     const filepath = url.fileURLToPath(importSpecifier)
     const filename = path.basename(filepath)
     scripts.set(filename, code)
   }
-  scripts.set(fileName, script)
+}
 
-  // const issues = languageService.getSemanticDiagnostics(fileName)
-  // for (const issue of issues) console.log(issue.messageText || issue)
-
-  const completions = languageService.getCompletionsAtPosition(fileName, offset)
-  return completions
+/**
+ * @param {Object<string, string>} importToCodeMap - Inline imports.
+ */
+function clearImports (importToCodeMap) {
+  for (const importSpecifier of Object.keys(importToCodeMap)) {
+    scripts.delete(importSpecifier)
+    const filepath = url.fileURLToPath(importSpecifier)
+    const filename = path.basename(filepath)
+    scripts.delete(filename)
+  }
 }
