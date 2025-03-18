@@ -1,2 +1,11 @@
-<footer>
+<footer class="mt-[30vh] min-h-[70vh] bg-slate-700 border-t-[2px] border-slate-700 relative before:absolute before:top-0 before:left-0 before:w-full before:h-[1px] before:bg-white/30">
+  <a href="${articles.terms.href}">${articles.terms.title}</a>
 </footer>
+
+<script target="footer">
+  import { getArticleTranslations } from '../articles/articles.mjs'
+  import page from 'page:page'
+  import config from 'page:config'
+  export const lang = page.params?.languageId || 'en'
+  export const articles = getArticleTranslations(lang, config.baseURI, page.url.href)
+</script>

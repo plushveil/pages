@@ -1,8 +1,9 @@
 /**
  * Creates a custom component class that propagates data-* attributes to child elements.
  * @param {string} markdown - The markdown content of the component.
+ * @param {string[]} observedAttributes - Additional attributes to observe.
  */
-export default (markdown) => {
+export default (markdown, observedAttributes = []) => {
   const template = document.createElement('div')
   template.innerHTML = markdown
   const observedDataset = [...template.children].map((child) => getDataSets(child)).flat()
@@ -27,7 +28,10 @@ export default (markdown) => {
    */
   return class DataComponent extends window.HTMLElement {
     static get observedAttributes () {
-      return observedDataset.map(data => data.name).filter((value, index, self) => self.indexOf(value) === index)
+      return [
+        ...observedAttributes,
+        ...observedDataset.map(data => data.name).filter((value, index, self) => self.indexOf(value) === index)
+      ]
     }
 
     /**

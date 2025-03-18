@@ -1,16 +1,24 @@
 <!DOCTYPE html>
 <html lang="${lang}">
   <head>
-    ${import('./partials/head.htms', { with: { title } })}
+    ${import('./partials/head.htms', { with: { title, description } })}
     <link rel="canonical" href="${articleUrl}" />
     ${alternate}
   </head>
   <body>
     ${import('./partials/header.htms')}
-    <main>
-      <aside><toc-progress></toc-progress></aside>
-      <article>${article ? import(article.file) : ''}</article>
-      <aside><toc-sidebar></toc-sidebar></aside>
+    <main class="container mx-auto grid grid-cols-1 xl:grid-cols-[1fr_400px]">
+      <aside class="order-1 xl:col-span-2">
+        <toc-progress></toc-progress>
+      </aside>
+      <aside class="order-2 xl:order-3 h-full">
+        <toc-sidebar></toc-sidebar>
+      </aside>
+      <article class="order-3 xl:order-2 w-full">
+        <div class="mt-8 mx-8 p-8 min-h-screen border border-neutral-400 bg-neutral-200 ">
+          ${article ? import(article.file) : ''}
+        </div>
+      </article>
     </main>
     ${import('./partials/footer.htms')}
   </body>
@@ -25,9 +33,13 @@
   import page from 'page:page'
   import config from 'page:config'
   import * as articles from './articles/articles.mjs'
+  import translations from './translations.mjs'
+
   export const article = articles.default.find(({ pathname }) => pathname === page.params.articleUrl)
   export const lang = article?.lang || 'en'
-  export const title = article?.title || 'Untitled'
+  export const text = translations[lang]
+  export const title = `${text.title} - ${article?.text?.title}`
+  export const description = article?.text?.description || translations[lang].description
   export const alternate = articles.getTranslationsOfArticle(article, config.baseURI)
     .map(article => `<link rel="alternate" hreflang="${article.lang}" href="${article.href}" />`)
     .join('')

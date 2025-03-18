@@ -2,6 +2,8 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
+import translations from '../translations.mjs'
+
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -18,9 +20,12 @@ const articles = (await recursiveReadDir(__dirname)).map(file => {
   if (!file.endsWith('.html')) return
   const pathname = file.replace(__dirname, '').replaceAll(path.sep, '/').replace(/\.html$/, '').replace(/^\/+/g, '')
   const lang = pathname.split('/')[0] || 'en'
-  const content = fs.readFileSync(file, 'utf8')
-  const title = content.match(/<h\d>(.*?)<\/h\d>/)?.[1]
-  return { pathname, lang, title, file: path.relative(path.resolve(__dirname, '..'), file) }
+  const text = translations[lang]?.[pathname.split('/').pop()]
+  const title = text?.title || (() => {
+    const content = fs.readFileSync(file, 'utf8')
+    return content.match(/<h\d>(.*?)<\/h\d>/)?.[1]
+  })()
+  return { pathname, lang, title, text, file: path.relative(path.resolve(__dirname, '..'), file) }
 }).filter(Boolean)
 
 /**
@@ -30,7 +35,12 @@ export default articles
 
 const articleTranslations = {
   en: {
-    tos: articles.find(article => article.pathname === 'en/terms-of-service')
+    examples: articles.find(article => article.pathname === 'en/examples'),
+    essentials: articles.find(article => article.pathname === 'en/essentials'),
+    gettingstarted: articles.find(article => article.pathname === 'en/getting-started'),
+    impressum: articles.find(article => article.pathname === 'en/impressum'),
+    policy: articles.find(article => article.pathname === 'en/privacy-policy'),
+    terms: articles.find(article => article.pathname === 'en/terms-of-service'),
   }
 }
 
@@ -38,12 +48,14 @@ const articleTranslations = {
  * Get all articles in a specific language with their url.
  * @param {string} lang - The language to get the articles for.
  * @param {URL} baseURI - The base URI to resolve the article paths.
+ * @param {URL} currentURL - The current URL to resolve the article paths.
  * @returns {Record<string, { pathname: string, title: string, href: string }>}
  */
-export function getArticleTranslations (lang, baseURI) {
+export function getArticleTranslations (lang, baseURI, currentURL) {
   const translations = articleTranslations[lang] || {}
   return Object.fromEntries(Object.entries(translations).map(([key, article]) => {
     article.href = new URL(article.pathname, baseURI).href
+    if (currentURL === article.href) article.active = true
     return [key, article]
   }))
 }

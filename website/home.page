@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="${lang}">
   <head>
-    ${import('./partials/head.htms', { with: { title: text.homepage.title, description: text.homepage.description } })}
+    ${import('./partials/head.htms', { with: { title, description } })}
     <link rel="canonical" href="${languageId}" />
   </head>
   <body>
     ${import('./partials/header.htms')}
     <main>
-      <a href="${articles.tos.href}" class="text-blue-500">${articles.tos.title}</a>
+      <article>
+        ${import(`./home/home.${lang}.html`)}
+      </article>
     </main>
     ${import('./partials/footer.htms')}
   </body>
@@ -25,5 +27,7 @@
   import config from 'page:config'
   export const lang = page.params?.languageId || 'en'
   export const text = translations[lang]
+  export const title = `${text.title} - ${text.home.title}`
+  export const description = text.description
   export const articles = getArticleTranslations(lang, config.baseURI)
 </script>

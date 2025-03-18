@@ -8,8 +8,21 @@
  */
 export function after (nodes, htmlDocument, page, config, api) {
   for (const node of nodes) {
+    if (node.type === 'raw') continue
     const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
-    const update = text.trim()
-    if (update !== text) node.textUpdate = update
+
+    // if the last character is a space instead of a line break, assume it's on purpose and restore it
+    let keepTrailingSpace = false
+    const lastCharMatch = text.match(/([^\s])\s*$/)
+    if (lastCharMatch) {
+      const nextChar = text[lastCharMatch.index + 1]
+      if (nextChar === ' ') keepTrailingSpace = true
+    }
+
+    const update = text.trim().replace(/\s+/g, ' ')
+    if (update !== text) {
+      node.textUpdate = update
+      if (keepTrailingSpace) node.textUpdate += ' '
+    }
   }
 }

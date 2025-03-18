@@ -1,3 +1,35 @@
-<header>
-
+<header class="bg-slate-700 text-slate-100 py-2 border-b-[2px] border-slate-700 relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-white/30">
+  <nav class="mx-auto container">
+    <ul class="flex">
+      <li class="mx-4">
+        <a class="block rounded-3xl py-4 px-5 text-3xl ${homepage.active ? active : inactive}" href="${homepage.href}">
+          ${text.title}
+        </a>
+      </li>
+      <li class="mx-4">
+        <a class="block rounded-3xl py-4 px-5 text-3xl ${articles.terms.active ? active : inactive}" href="${articles.terms.href}">
+          ${articles.terms.title}
+        </a>
+      </li>
+    </ul>
+  </nav>
 </header>
+
+<script target="header">
+  import { getArticleTranslations } from '../articles/articles.mjs'
+  import page from 'page:page'
+  import config from 'page:config'
+  import translations from '../translations.mjs'
+  export const lang = page.params?.languageId || 'en'
+  export const articles = getArticleTranslations(lang, config.baseURI, page.url.href)
+  export const text = translations[lang]
+
+  export const active = 'bg-slate-600'
+  export const inactive = ''
+
+  const homepageUrl = new URL(lang, config.baseURI)
+  export const homepage = {
+    href: homepageUrl.toString(),
+    active: page.url.pathname === homepageUrl.pathname
+  }
+</script>
