@@ -8,11 +8,38 @@ export default {
       nativeName: 'English',
       direction: 'ltr'
     },
+    legal: {
+      title: 'Legal',
+      rights: 'All rights reserved.',
+    },
+    resources: {
+      title: 'Resources',
+      github: {
+        title: 'GitHub',
+        href: 'https://github.com/plushveil/pages'
+      },
+      npm: {
+        title: 'NPM',
+        href: 'https://www.npmjs.com/package/@plushveil/pages'
+      },
+      vscode: {
+        title: 'VS Code',
+        href: 'https://marketplace.visualstudio.com/items?itemName=plushveil.pages'
+      }
+    },
+    community: {
+      title: 'Community',
+      ticket: {
+        title: 'Submit a ticket',
+        href: 'https://github.com/plushveil/pages/issues'
+      }
+    },
     toc: {
       sidebar_title: 'On this page:',
     },
     home: {
       title: 'Template literals for your HTML',
+      short_title: 'About'
     },
     impressum: {
       title: 'Impressum',
@@ -25,12 +52,15 @@ export default {
     },
     'getting-started': {
       title: 'Installation',
+      short_title: 'Installation'
     },
     essentials: {
       title: 'Essential knowledge',
+      short_title: 'Essentials'
     },
     examples: {
       title: 'Tutorials and examples',
+      short_title: 'Examples'
     },
     search: {
       title: 'Search',

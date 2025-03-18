@@ -1,14 +1,24 @@
 <header class="bg-slate-700 text-slate-100 py-2 border-b-[2px] border-slate-700 relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-white/30">
   <nav class="mx-auto container">
-    <ul class="flex">
-      <li class="mx-4">
-        <a class="block rounded-3xl py-4 px-5 text-3xl ${homepage.active ? active : inactive}" href="${homepage.href}">
-          ${text.title}
+    <ul role="list" class="flex space-x-6">
+      <li>
+        <a href="${homepage.href}" class="block rounded-xl px-6 py-2 text-3xl text-gray-200 hover:text-gray-200 ${homepage.active ? active : inactive}">
+          ${homepage.title}
         </a>
       </li>
-      <li class="mx-4">
-        <a class="block rounded-3xl py-4 px-5 text-3xl ${articles.terms.active ? active : inactive}" href="${articles.terms.href}">
-          ${articles.terms.title}
+      <li>
+        <a href="${articles.gettingstarted.href}" class="block rounded-xl px-6 py-2 text-3xl text-gray-200 hover:text-gray-200 ${articles.gettingstarted.active ? active : inactive}">
+          ${articles.gettingstarted.text.short_title}
+        </a>
+      </li>
+      <li>
+        <a href="${articles.essentials.href}" class="block rounded-xl px-6 py-2 text-3xl text-gray-200 hover:text-gray-200 ${articles.essentials.active ? active : inactive}">
+          ${articles.essentials.text.short_title}
+        </a>
+      </li>
+      <li>
+        <a href="${articles.examples.href}" class="block rounded-xl px-6 py-2 text-3xl text-gray-200 hover:text-gray-200 ${articles.examples.active ? active : inactive}">
+          ${articles.examples.text.short_title}
         </a>
       </li>
     </ul>
@@ -29,6 +39,7 @@
 
   const homepageUrl = new URL(lang, config.baseURI)
   export const homepage = {
+    title: text.title,
     href: homepageUrl.toString(),
     active: page.url.pathname === homepageUrl.pathname
   }
