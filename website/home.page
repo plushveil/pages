@@ -7,9 +7,7 @@
   <body>
     ${import('./partials/header.htms')}
     <main>
-      <article>
-        ${import(`./home/home.${lang}.html`)}
-      </article>
+      ${import(`./home/home.${lang}.html`)}
     </main>
     ${import('./partials/footer.htms')}
   </body>

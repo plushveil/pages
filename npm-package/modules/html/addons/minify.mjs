@@ -8,8 +8,15 @@
  */
 export function after (nodes, htmlDocument, page, config, api) {
   for (const node of nodes) {
-    if (node.type === 'raw') continue
     const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
+
+    if (node.type === 'raw') {
+      const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
+      if (closestHtmlNode.tag?.toLowerCase() === 'template') {
+        node.textUpdate = text.replace(/\s+/g, ' ').replaceAll('> <', '><').trim()
+      }
+      continue
+    }
 
     // if the last character is a space instead of a line break, assume it's on purpose and restore it
     let keepTrailingSpace = false

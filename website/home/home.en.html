@@ -1,0 +1,18 @@
+<article>
+  <figure class="mt-10 w-fit border-4 border-slate-700 mx-auto">
+    <a href="../assets/vscode-screenshot.png">
+      <img src="../assets/vscode-screenshot.png" class="w-full max-w-[1058px] h-auto mx-auto" alt="VS Code screenshot showing a .page file with templating and imports">
+    </a>
+    <figcaption class="text-sm text-gray-600 p-2">
+      A glimpse into the <a class="font-semibold" href="${text.resources.vscode.href}">Pages VS Code extension</a>: A dynamic .page file using imports and templating to build structured, web pages.
+    </figcaption>
+  </figure>
+</article>
+
+<script target="article">
+  import page from 'page:page'
+  import config from 'page:config'
+  import translations from '../translations.mjs'
+  export const lang = page.params?.languageId || 'en'
+  export const text = translations[lang]
+</script>
