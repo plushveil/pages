@@ -67,7 +67,7 @@ export async function pages (file, config, type = path.extname(file).slice(1)) {
  * @param {"html"|"js"|"css"|"other"} [type] - The type of the file. Defaults to the file extension.
  * @returns {Promise<string>} The rendered page.
  */
-export async function render (page, config, encoding = 'utf-8', type = undefined) {
+export async function render (page, config, encoding, type = undefined) {
   if (typeof page === 'string') page = (await pages(page, config))[0]
   if (typeof page !== 'object') throw new TypeError('The page must be an object.')
   config = await getConfig(config)
