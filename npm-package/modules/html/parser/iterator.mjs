@@ -140,7 +140,10 @@ export default function iterator (htmlDocument, ignoreErrors) {
   // Text nodes also contain template literals.
   // HTML nodes also contain template literals in their attributes.
   nodes = nodes.reduce((nodes, node, index, arr) => {
-    const isInsideTemplateLiteral = arr.some(tl => (tl.type === 'template' && tl.offset.start < node.offset.start && tl.offset.end > node.offset.end))
+    const isInsideTemplateLiteral = arr.some(tl => {
+      if (tl === node || tl.type !== 'template') return false
+      return tl.offset.start <= node.offset.start && tl.offset.end >= node.offset.end
+    })
     if (isInsideTemplateLiteral) return nodes
 
     const templateLiteralsInsideNode = (node.type === 'template' || node.type === 'raw')
