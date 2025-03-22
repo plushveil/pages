@@ -1,6 +1,6 @@
-<header class="bg-slate-700 text-slate-100 py-2 border-b-[2px] border-slate-700 relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-white/30">
+<header class="w-full bg-slate-700 text-slate-100 py-2 border-b-[2px] border-slate-700 relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[1px] after:bg-white/30">
   <nav class="mx-auto container">
-    <ul role="list" class="flex space-x-2 md:space-x-6 mx-auto w-fit">
+    <ul role="list" class="flex space-x-2 md:space-x-6 mx-auto md:mx-0 w-fit">
       <li>
         <a href="${homepage.href}" class="block rounded-xl px-6 py-2 text-base md:text-xl lg:text-3xl text-gray-200 hover:text-gray-200 ${homepage.active ? active : inactive}">
           ${homepage.title}

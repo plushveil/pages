@@ -15,7 +15,7 @@
         <toc-sidebar></toc-sidebar>
       </aside>
       <article class="order-3 xl:order-2 w-full">
-        <div class="mt-8 mx-8 p-8 min-h-screen border border-neutral-400 bg-neutral-200 ">
+        <div class="mt-8 mx-0 lg:mx-8 p-8 min-h-screen border border-neutral-400 bg-neutral-200 ">
           ${article ? import(article.file) : ''}
         </div>
       </article>
