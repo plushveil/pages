@@ -153,9 +153,11 @@ function escapeHTML (html) {
     if (templateLiteral) {
       result.push(html.slice(i, templateLiteral.start).replace(/`/g, '"'))
 
-      const length = templateLiteral.end - templateLiteral.start - 5
-      const text = '${\'' + 'x'.repeat(length) + '\'}'
-      result.push(text)
+      const length = templateLiteral.end - templateLiteral.start - 3
+      if (length > 0) result.push('${' + '9'.repeat(length) + '}')
+      else if (length === 0) result.push('${}')
+      else if (length === -1) result.push('${')
+      else throw new Error(`Invalid template literal:\n${html}`)
       i = templateLiteral.end
     } else {
       result.push(html.slice(i).replace(/`/g, '"'))
