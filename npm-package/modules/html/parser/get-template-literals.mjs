@@ -116,29 +116,54 @@ function getOffsetFromPosition (text, position) {
  * @returns {string} - The escaped HTML
  */
 function escapeHTML (html) {
-  const opens = getAllIndexes(html, '${')
-  const closes = opens.map((_, i) => html.slice(opens[i], opens[i + 1] || html.length).lastIndexOf('}') + opens[i])
+  const templateLiterals = getAllIndexes(html, '${').map((start) => {
+    const text = html.slice(start + 2)
+      .replace(/\/\/.*/g, (m) => 'x'.repeat(m.length)) // replace comments with x
+      .replace(/\/\*[\s\S]*?\*\//g, (m) => 'x'.repeat(m.length)) // replace multi-line comments with x
+      .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, (m) => 'x'.repeat(m.length)) // replace strings with x
+      .replace(/`(?:(?=(\\?))\1.)*?`/g, (m) => 'x'.repeat(m.length)) // replace strings in backticks with x
 
-  let result = ''
-  let start = 0
-  while (start < html.length) {
-    const open = opens.find(o => o > start)
-    if (typeof open === 'undefined') {
-      result += html.slice(start).replace(/`/g, '"')
-      break
+    // find closing }
+    let i = 0
+    let level = 1
+    while (level > 0) {
+      const char = text[i]
+      if (typeof char === 'undefined') {
+        i = -1
+        break
+      }
+      if (char === '{') level++
+      if (char === '}') level--
+      i++
     }
 
-    const close = closes.find(c => c > open)
-    if (close === undefined) {
-      result += html.slice(start).replace(/`/g, '"')
+    return {
+      start,
+      end: i === -1 ? html.lastIndexOf('}') + 1 : start + 2 + i,
+    }
+  }).filter((value, index, self) => {
+    // remove template literals that are inside other template literals
+    return self.every((other, i) => index === i || value.start < other.start || value.end > other.end)
+  })
+
+  const result = []
+  let i = 0
+  while (i < html.length) {
+    const templateLiteral = templateLiterals.find(t => t.start > i)
+    if (templateLiteral) {
+      result.push(html.slice(i, templateLiteral.start).replace(/`/g, '"'))
+
+      const length = templateLiteral.end - templateLiteral.start - 5
+      const text = '${\'' + 'x'.repeat(length) + '\'}'
+      result.push(text)
+      i = templateLiteral.end
+    } else {
+      result.push(html.slice(i).replace(/`/g, '"'))
       break
     }
-
-    result += html.slice(start, open).replace(/`/g, '"') + html.slice(open, close + 1)
-    start = close + 1
   }
 
-  return result
+  return result.join('')
 }
 
 /**
