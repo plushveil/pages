@@ -86,7 +86,7 @@ export default async function pages (file, config, api, options = {}) {
     for (const combination of combinations) {
       let href = combination.map(part => {
         if (part.type === 'tag-open') part.value = part.text
-        else if (!part.value) part.value = typeof part.textUpdate === 'string' ? part.textUpdate : part.text
+        else if (!part.value) part.value = typeof part.raw === 'string' ? part.raw : part.text
         return part.value
       }).join('')
       while (href.startsWith('/')) href = href.slice(1)
@@ -101,8 +101,8 @@ export default async function pages (file, config, api, options = {}) {
           __filename: file,
           __dirname: path.dirname(file),
           ...combination.reduce((params, param, i) => {
-            if (param.type === 'template') params[param.text.slice(2, -1)] = param.textUpdate
-            params[`urlPart${i}`] = typeof param.textUpdate === 'string' ? param.textUpdate : param.text
+            if (param.type === 'template') params[param.text.slice(2, -1)] = param.value || param.textUpdate
+            params[`urlPart${i}`] = param.value || (typeof param.textUpdate === 'string' ? param.textUpdate : param.text)
             return params
           }, {}),
         },
