@@ -21,16 +21,16 @@ module.registerHooks({
    * @see https://nodejs.org/api/module.html#resolvespecifier-context-nextresolve
    */
   resolve (specifier, context, nextResolve) {
-    if (context.parentURL === import.meta.url && specifier.includes('id=')) {
+    if (context.parentURL === import.meta.url && specifier.includes('script_id=')) {
       try {
         const specifierUrl = new URL(specifier)
-        if (specifierUrl.searchParams.has('id')) {
+        if (specifierUrl.searchParams.has('script_id')) {
           return {
             format: 'module',
             url: specifierUrl.toString(),
             importAttributes: {
               ...context.importAttributes,
-              script: specifierUrl.searchParams.get('id'),
+              script: specifierUrl.searchParams.get('script_id'),
               parentURL: import.meta.url
             },
             shortCircuit: true
@@ -82,8 +82,9 @@ export default async function exec (code, scripts, page, config, api) {
       })
       if (imports.length === 0) return ''
       const url = new URL(import.meta.url)
-      url.searchParams.set('id', script.id)
-      return `const { ${imports.join(', ')} } = await import('${url}')`
+      url.searchParams.set('script_id', script.id)
+      const code = `const { ${imports.join(', ')} } = await import('${url}')`
+      return code
     }),
     `return ${code}`,
   ].join('\n')

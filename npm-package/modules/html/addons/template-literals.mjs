@@ -123,11 +123,12 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   if (node.type !== 'template') return
   if (typeof node.textUpdate === 'string') return
 
+  const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
+  const hash = '#' + htmlDocument.getId() + '|' + Date.now() + Math.random() + (ia ? `|${ia}` : '')
+
   /**
    * @type {import('../utils/exec.mjs').default}
    */
-  const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
-  const hash = '#' + htmlDocument.getId() + '|' + Date.now() + Math.random() + (ia ? `|${ia}` : '')
   const exec = (await import(htmlDocument.getTextDocument().uri + hash)).default
   const scripts = getScriptsForNode(node, nodes, htmlDocument)
 

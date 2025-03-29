@@ -1,4 +1,5 @@
 import * as path from 'node:path'
+import * as module from 'node:module'
 import * as url from 'node:url'
 
 import getHtmlDocument from '../utils/getHtmlDocument.mjs'
@@ -17,6 +18,8 @@ const activeAddons = [
   'minify',
   'integrity'
 ]
+
+module.register(url.pathToFileURL(path.resolve(__dirname, 'common-js.mjs')))
 
 /**
  * Execute all addons for the given config.
