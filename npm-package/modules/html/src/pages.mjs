@@ -86,7 +86,7 @@ export default async function pages (file, config, api, options = {}) {
     for (const combination of combinations) {
       let href = combination.map(part => {
         if (part.type === 'tag-open') part.value = part.text
-        else if (!part.value) part.value = typeof part.raw === 'string' ? part.raw : part.text
+        else if (typeof part.value !== 'string') part.value = typeof part.raw === 'string' ? part.raw : part.text
         return part.value
       }).join('')
       while (href.startsWith('/')) href = href.slice(1)
