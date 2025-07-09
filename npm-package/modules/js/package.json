@@ -2,8 +2,8 @@
   "main": "js.mjs",
   "type": "module",
   "dependencies": {
-    "browserslist": "^4.25.0",
-    "esbuild": "^0.25.5",
+    "browserslist": "^4.25.1",
+    "esbuild": "^0.25.6",
     "esbuild-plugin-browserslist": "^1.0.1"
   }
 }

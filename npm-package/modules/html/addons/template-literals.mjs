@@ -67,6 +67,11 @@ module.registerHooks({
 const idNodeScriptsMap = {}
 
 /**
+ * @type {{[key: string]: number}}
+ */
+const idPreflightStopPositionMap = {}
+
+/**
  * beforeAsync is executed before the page is interpreted.
  * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
@@ -78,6 +83,8 @@ export function beforeAsync (iterator, htmlDocument, page, config, api) {
   const textDocument = htmlDocument.getTextDocument()
   const id = htmlDocument.getId()
   const scripts = htmlDocument.select('script[target]')
+  const head = htmlDocument.select('link[rel="canonical"]')[0]
+  idPreflightStopPositionMap[id] = head?.end || 0
 
   idNodeScriptsMap[id] = {}
   for (let i = 0; i < scripts.length; i++) {
@@ -122,6 +129,12 @@ export function beforeAsync (iterator, htmlDocument, page, config, api) {
 export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
   if (node.type !== 'template') return
   if (typeof node.textUpdate === 'string') return
+
+  // Skip if the node is after the preflight stop position
+  if (page.params.headers?.['X-Is-Preflight'] === 'true') {
+    const stop = idPreflightStopPositionMap[htmlDocument.getId()]
+    if (node.offset.start >= stop) return
+  }
 
   const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
   const hash = '#' + htmlDocument.getId() + '|' + Date.now() + Math.random() + (ia ? `|${ia}` : '')

@@ -38,7 +38,7 @@ export default async function serve (folder, config, output) {
   config = await getConfig(config)
   config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
 
-  const watcher = await getPageWatcher(config)
+  const watcher = getPageWatcher(config)
   const parallel = os.cpus().length
   const workers = []
   const createWorkers = () => { while (workers.length < parallel) workers.push(createWorker(config, workers)) }
@@ -59,7 +59,7 @@ export default async function serve (folder, config, output) {
   const close = app.close.bind(app)
   app.close = () => {
     while (workers.length) workers.pop().terminate()
-    watcher.close()
+    watcher.then((watcher) => watcher.close())
     close()
   }
 
@@ -83,7 +83,7 @@ function createWorker (config, workers) {
 /**
  * Returns the request handler.
  * @param {import('./config.mjs').Config} config - The configuration.
- * @param {{ getPages: () => import('./pages.mjs').Page[], close: () => void }} watcher - The watcher.
+ * @param {Promise<{ getPages: () => import('./pages.mjs').Page[], close: () => void }>} watcher - The watcher.
  * @param {threads.Worker[]} workers - The workers.
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
@@ -93,9 +93,9 @@ function getRequestHandler (config, watcher, workers) {
    * @param {http.IncomingMessage} req - The request.
    * @param {http.ServerResponse} res - The response.
    */
-  return (req, res) => {
+  return async (req, res) => {
     const reqUrl = new URL(req.url, config.baseURI)
-    const page = watcher.getPages().find(page => page.url.pathname === reqUrl.pathname)
+    const page = (await watcher).getPages().find(page => page.url.pathname === reqUrl.pathname)
     if (!page) {
       res.writeHead(404)
       res.end('Not found')
@@ -145,7 +145,18 @@ function getRequestHandler (config, watcher, workers) {
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
   let pages
-  const refreshAll = async () => { pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => getPages(file, config)))).flat().filter(filter) }
+  const refreshAll = async () => {
+    const files = (await Promise.all(utils.getFilesInFolder(config.root))).filter((file) => {
+      if (file.match(/\/components\/[^/]+\//)) return false
+      if (['page', 'htms', 'html'].find(ext => file.endsWith(`.${ext}`))) return fs.readFileSync(file, { encoding: 'utf-8' }).includes('canonical')
+      return true
+    })
+    pages = []
+    for (const file of files) {
+      const filePages = await getPages(file, config)
+      for (const page of filePages) if (filter(page)) pages.push(page)
+    }
+  }
   await refreshAll()
 
   const inProgress = {}
