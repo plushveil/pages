@@ -131,7 +131,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   if (typeof node.textUpdate === 'string') return
 
   // Skip if the node is after the preflight stop position
-  if (page.params.headers?.['X-Is-Preflight'] === 'true') {
+  if (page.params?.headers?.['X-Is-Preflight'] === 'true') {
     const stop = idPreflightStopPositionMap[htmlDocument.getId()]
     if (node.offset.start >= stop) return
   }
