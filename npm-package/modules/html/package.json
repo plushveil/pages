@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "acorn": "^8.15.0",
-    "css-select": "^6.0.0",
+    "css-select": "^5.1.0",
     "vscode-html-languageservice": "^5.5.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   }
