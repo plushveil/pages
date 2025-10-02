@@ -41,9 +41,10 @@ export default async function serve (folder, config, output) {
   const watcher = getPageWatcher(config)
   const parallel = os.cpus().length
   const workers = []
-  const createWorkers = () => { while (workers.length < parallel) workers.push(createWorker(config, workers)) }
-  setInterval(createWorkers, 10000).unref()
-  createWorkers()
+  const createWorkers = (count) => { while (workers.length < (count || parallel)) workers.push(createWorker(config, workers)) }
+  setInterval(() => createWorkers(), 10000).unref()
+  setTimeout(() => createWorkers(), 3000).unref()
+  createWorkers(2)
 
   const requestHandler = getRequestHandler(config, watcher, workers, createWorker)
   const server = (port === '443') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
@@ -88,6 +89,19 @@ function createWorker (config, workers) {
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
 function getRequestHandler (config, watcher, workers) {
+  async function getWorker () {
+    const worker = workers.find(worker => !worker.busy)
+    if (worker) return worker
+    return new Promise((resolve) => {
+      const interval = setInterval(() => {
+        if (workers.length) {
+          const worker = workers.find(worker => !worker.busy)
+          if (worker) { clearInterval(interval); resolve(worker) }
+        }
+      }, 100).unref()
+    })
+  }
+
   /**
    * Handles requests.
    * @param {http.IncomingMessage} req - The request.
@@ -102,7 +116,8 @@ function getRequestHandler (config, watcher, workers) {
       return
     }
 
-    const worker = workers.shift() || createWorker(config, workers)
+    const worker = await getWorker()
+    worker.busy = true
     const headers = page.params?.headers || {}
     if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(page.url.pathname)
 
@@ -114,16 +129,18 @@ function getRequestHandler (config, watcher, workers) {
         headers['Content-Length'] = Buffer.byteLength(data)
         res.writeHead(200, headers)
         res.end(data)
+        worker.terminate()
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
         res.writeHead(200, headers)
         const rs = fs.createReadStream(url.fileURLToPath(page.fileUrl))
         rs.pipe(res)
+        worker.busy = false
       } else {
         res.writeHead(500)
         res.end('Internal server error')
+        worker.busy = false
       }
-      worker.terminate()
     })
 
     worker.on('exit', (code) => {
