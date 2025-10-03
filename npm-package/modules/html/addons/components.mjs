@@ -29,14 +29,16 @@ const components = {}
 export async function beforeAsync (nodes, htmlDocument, page, config, api) {
   if (!config.root) return
 
-  const id = htmlDocument.getId()
+  const id = page?.url?.toString() || htmlDocument.getId()
   const componentsPath = path.resolve(config.root, 'components')
   components[id] = components[id] || {
     path: fs.existsSync(componentsPath) ? componentsPath : null,
     nodes: [],
     scriptContainers: [],
-    styleContainers: []
+    styleContainers: [],
+    parallel: 0
   }
+  components[id].parallel += 1
 }
 
 /**
@@ -49,7 +51,7 @@ export async function beforeAsync (nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
 export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
-  const id = htmlDocument.getId()
+  const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id] || components[id].path === null) return
 
   if (node.type === 'tag-open') {
@@ -113,18 +115,23 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
 export function after (iterator, htmlDocument, page, config, api) {
-  const id = htmlDocument.getId()
+  const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id]) return
-  if (components[id].path === null || components[id].nodes.length === 0 || (components[id].scriptContainers.length === 0 && components[id].styleContainers.length === 0)) {
-    delete components[id]
+  if (page.params.headers?.['X-Partial'] === 'true') return
+
+  const run = components[id]
+  run.parallel -= 1
+  if (run.parallel === 0) setTimeout(() => { delete components[id] }, 0)
+
+  if (run.path === null || run.nodes.length === 0 || (run.scriptContainers.length === 0 && run.styleContainers.length === 0)) {
     return
   }
 
-  const scripts = components[id].nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('\n') || ''
-  for (const node of components[id].scriptContainers) { node.textUpdate = scripts }
+  run.nodes = run.nodes.filter((c, index, self) => self.findIndex(t => t.name === c.name) === index)
 
-  const styles = components[id].nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('\n') || ''
-  for (const node of components[id].styleContainers) { node.textUpdate = styles }
+  const scripts = run.nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('\n') || ''
+  for (const node of run.scriptContainers) { node.textUpdate = scripts }
 
-  delete components[id]
+  const styles = run.nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('\n') || ''
+  for (const node of run.styleContainers) { node.textUpdate = styles }
 }
