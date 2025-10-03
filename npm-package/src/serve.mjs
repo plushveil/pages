@@ -147,7 +147,6 @@ async function getPageWatcher (config) {
   let pages
   const refreshAll = async () => {
     const files = (await Promise.all(utils.getFilesInFolder(config.root))).filter((file) => {
-      if (file.match(/\/components\/[^/]+\//)) return false
       if (['page', 'htms', 'html'].find(ext => file.endsWith(`.${ext}`))) return fs.readFileSync(file, { encoding: 'utf-8' }).includes('canonical')
       return true
     })

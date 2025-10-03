@@ -16,7 +16,8 @@ const activeAddons = [
   'import-page',
   'import-html',
   'minify',
-  'integrity'
+  'integrity',
+  'components',
 ]
 
 module.register(url.pathToFileURL(path.resolve(__dirname, 'common-js.mjs')))
