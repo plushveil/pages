@@ -3,6 +3,7 @@ import * as fs from 'node:fs'
 
 import { pages as getJsPages } from '../../js/js.mjs'
 import { pages as getCssPages } from '../../css/css.mjs'
+import { render } from '../html.mjs'
 
 const scripts = [
   'script-component',
@@ -58,10 +59,24 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
       else if (styles.includes(name[1])) components[id].styleContainers.push(node)
       else {
         const component = { name: name[1] }
-        if (components[id].nodes.find(c => c.name === component.name)) return
-        if (componentCache[component.name]) {
-          components[id].nodes.push(componentCache[component.name])
+
+        const exists = components[id].nodes.find(c => c.name === component.name)
+        if (exists) {
+          node.textUpdate = (node.textUpdate || node.text) + (exists.html || '')
           return
+        }
+
+        const cached = componentCache[component.name]
+        if (cached) {
+          node.textUpdate = (node.textUpdate || node.text) + (cached.html || '')
+          components[id].nodes.push(cached)
+          return
+        }
+
+        const htmlFile = path.resolve(components[id].path, component.name, `${component.name}.html`)
+        if (fs.existsSync(htmlFile)) {
+          component.html = await render(htmlFile, config, api)
+          node.textUpdate = (node.textUpdate || node.text) + component.html
         }
 
         const jsFile = path.resolve(components[id].path, component.name, `${component.name}.js`)
@@ -106,9 +121,9 @@ export function after (iterator, htmlDocument, page, config, api) {
   }
 
   const scripts = components[id].nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('\n') || ''
-  const styles = components[id].nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('\n') || ''
-
   for (const node of components[id].scriptContainers) { node.textUpdate = scripts }
+
+  const styles = components[id].nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('\n') || ''
   for (const node of components[id].styleContainers) { node.textUpdate = styles }
 
   delete components[id]
