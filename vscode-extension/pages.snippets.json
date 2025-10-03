@@ -14,6 +14,8 @@
         "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">",
         "    <title>\\${title}</title>",
         "    <link rel=\"canonical\" href=\"/\" />",
+        "    <script-components></script-components>",
+        "    <style-components></style-components>",
         "  </head>",
         "  <body>",
         "    $0",

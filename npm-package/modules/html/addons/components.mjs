@@ -6,10 +6,12 @@ import { pages as getCssPages } from '../../css/css.mjs'
 
 const scripts = [
   'script-component',
+  'script-components',
 ]
 
 const styles = [
   'style-component',
+  'style-components',
 ]
 
 const componentCache = {}
