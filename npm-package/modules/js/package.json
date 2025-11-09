@@ -2,8 +2,11 @@
   "main": "js.mjs",
   "type": "module",
   "dependencies": {
-    "browserslist": "^4.26.3",
-    "esbuild": "^0.25.10",
-    "esbuild-plugin-browserslist": "^1.0.1"
+    "browserslist": "^4.27.0",
+    "esbuild": "^0.26.0",
+    "esbuild-plugin-browserslist": "^1.0.2"
+  },
+  "overrides": {
+    "esbuild": "^0.26.0"
   }
 }

@@ -54,7 +54,11 @@ export async function pages (file, config, type = path.extname(file).slice(1)) {
 
   return [{
     url: new URL(path.relative(config.root, file), config.baseURI),
-    params: {},
+    params: {
+      headers: {
+        ETag: fs.statSync(file).mtimeMs.toString(),
+      }
+    },
     fileUrl: url.pathToFileURL(file),
   }]
 }

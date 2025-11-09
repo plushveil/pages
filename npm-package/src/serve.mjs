@@ -116,6 +116,14 @@ function getRequestHandler (config, watcher, workers) {
       return
     }
 
+    // ETag-based (entity tag) caching
+    const etag = page.params?.headers?.ETag
+    if (etag && req.headers['if-none-match'] === etag) {
+      res.writeHead(304)
+      res.end()
+      return
+    }
+
     const worker = await getWorker()
     worker.busy = true
     const headers = page.params?.headers || {}
@@ -127,11 +135,13 @@ function getRequestHandler (config, watcher, workers) {
       done = true
       if (type === 'content') {
         headers['Content-Length'] = Buffer.byteLength(data)
+        headers['ETag'] = page.params?.headers?.ETag
         res.writeHead(200, headers)
         res.end(data)
         worker.terminate()
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
+        headers['ETag'] = page.params?.headers?.ETag
         res.writeHead(200, headers)
         const rs = fs.createReadStream(url.fileURLToPath(page.fileUrl))
         rs.pipe(res)

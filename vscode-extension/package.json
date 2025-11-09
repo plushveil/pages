@@ -7,9 +7,9 @@
     "type": "git",
     "url": "https://github.com/plushveil/pages.git"
   },
-  "version": "0.0.12",
+  "version": "0.0.13",
   "engines": {
-    "vscode": "^1.104.0"
+    "vscode": "^1.105.0"
   },
   "categories": [
     "Linters"
@@ -83,21 +83,21 @@
     "test:lint": "eslint .",
     "test:unit": "vscode-test"
   },
-  "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "24.x",
-    "@types/vscode": "^1.104.0",
-    "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2",
-    "eslint": "^9.36.0",
-    "neostandard": "^0.12.2"
-  },
   "dependencies": {
     "@plushveil/pages": "latest",
     "typescript": "^5.9.3",
-    "vscode-html-languageservice": "^5.5.2",
+    "vscode-html-languageservice": "^5.6.0",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "@types/vscode": "^1.105.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.1",
+    "neostandard": "^0.12.2"
   }
 }
