@@ -135,7 +135,7 @@ function getRequestHandler (config, watcher, workers) {
       done = true
       if (type === 'content') {
         headers['Content-Length'] = Buffer.byteLength(data)
-        headers['ETag'] = page.params?.headers?.ETag
+        if (page.params?.headers?.ETag) headers['ETag'] = page.params.headers.ETag
         res.writeHead(200, headers)
         res.end(data)
         worker.terminate()
