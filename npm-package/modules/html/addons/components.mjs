@@ -73,6 +73,13 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
       }
     }
   }
+
+  if (node.type === 'tag-close') {
+    const test = (tag) => node.text.toLowerCase().startsWith(`</${tag}>`)
+    if (styles.find(style => test(style)) || scripts.find(script => test(script))) {
+      node.textUpdate = ''
+    }
+  }
 }
 
 /**
@@ -97,11 +104,11 @@ export function after (iterator, htmlDocument, page, config, api) {
   }
 
   run.nodes = run.nodes.filter((c, index, self) => self.findIndex(t => t.name === c.name) === index)
-  const scripts = run.nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('\n') || ''
+  const scripts = run.nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('') || ''
   for (const node of run.scriptContainers) { node.textUpdate = scripts }
 
-  const styles = run.nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('\n') || ''
-  for (const node of run.styleContainers) { node.textUpdate = styles }
+  const styles = run.nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('') || ''
+  for (const node of run.styleContainers) node.textUpdate = styles
 }
 
 /**
