@@ -1,19 +1,18 @@
+<script target="html">
+  export const lang = 'en'
+  export const title = '@plushveil/pages'
+</script>
+
 <!DOCTYPE html>
-<html>
+<html lang="${lang}">
   <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex">
-    <meta http-equiv="refresh" content="0;url=${englishUrl}" />
+    <title>${title}</title>
     <link rel="canonical" href="/" />
+    ${import('./snippets/head.html')}
+    <enable-components></enable-components>
   </head>
   <body>
-    You will be redirected to the translated version of this page in a few seconds.
-    If you are not redirected, please click <a href="${englishUrl}">here</a>.
+    npm i @plushveil/pages
   </body>
 </html>
-
-<script target="html">
-  import config from 'page:config'
-  export const englishUrl = new URL('en', config.baseURI)
-</script>

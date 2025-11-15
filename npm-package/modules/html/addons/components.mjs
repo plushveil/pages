@@ -5,16 +5,7 @@ import { pages as getJsPages } from '../../js/js.mjs'
 import { pages as getCssPages } from '../../css/css.mjs'
 import render from '../src/render.mjs'
 
-const scripts = [
-  'script-component',
-  'script-components',
-]
-
-const styles = [
-  'style-component',
-  'style-components',
-]
-
+const tags = ['enable-components']
 const componentCache = {}
 const components = {}
 
@@ -34,8 +25,7 @@ export async function beforeAsync (nodes, htmlDocument, page, config, api) {
   components[id] = components[id] || {
     path: fs.existsSync(componentsPath) ? componentsPath : null,
     nodes: [],
-    scriptContainers: [],
-    styleContainers: [],
+    containers: [],
     parallel: 0
   }
   components[id].parallel += 1
@@ -55,7 +45,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
   if (!components[id] || components[id].path === null) return
 
   if (node.type === 'template') {
-    const names = (node.textUpdate || node.text).matchAll(/^<(\w+-\w+)>.*?<\/\1>$/g)
+    const names = (node.textUpdate || node.text).matchAll(/^<([a-zA-Z0-9]+-[^> ]+)>.*?<\/\1>$/g)
     for (const name of names) {
       const component = { name: name[1] }
       await addComponent(component, node, id, page, config, api)
@@ -63,22 +53,19 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
   }
 
   if (node.type === 'tag-open') {
-    const name = (node.textUpdate || node.text).match(/^<(\w+-\w+)/)
+    const name = (node.textUpdate || node.text).match(/^<([^> ]+)/)
     if (name) {
-      if (scripts.includes(name[1])) components[id].scriptContainers.push(node)
-      else if (styles.includes(name[1])) components[id].styleContainers.push(node)
-      else {
+      if (tags.includes(name[1])) {
+        components[id].containers.push(node)
+      } else if (name[1].includes('-')) {
         const component = { name: name[1] }
         await addComponent(component, node, id, page, config, api)
       }
     }
   }
 
-  if (node.type === 'tag-close') {
-    const test = (tag) => node.text.toLowerCase().startsWith(`</${tag}>`)
-    if (styles.find(style => test(style)) || scripts.find(script => test(script))) {
-      node.textUpdate = ''
-    }
+  if (node.type === 'tag-close' && tags.find(tag => node.text.toLowerCase() === `</${tag}>`)) {
+    node.textUpdate = ''
   }
 }
 
@@ -99,16 +86,20 @@ export function after (iterator, htmlDocument, page, config, api) {
   run.parallel -= 1
   if (run.parallel === 0) setTimeout(() => { delete components[id] }, 0)
 
-  if (run.path === null || run.nodes.length === 0 || (run.scriptContainers.length === 0 && run.styleContainers.length === 0)) {
+  if (run.path === null || run.nodes.length === 0 || (run.containers.length === 0 && run.containers.length === 0)) {
+    for (const node of run.containers) node.textUpdate = ''
     return
   }
 
   run.nodes = run.nodes.filter((c, index, self) => self.findIndex(t => t.name === c.name) === index)
-  const scripts = run.nodes.map(c => c.js && `<script src="${c.js}" async></script>`).filter(Boolean).join('') || ''
-  for (const node of run.scriptContainers) { node.textUpdate = scripts }
-
-  const styles = run.nodes.map(c => c.css && `<link rel="stylesheet" href="${c.css}">`).filter(Boolean).join('') || ''
-  for (const node of run.styleContainers) node.textUpdate = styles
+  for (const component of run.nodes) {
+    const js = component.js && `<script src="${component.js}" async></script>`
+    const css = component.css && `<link rel="stylesheet" href="${component.css}">`
+    for (const node of run.containers.filter((v, i, a) => a.indexOf(v) === i)) {
+      if (js && (!node.textUpdate || !node.textUpdate.includes(js))) node.textUpdate = (node.textUpdate || '') + js
+      if (css && (!node.textUpdate || !node.textUpdate.includes(css))) node.textUpdate = (node.textUpdate || '') + css
+    }
+  }
 }
 
 /**
