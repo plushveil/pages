@@ -9,7 +9,7 @@ import * as url from 'node:url'
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
 export default async function pages (file, config, api) {
-  const filepath = path.relative(config.root, file).replaceAll(path.sep, '/').replaceAll('../', '')
+  const filepath = path.relative(config.root, file).replaceAll(path.sep, '/').replaceAll('../', '').replace(/\.ts$/, '.js')
 
   const src = {
     url: new URL(filepath, config.baseURI),

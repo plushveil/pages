@@ -138,12 +138,16 @@ async function addComponent (component, node, id, page, config, api) {
     }
   }
 
-  const jsFile = path.resolve(components[id].path, component.name, `${component.name}.js`)
-  if (fs.existsSync(jsFile)) {
-    const pages = await getJsPages(jsFile, config, api)
-    if (pages.length > 0) {
-      const page = pages.find(p => p.params.headers?.['Content-Type']?.includes('application/javascript')) || pages[0]
-      component.js = page.url.toString()
+  const jsExt = ['.ts', '.js']
+  for (const ext of jsExt) {
+    const jsFile = path.resolve(components[id].path, component.name, `${component.name}${ext}`)
+    if (fs.existsSync(jsFile)) {
+      const pages = await getJsPages(jsFile, config, api)
+      if (pages.length > 0) {
+        const page = pages.find(p => p.params.headers?.['Content-Type']?.includes('application/javascript')) || pages[0]
+        component.js = page.url.toString()
+        break
+      }
     }
   }
 

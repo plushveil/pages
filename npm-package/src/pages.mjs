@@ -41,6 +41,7 @@ export async function pages (file, config, type = path.extname(file).slice(1)) {
     case 'html':
       return html.pages(file, config, api)
 
+    case 'ts':
     case 'js':
       return js.pages(file, config, api)
 
@@ -85,6 +86,7 @@ export async function render (page, config, encoding, type = undefined) {
       return html.render(page, config, api)
 
     case 'js':
+    case 'ts':
       return js.render(page, config, api)
 
     case 'css':
