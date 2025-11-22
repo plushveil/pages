@@ -11,6 +11,9 @@ const __root = path.resolve(__dirname, '..')
 
 await main()
 
+/**
+ *
+ */
 async function main () {
   const directories = [__root]
   const modulesPath = path.resolve(__root, 'modules')
@@ -26,6 +29,10 @@ async function main () {
   }
 }
 
+/**
+ *
+ * @param cwd
+ */
 async function updateNodeModules (cwd) {
   if (fs.existsSync(path.join(cwd, 'package-lock.json'))) fs.unlinkSync(path.join(cwd, 'package-lock.json'))
   if (fs.existsSync(path.join(cwd, 'node_modules'))) fs.rmSync(path.join(cwd, 'node_modules'), { recursive: true, force: true })

@@ -89,6 +89,9 @@ function createWorker (config, workers) {
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
 function getRequestHandler (config, watcher, workers) {
+  /**
+   *
+   */
   async function getWorker () {
     const worker = workers.find(worker => !worker.busy)
     if (worker) return worker

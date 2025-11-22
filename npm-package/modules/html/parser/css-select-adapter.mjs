@@ -1,3 +1,7 @@
+/**
+ * @template Node, ElementNode extends Node
+ * @implements {import('css-select').Adapter<Node, ElementNode>}
+ */
 export default class CSSSelectAdapter {
   /**
    * The HTML text document
@@ -23,38 +27,37 @@ export default class CSSSelectAdapter {
 
   /**
    * Is the node a tag?
-   * @param {import('vscode-html-languageservice').Node} node - The node to check
-   * @returns {boolean} Whether the node is a tag
+   * @param {import('vscode-html-languageservice').Node} node
+   * @returns {node is import('vscode-html-languageservice').Node}
    */
   isTag (node) {
-    if (node.start === 0) return false
-    return true
+    return typeof node.tag === 'string' && node.tag.length > 0
   }
 
   /**
    * Does at least one of passed element nodes pass the test predicate?
-   * @param {import('css-select').Predicate<import('vscode-html-languageservice').Node>} test - The test predicate
-   * @param {import('vscode-html-languageservice').Node[]} nodes - The element nodes to test
-   * @returns {boolean} Whether at least one of the element nodes passes the test
+   * @param {import('css-select').Predicate<import('vscode-html-languageservice').Node>} test
+   * @param {import('vscode-html-languageservice').Node[]} elems
+   * @returns {boolean}
    */
-  existsOne (test, nodes) {
-    return nodes.some(test)
+  existsOne (test, elems) {
+    return elems.some(test)
   }
 
   /**
    * Get the attribute value.
-   * @param {import('vscode-html-languageservice').Node} node - The element node
-   * @param {string} name - The attribute name
-   * @returns {string|undefined} The attribute value
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @param {string} name
+   * @returns {string|undefined}
    */
-  getAttributeValue (node, name) {
-    return node.attributes[name]?.replace(/^['"]|['"]$/g, '')
+  getAttributeValue (elem, name) {
+    return elem.attributes?.[name]?.replace(/^['"]|['"]$/g, '')
   }
 
   /**
    * Get the node's children
-   * @param {import('vscode-html-languageservice').Node} node - The node
-   * @returns {import('vscode-html-languageservice').Node[]} The children
+   * @param {import('vscode-html-languageservice').Node} node
+   * @returns {import('vscode-html-languageservice').Node[]}
    */
   getChildren (node) {
     return node.children || []
@@ -62,36 +65,36 @@ export default class CSSSelectAdapter {
 
   /**
    * Get the name of the tag
-   * @param {import('vscode-html-languageservice').Node} node - The element node
-   * @returns {string} The tag name
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @returns {string}
    */
-  getName (node) {
-    return node.tag
+  getName (elem) {
+    return elem.tag
   }
 
   /**
    * Get the parent of the node
-   * @param {import('vscode-html-languageservice').Node} node - The node
-   * @returns {import('vscode-html-languageservice').Node|null} The parent node, or null if there is none
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @returns {import('vscode-html-languageservice').Node|null}
    */
-  getParent (node) {
-    return node.parent || null
+  getParent (elem) {
+    return elem.parent || null
   }
 
   /**
    * Get the siblings of the node. Note that unlike jQuery's `siblings` method,
    * this is expected to include the current node as well
-   * @param {import('vscode-html-languageservice').Node} node - The node
-   * @returns {import('vscode-html-languageservice').Node[]} The siblings
+   * @param {import('vscode-html-languageservice').Node} node
+   * @returns {import('vscode-html-languageservice').Node[]}
    */
   getSiblings (node) {
-    return node.parent.children
+    return node.parent?.children || []
   }
 
   /**
    * Get the text content of the node, and its children if it has any.
-   * @param {import('vscode-html-languageservice').Node} node - The node
-   * @returns {string} The text content
+   * @param {import('vscode-html-languageservice').Node} node
+   * @returns {string}
    */
   getText (node) {
     return this.#textDocument.getText({
@@ -102,29 +105,30 @@ export default class CSSSelectAdapter {
 
   /**
    * Does the element have the named attribute?
-   * @param {import('vscode-html-languageservice').Node} node - The element node
-   * @param {string} name - The attribute name
-   * @returns {boolean} Whether the element has the attribute
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @param {string} name
+   * @returns {boolean}
    */
-  hasAttrib (node, name) {
-    if (!node.attributes) return false
-    return name in node.attributes
+  hasAttrib (elem, name) {
+    return !!(elem.attributes && name in elem.attributes)
   }
 
   /**
    * Takes an array of nodes, and removes any duplicates, as well as any
    * nodes whose ancestors are also in the array.
-   * @param {import('vscode-html-languageservice').Node[]} nodes - The nodes to filter
-   * @returns {import('vscode-html-languageservice').Node[]} The filtered nodes
+   * @param {import('vscode-html-languageservice').Node[]} nodes
+   * @returns {import('vscode-html-languageservice').Node[]}
    */
   removeSubsets (nodes) {
     /**
-     * Does the first node contain the second node?
-     * @param {import('vscode-html-languageservice').Node} node - The first node
-     * @param {import('vscode-html-languageservice').Node} other - The second node
-     * @returns {boolean} Whether the first node contains the second node
+     * @param {import('vscode-html-languageservice').Node} node
+     * @param {import('vscode-html-languageservice').Node} other
+     * @returns {boolean}
      */
-    function contains (node, other) { return node.start <= other.start && node.end >= other.end }
+    function contains (node, other) {
+      return node.start <= other.start && node.end >= other.end
+    }
+
     return nodes.filter((node, i) => {
       return !nodes.some((other, j) => i !== j && contains(node, other))
     })
@@ -133,29 +137,29 @@ export default class CSSSelectAdapter {
   /**
    * Finds all of the element nodes in the array that match the test predicate,
    * as well as any of their children that match it.
-   * @param {import('css-select').Predicate<import('vscode-html-languageservice').Node>} test - The test predicate
-   * @param {import('vscode-html-languageservice').Node[]} nodes - The nodes to search
-   * @returns {import('vscode-html-languageservice').Node[]} The matching element nodes
+   * @param {function(import('vscode-html-languageservice').Node): boolean} test
+   * @param {import('vscode-html-languageservice').Node[]} nodes
+   * @returns {import('vscode-html-languageservice').Node[]}
    */
   findAll (test, nodes) {
     const matches = []
-    if (nodes.length === 0) return matches
-    nodes.forEach(node => {
+    if (!nodes || nodes.length === 0) return matches
+    for (const node of nodes) {
       if (test(node)) matches.push(node)
       matches.push(...this.findAll(test, node.children))
-    })
+    }
     return matches
   }
 
   /**
    * Finds the first node in the array that matches the test predicate, or one
    * of its children.
-   * @param {import('css-select').Predicate<import('vscode-html-languageservice').Node>} test - The test predicate
-   * @param {import('vscode-html-languageservice').Node[]} nodes - The nodes to search
-   * @returns {import('vscode-html-languageservice').Node|null} The first matching element node, or null if none match
+   * @param {function(import('vscode-html-languageservice').Node): boolean} test
+   * @param {import('vscode-html-languageservice').Node[]} elems
+   * @returns {import('vscode-html-languageservice').Node|null}
    */
-  findOne (test, nodes) {
-    for (const node of nodes) {
+  findOne (test, elems) {
+    for (const node of elems) {
       if (test(node)) return node
       const child = this.findOne(test, node.children)
       if (child) return child
@@ -168,9 +172,9 @@ export default class CSSSelectAdapter {
    * structure needs a custom equality test to compare two objects which refer
    * to the same underlying node. If not provided, `css-select` will fall back to
    * `a === b`.
-   * @param {import('vscode-html-languageservice').Node} a - The first node
-   * @param {import('vscode-html-languageservice').Node} b - The second node
-   * @returns {boolean} Whether the nodes are equal
+   * @param {import('vscode-html-languageservice').Node} a
+   * @param {import('vscode-html-languageservice').Node} b
+   * @returns {boolean}
    */
   equals (a, b) {
     return a === b
@@ -178,10 +182,10 @@ export default class CSSSelectAdapter {
 
   /**
    * Is the element in hovered state?
-   * @param {import('vscode-html-languageservice').Node} node - The element node
-   * @returns {boolean} Whether the element is hovered
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @returns {boolean}
    */
-  isHovered (node) {
+  isHovered (elem) {
     return false
   }
 
@@ -190,16 +194,20 @@ export default class CSSSelectAdapter {
    * @param {import('vscode-html-languageservice').Node} node - The element node
    * @returns {boolean} Whether the element is visited
    */
-  isVisited (node) {
+  /**
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @returns {boolean}
+   */
+  isVisited (elem) {
     return false
   }
 
   /**
    * Is the element in active state?
-   * @param {import('vscode-html-languageservice').Node} node - The element node
-   * @returns {boolean} Whether the element is active
+   * @param {import('vscode-html-languageservice').Node} elem
+   * @returns {boolean}
    */
-  isActive (node) {
+  isActive (elem) {
     return false
   }
 }

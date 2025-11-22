@@ -112,6 +112,8 @@ export function after (iterator, htmlDocument, page, config, api) {
  * @param {import('../parser/iterator.mjs').Node} node - The node to update.
  * @param {string} id - The page ID.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
+ * @param config
+ * @param api
  */
 async function addComponent (component, node, id, page, config, api) {
   const exists = components[id].nodes.find(c => c.name === component.name)
