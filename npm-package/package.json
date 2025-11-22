@@ -29,7 +29,7 @@
   "devDependencies": {
     "c8": "^10.1.3",
     "eslint": "^9.39.1",
-    "eslint-plugin-jsdoc": "^61.1.12",
+    "eslint-plugin-jsdoc": "^61.4.0",
     "eslint-plugin-mocha": "^11.2.0",
     "mocha": "^11.7.5",
     "neostandard": "^0.12.2",
