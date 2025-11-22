@@ -1,5 +1,5 @@
 /**
- * @file The pages.config.mjs file is used to configure the rendering and serving of the website.
+ * @file The pages.config.ts file is used to configure the rendering and serving of the website.
  */
 
 import sitemap from './modules/buildtools/sitemap.mjs'

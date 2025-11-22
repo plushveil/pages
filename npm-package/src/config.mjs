@@ -19,10 +19,10 @@ const protocol = port === '443' ? 'https' : 'http'
  * @property {URL} fileUrl - The file URL of the configuration.
  * @property {URL} baseURI - The base URI of the website.
  * @property {string} [root] - The root page.
- * @property {import('../pages.config.mjs').BuildConfig} build - Configuration of the build interface.
- * @property {import('../pages.config.mjs').HtmlConfig} html - Configuration of the html module.
- * @property {import('../pages.config.mjs').JsConfig} js - Configuration of the js module.
- * @property {import('../pages.config.mjs').CssConfig} css - Configuration of the css module.
+ * @property {import('../pages.config.ts').BuildConfig} build - Configuration of the build interface.
+ * @property {import('../pages.config.ts').HtmlConfig} html - Configuration of the html module.
+ * @property {import('../pages.config.ts').JsConfig} js - Configuration of the js module.
+ * @property {import('../pages.config.ts').CssConfig} css - Configuration of the css module.
  * @property {import('node:https').ServerOptions} [ssl] - The SSL options. If port is 443, this is required.
  */
 
@@ -31,7 +31,7 @@ const protocol = port === '443' ? 'https' : 'http'
  * @param {string} file - The name of the configuration.
  * @returns {Promise<Config>} The configuration.
  */
-export default async function getConfig (file = 'pages.config.mjs') {
+export default async function getConfig (file = 'pages.config.ts') {
   if (typeof file === 'object' && file) return file
   if (typeof file !== 'string' && file) throw new TypeError('The file must be a string.')
 
@@ -41,8 +41,8 @@ export default async function getConfig (file = 'pages.config.mjs') {
     return { ...await import(fileUrl), fileUrl }
   }
 
-  if (file === 'pages.config.mjs') {
-    const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.mjs'))
+  if (file === 'pages.config.ts') {
+    const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.ts'))
     return { ...await import(fileUrl), fileUrl }
   } else {
     throw new Error(`Cannot find configuration: ${file}`)
