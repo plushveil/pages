@@ -42,7 +42,7 @@ export default async function getConfig (file = 'pages.config.ts') {
   }
 
   if (file === 'pages.config.ts') {
-    const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.ts'))
+    const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.mjs'))
     return { ...await import(fileUrl), fileUrl }
   } else {
     throw new Error(`Cannot find configuration: ${file}`)
