@@ -37,14 +37,25 @@ export function resolve (specifier, folders = [process.cwd()], options = { exist
 /**
  * Recursively gets all files in a folder.
  * @param {string} folder - The folder.
+ * @param {string[]} [iterated] - The files already iterated.
  * @returns {string[]} The files.
  */
-export function getFilesInFolder (folder) {
+export function getFilesInFolder (folder, iterated = []) {
   folder = resolve(folder, undefined, { folder: true })
   return fs.readdirSync(folder).reduce((files, file) => {
     const filepath = path.resolve(folder, file)
-    if (fs.statSync(filepath).isDirectory()) files.push(...getFilesInFolder(filepath))
-    else files.push(filepath)
+    if (fs.statSync(filepath).isDirectory()) {
+      if (!iterated.includes(filepath)) {
+        iterated.push(filepath)
+        for (const file of getFilesInFolder(filepath, iterated)) {
+          if (!files.includes(file)) {
+            files.push(file)
+          }
+        }
+      }
+    } else {
+      files.push(filepath)
+    }
     return files
   }, [])
 }
