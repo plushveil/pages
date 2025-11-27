@@ -10,7 +10,11 @@ export default function getExports (code) {
     const sourceFile = ts.createSourceFile('temp.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
     const exports = []
 
-    function visit(node) {
+    /**
+     *
+     * @param node
+     */
+    function visit (node) {
       // Named exports: export const foo, export function bar, export class Baz
       if (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) {
         if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isVariableStatement(node)) {
