@@ -25,7 +25,7 @@ export const build = {
     /\/(utils|modules|partials)\//,
     /Dockerfile$/,
     /\.mjs$/,
-    /\.d.ts$/,
+    /\.d\.ts$/,
     /\.json$/,
     /\.md$/,
   ],
