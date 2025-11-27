@@ -1,4 +1,3 @@
-
 import ts from 'typescript'
 
 /**
@@ -6,7 +5,7 @@ import ts from 'typescript'
  * @param {string} code - The code.
  * @returns {string[]} The exports.
  */
-export default function getExports(code) {
+export default function getExports (code) {
   try {
     const sourceFile = ts.createSourceFile('temp.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
     const exports = []

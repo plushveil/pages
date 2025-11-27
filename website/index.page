@@ -1,5 +1,5 @@
 <script target="html">
-  export const lang = 'en'
+  export const lang: string = 'en'
   export const title = '@plushveil/pages'
 </script>
 

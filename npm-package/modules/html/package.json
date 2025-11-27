@@ -7,8 +7,8 @@
   },
   "dependencies": {
     "acorn": "^8.15.0",
-    "acorn-typescript": "^1.4.13",
     "css-select": "6.0.0",
+    "typescript": "^5.9.3",
     "vscode-html-languageservice": "^5.6.0",
     "vscode-languageserver-textdocument": "^1.0.12"
   }
