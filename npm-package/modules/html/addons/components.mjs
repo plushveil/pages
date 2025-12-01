@@ -45,9 +45,11 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
   if (!components[id] || components[id].path === null) return
 
   if (node.type === 'template') {
-    const names = (node.textUpdate || node.text).matchAll(/^<([a-zA-Z0-9]+-[^> ]+)>.*?<\/\1>$/g)
+    const names = (node.textUpdate || node.text).matchAll(/^<([a-zA-Z0-9]+-[^> ]+)([^>]*)>.*?<\/\1>$/g)
     for (const name of names) {
-      const component = { name: name[1] }
+      const attributeString = name[2]
+      const attributes = getAttributesFromString(attributeString)
+      const component = { name: name[1], attributes }
       await addComponent(component, node, id, page, config, api)
     }
   }
@@ -58,7 +60,9 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
       if (tags.includes(name[1])) {
         components[id].containers.push(node)
       } else if (name[1].includes('-')) {
-        const component = { name: name[1] }
+        const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+((\s+[^=> ]+(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?)*)\s*>/)?.[1] || ''
+        const attributes = getAttributesFromString(attributeString)
+        const component = { name: name[1], attributes }
         await addComponent(component, node, id, page, config, api)
       }
     }
@@ -131,7 +135,7 @@ async function addComponent (component, node, id, page, config, api) {
 
   const htmlFile = path.resolve(components[id].path, component.name, `${component.name}.html`)
   if (fs.existsSync(htmlFile)) {
-    component.html = await renderComponent(htmlFile, page, config, api)
+    component.html = await renderComponent(htmlFile, page, config, api, component.attributes)
     if (node.type === 'template') {
       const regex = new RegExp(`(<${component.name}.*?>)`, 'g')
       node.textUpdate = (node.textUpdate || node.text).replaceAll(regex, `$1${component.html}`)
@@ -167,20 +171,39 @@ async function addComponent (component, node, id, page, config, api) {
 }
 
 /**
+ * Parses an attribute string into an object.
+ * @param {string} attributeString - The attribute string.
+ * @returns {object} - The parsed attributes.
+ */
+function getAttributesFromString (attributeString) {
+  const attributes = {}
+  const regex = /([^\s=]+)(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?/g
+  let match
+  while ((match = regex.exec(attributeString)) !== null) {
+    const attrName = match[1]
+    const attrValue = match[4] || match[6] || match[7] || true
+    attributes[attrName] = attrValue
+  }
+  return attributes
+}
+
+/**
  * Renders a component file.
  * @param {string} component - The component file.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
+ * @param {object} attributes - The component attributes.
  * @returns {Promise<string>} - The rendered component.
  */
-async function renderComponent (component, page, config, api) {
+async function renderComponent (component, page, config, api, attributes) {
   const subpage = {
     ...page,
     params: {
       ...page.params,
       __filename: component,
       __dirname: path.dirname(component),
+      __attributes: attributes
     }
   }
   return render(subpage, config, api)
