@@ -49,7 +49,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
     for (const name of names) {
       const attributeString = name[2]
       const attributes = getAttributesFromString(attributeString)
-      const component = { name: name[1], attributes }
+      const component = { name: name[1], attributeString, attributes }
       await addComponent(component, node, id, page, config, api)
     }
   }
@@ -62,7 +62,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
       } else if (name[1].includes('-')) {
         const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+((\s+[^=> ]+(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?)*)\s*>/)?.[1] || ''
         const attributes = getAttributesFromString(attributeString)
-        const component = { name: name[1], attributes }
+        const component = { name: name[1], attributeString, attributes }
         await addComponent(component, node, id, page, config, api)
       }
     }
@@ -120,15 +120,16 @@ export function after (iterator, htmlDocument, page, config, api) {
  * @param api
  */
 async function addComponent (component, node, id, page, config, api) {
-  const exists = components[id].nodes.find(c => c.name === component.name)
+  const exists = components[id].nodes.find(c => c.name === component.name && c.attributeString === component.attributeString)
   if (exists) {
     node.textUpdate = (node.textUpdate || node.text) + (exists.html || '')
     return
   }
 
-  const cached = componentCache[component.name]
+  const cached = componentCache[component.name + '#' + component.attributeString]
   if (cached) {
     node.textUpdate = (node.textUpdate || node.text) + (cached.html || '')
+    node.attributeString = cached.attributeString
     components[id].nodes.push(cached)
     return
   }
@@ -166,7 +167,7 @@ async function addComponent (component, node, id, page, config, api) {
     }
   }
 
-  componentCache[component.name] = component
+  componentCache[component.name + '#' + component.attributeString] = component
   components[id].nodes.push(component)
 }
 
