@@ -66,7 +66,7 @@ export default function iterator (htmlDocument, ignoreErrors) {
         }
       })
     }
-    if (config.rawTextNodes.includes(node.tag.toLowerCase())) {
+    if (node.tag && config.rawTextNodes.includes(node.tag.toLowerCase())) {
       nodes.push({
         type: 'raw',
         text: textDocument.getText({
