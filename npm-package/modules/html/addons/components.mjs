@@ -45,7 +45,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
   if (!components[id] || components[id].path === null) return
 
   if (node.type === 'template') {
-    const names = (node.textUpdate || node.text).matchAll(/^<([a-zA-Z0-9]+-[^> ]+)([^>]*)>.*?<\/\1>$/g)
+    const names = (node.textUpdate || node.text).matchAll(/<([a-zA-Z0-9]+-[^> ]+)([^>]*)>.*?<\/\1>/g)
     for (const name of names) {
       const attributeString = name[2]
       const attributes = getAttributesFromString(attributeString)
