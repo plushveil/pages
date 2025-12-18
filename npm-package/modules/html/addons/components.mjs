@@ -138,8 +138,8 @@ async function addComponent (component, node, id, page, config, api) {
   if (fs.existsSync(htmlFile)) {
     component.html = await renderComponent(htmlFile, page, config, api, component.attributes)
     if (node.type === 'template') {
-      const regex = new RegExp(`(<${component.name}.*?>)`, 'g')
-      node.textUpdate = (node.textUpdate || node.text).replaceAll(regex, `$1${component.html}`)
+      const tag = `<${component.name}${component.attributeString}>`
+      node.textUpdate = (node.textUpdate || node.text).replaceAll(tag, `${tag}${component.html}`)
     } else {
       node.textUpdate = (node.textUpdate || node.text) + component.html
     }
