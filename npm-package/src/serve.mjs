@@ -31,10 +31,10 @@ process.on('SIGINT', (event) => {
  * Serves a folder.
  * @param {string} folder - The folder to build.
  * @param {string} [config] - A specifier that points to the configuration file.
- * @param {string} [output] - The output folder.
+ * @param {boolean} [cache] - Whether to enable caching.
  * @returns {Promise<http.Server>} The server.
  */
-export default async function serve (folder, config, output) {
+export default async function serve (folder, config, cache = true) {
   config = await getConfig(config)
   config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
 
@@ -46,7 +46,7 @@ export default async function serve (folder, config, output) {
   setTimeout(() => createWorkers(), 3000).unref()
   createWorkers(2)
 
-  const requestHandler = getRequestHandler(config, watcher, workers, createWorker)
+  const requestHandler = getRequestHandler(config, watcher, workers, cache)
   const server = (port === '443') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
   const app = await new Promise((resolve, reject) => {
     server.on('error', reject)
@@ -84,11 +84,12 @@ function createWorker (config, workers) {
 /**
  * Returns the request handler.
  * @param {import('./config.mjs').Config} config - The configuration.
- * @param {Promise<{ getPages: () => import('./pages.mjs').Page[], close: () => void }>} watcher - The watcher.
+ * @param {Promise<{ getPages: import('./pages.mjs').pages, close: () => void }>} watcher - The watcher.
  * @param {threads.Worker[]} workers - The workers.
+ * @param {boolean} cache - Whether to enable caching.
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
-function getRequestHandler (config, watcher, workers) {
+function getRequestHandler (config, watcher, workers, cache) {
   /**
    *
    */
@@ -127,10 +128,20 @@ function getRequestHandler (config, watcher, workers) {
       return
     }
 
-    const worker = await getWorker()
-    worker.busy = true
     const headers = page.params?.headers || {}
     if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(page.url.pathname)
+
+    // Content cache
+    if (page.cache?.data) {
+      headers['Content-Length'] = Buffer.byteLength(page.cache.data)
+      if (etag) headers['ETag'] = etag
+      res.writeHead(200, headers)
+      res.end(page.cache.data)
+      return
+    }
+
+    const worker = await getWorker()
+    worker.busy = true
 
     let done = false
     worker.on('message', ([type, data]) => {
@@ -142,6 +153,14 @@ function getRequestHandler (config, watcher, workers) {
         res.writeHead(200, headers)
         res.end(data)
         worker.terminate()
+
+        // Cache the content for 3 minutes
+        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache) {
+          if (page.cache?.timeout) clearTimeout(page.cache.timeout)
+          const weakPage = new WeakRef(page)
+          const timeout = setTimeout(() => { const derefPage = weakPage.deref(); if (derefPage) derefPage.cache = null }, 180000).unref()
+          page.cache = { data, timeout }
+        }
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
         headers['ETag'] = page.params?.headers?.ETag
@@ -188,10 +207,40 @@ async function getPageWatcher (config) {
   }
   await refreshAll()
 
+  const cachebuster = (file, fileUrl) => {
+    const cachMappings = [
+      { source: ['.page', '.htms', '.html', '.mjs', '.json'], target: ['.page', '.htms', '.html'], includeComponents: true },
+      { source: ['.css'], target: ['.css'] },
+      { source: ['.ts'], target: ['.ts'] },
+      { source: ['.mjs', '.js', '.cjs'], target: ['.mjs', '.js', '.cjs'] },
+    ]
+    for (const mapping of cachMappings) {
+      if (!(mapping.source.find(ext => file.endsWith(ext)))) continue
+      for (const targetExt of mapping.target) {
+        for (const page of pages) {
+          if (page.fileUrl.toString().endsWith(targetExt)) {
+            if (mapping.includeComponents !== true) {
+              if (page.fileUrl.toString().includes('components')) {
+                const componentFolder = page.fileUrl.toString().match(/components\/[^/]*/)[0]
+                if (!file.includes(componentFolder)) continue
+              }
+              if (fileUrl.toString().includes('components')) {
+                const componentFolder = fileUrl.toString().match(/components\/[^/]*/)[0]
+                if (!page.fileUrl.toString().includes(componentFolder)) continue
+              }
+            }
+            page.cache = null
+          }
+        }
+      }
+    }
+  }
+
   const inProgress = {}
   const watcher = fs.watch(config.root, { recursive: true }, async (event, filename) => {
     const file = path.resolve(config.root, filename)
     const fileUrl = url.pathToFileURL(file).toString()
+    cachebuster(file, fileUrl)
     const isIgnored = config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))
     if (isIgnored || inProgress[filename]) return
     inProgress[filename] = true
