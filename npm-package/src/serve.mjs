@@ -155,7 +155,7 @@ function getRequestHandler (config, watcher, workers, cache) {
         worker.terminate()
 
         // Cache the content for 3 minutes
-        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache) {
+        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !(data.includes('/*! tailwindcss'))) {
           if (page.cache?.timeout) clearTimeout(page.cache.timeout)
           const weakPage = new WeakRef(page)
           const timeout = setTimeout(() => { const derefPage = weakPage.deref(); if (derefPage) derefPage.cache = null }, 180000).unref()
