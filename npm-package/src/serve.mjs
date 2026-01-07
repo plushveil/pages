@@ -193,21 +193,34 @@ function getRequestHandler (config, watcher, workers, cache) {
  */
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
-  let pages
-  const refreshAll = async () => {
+  let pages = []
+  await refreshAll()
+  const inProgress = {}
+  const watcher = fs.watch(config.root, { recursive: true }, (_event, filename) => getPagesUpdate(filename))
+  return { getPages: () => pages, close: () => watcher.close() }
+
+  /**
+   *
+   */
+  async function refreshAll () {
     const files = (await Promise.all(utils.getFilesInFolder(config.root))).filter((file) => {
       if (['page', 'htms', 'html'].find(ext => file.endsWith(`.${ext}`))) return fs.readFileSync(file, { encoding: 'utf-8' }).includes('canonical')
       return true
     })
-    pages = []
+    const pagesUpdate = []
     for (const file of files) {
       const filePages = await getPages(file, config)
-      for (const page of filePages) if (filter(page)) pages.push(page)
+      for (const page of filePages) if (filter(page)) pagesUpdate.push(page)
     }
+    pages = pagesUpdate
   }
-  await refreshAll()
 
-  const cachebuster = (file, fileUrl) => {
+  /**
+   * Deletes cached pages that depend on the changed file.
+   * @param {string} file - The changed file.
+   * @param {URL} fileUrl - The changed file URL.
+   */
+  async function cachebuster (file, fileUrl) {
     const cachMappings = [
       { source: ['.page', '.htms', '.html', '.mjs', '.json'], target: ['.page', '.htms', '.html'], includeComponents: true },
       { source: ['.css'], target: ['.css'] },
@@ -218,6 +231,7 @@ async function getPageWatcher (config) {
       if (!(mapping.source.find(ext => file.endsWith(ext)))) continue
       for (const targetExt of mapping.target) {
         for (const page of pages) {
+          if (!page.cache) continue
           if (page.fileUrl.toString().endsWith(targetExt)) {
             if (mapping.includeComponents !== true) {
               if (page.fileUrl.toString().includes('components')) {
@@ -236,14 +250,19 @@ async function getPageWatcher (config) {
     }
   }
 
-  const inProgress = {}
-  const watcher = fs.watch(config.root, { recursive: true }, async (event, filename) => {
+  /**
+   * Handles page updates.
+   * @param {string} filename - The changed filename.
+   * @returns {Promise<void>}
+   */
+  async function getPagesUpdate (filename) {
     const file = path.resolve(config.root, filename)
     const fileUrl = url.pathToFileURL(file).toString()
-    cachebuster(file, fileUrl)
     const isIgnored = config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))
-    if (isIgnored || inProgress[filename]) return
-    inProgress[filename] = true
+    if (isIgnored) return
+    if (inProgress[filename]) { inProgress[filename] = { repeat: true }; return }
+    inProgress[filename] = { repeat: false }
+    cachebuster(file, fileUrl)
 
     if (fs.existsSync(file)) {
       if (fs.statSync(file).isDirectory()) {
@@ -256,8 +275,11 @@ async function getPageWatcher (config) {
       pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
     }
 
-    delete inProgress[filename]
-  })
+    if (inProgress[filename].repeat) {
+      inProgress[filename] = false
+      return getPagesUpdate(filename)
+    }
 
-  return { getPages: () => pages, close: () => watcher.close() }
+    delete inProgress[filename]
+  }
 }
