@@ -182,7 +182,7 @@ function getRequestHandler (config, watcher, workers, cache) {
       res.end('Internal server error')
     })
 
-    worker.postMessage(['pipe', JSON.stringify(page)])
+    worker.postMessage(['pipe', JSON.stringify({ ...page, cache: undefined })])
   }
 }
 
