@@ -155,8 +155,6 @@ async function addComponent (component, node, id, page, config, api) {
         node.textUpdate = (node.textUpdate || node.text).replace(/<[^> ]+/, match => `${match} class="${rendered.classString}"`)
       }
     }
-
-    if (component.name === 'side-bar') console.log(node.textUpdate)
   }
 
   const jsExt = ['.ts', '.js']
