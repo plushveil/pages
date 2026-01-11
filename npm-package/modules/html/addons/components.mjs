@@ -136,13 +136,27 @@ async function addComponent (component, node, id, page, config, api) {
 
   const htmlFile = path.resolve(components[id].path, component.name, `${component.name}.html`)
   if (fs.existsSync(htmlFile)) {
-    component.html = await renderComponent(htmlFile, page, config, api, component.attributes)
+    const rendered = await renderComponent(htmlFile, page, config, api, component.attributes)
+    component.html = rendered.content
     if (node.type === 'template') {
       const tag = `<${component.name}${component.attributeString}>`
       node.textUpdate = (node.textUpdate || node.text).replaceAll(tag, `${tag}${component.html}`)
     } else {
       node.textUpdate = (node.textUpdate || node.text) + component.html
     }
+
+    if (rendered.classString) {
+      const classMatch = (node.textUpdate || node.text).match(/class=["'](.*?)["']/)
+      if (classMatch) {
+        const existingClasses = classMatch[1] || ''
+        const newClasses = `${existingClasses} ${rendered.classString}`.trim()
+        node.textUpdate = (node.textUpdate || node.text).replace(classMatch[0], `class="${newClasses}"`)
+      } else {
+        node.textUpdate = (node.textUpdate || node.text).replace(/<[^> ]+/, match => `${match} class="${rendered.classString}"`)
+      }
+    }
+
+    if (component.name === 'side-bar') console.log(node.textUpdate)
   }
 
   const jsExt = ['.ts', '.js']
@@ -198,8 +212,22 @@ function getAttributesFromString (attributeString) {
  * @returns {Promise<string>} - The rendered component.
  */
 async function renderComponent (component, page, config, api, attributes) {
+  const name = path.basename(component, path.extname(component))
+
+  let content = await fs.promises.readFile(component, 'utf-8')
+  const match = content.match(new RegExp(`<${name} ([^>]*)>`))
+  let classString = ''
+  if (match) {
+    classString = match[1].match(/class=["']([^'"]*)['"]/)?.[1] || ''
+    content = content.replace(new RegExp(`<${name}[^>]*>`), '')
+    content = content.replace(new RegExp(`</${name}>`), '')
+  } else {
+    content = undefined
+  }
+
   const subpage = {
     ...page,
+    content,
     params: {
       ...page.params,
       __filename: component,
@@ -207,5 +235,9 @@ async function renderComponent (component, page, config, api, attributes) {
       __attributes: attributes
     }
   }
-  return render(subpage, config, api)
+
+  return {
+    content: await render(subpage, config, api),
+    classString
+  }
 }
