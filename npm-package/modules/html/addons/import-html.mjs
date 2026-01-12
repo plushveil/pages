@@ -68,6 +68,10 @@ module.registerHooks({
             importAttributes: '${key}',
             params: {
               ...page.params,
+              headers: {
+                ...page.params.headers,
+                'X-Partial': 'true'
+              },
               __filename: url.fileURLToPath(import.meta.url),
               __dirname: path.dirname(url.fileURLToPath(import.meta.url)),
             }

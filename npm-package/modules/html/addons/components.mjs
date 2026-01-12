@@ -19,6 +19,7 @@ const components = {}
  */
 export async function beforeAsync (nodes, htmlDocument, page, config, api) {
   if (!config.root) return
+  if (page?.params?.headers?.['X-Partial'] === 'true') return
 
   const id = page?.url?.toString() || htmlDocument.getId()
   const componentsPath = path.resolve(config.root, 'components')
@@ -41,6 +42,7 @@ export async function beforeAsync (nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
 export async function forEach (node, nodes, htmlDocument, page, config, api) {
+  if (page?.params?.headers?.['X-Partial'] === 'true') return
   const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id] || components[id].path === null) return
 
@@ -84,7 +86,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
 export function after (iterator, htmlDocument, page, config, api) {
   const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id]) return
-  if (page.params.headers?.['X-Partial'] === 'true') return
+  if (page?.params?.headers?.['X-Partial'] === 'true') return
 
   const run = components[id]
   run.parallel -= 1
