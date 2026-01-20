@@ -9,7 +9,7 @@
     "acorn": "^8.15.0",
     "css-select": "6.0.0",
     "typescript": "^5.9.3",
-    "vscode-html-languageservice": "^5.6.0",
+    "vscode-html-languageservice": "^5.6.1",
     "vscode-languageserver-textdocument": "^1.0.12"
   }
 }
