@@ -1,8 +1,4 @@
-Here’s a clean, GitHub-ready **README.md** you can drop straight into the repo. I’ve assumed a typical GitHub Action audience and documented the composite behavior clearly, without over-promising internals.
-
----
-
-# Build Pages
+# Build Pages using plushveil/pages
 
 A GitHub Action for building static HTML pages using **JavaScript template literals**.
 Designed for simple, flexible page generation without introducing a full static-site framework.
