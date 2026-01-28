@@ -100,12 +100,4 @@ All logic is handled in Node, making it easy to extend or debug.
 
 ## 📄 License
 
-MIT © Your Name / Your Org
-
----
-
-If you want, I can also:
-
-* Add a **GitHub Pages deployment example**
-* Tighten this up for the **Marketplace listing**
-* Document the expected **folder structure** or config format
+MIT © Plushveil
