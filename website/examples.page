@@ -5,15 +5,15 @@
 
   // Example data for demonstration
   export const pages = [
-    { title: 'Home', description: 'Main landing page', url: '/' },
-    { title: 'Documentation', description: 'Complete guide and API reference', url: '/docs' },
-    { title: 'Examples', description: 'Real-world code examples', url: '/examples' }
+    { title: 'Home', description: 'Main landing page', url: 'https://plushveil.github.io/pages/' },
+    { title: 'Documentation', description: 'Complete guide and API reference', url: 'https://plushveil.github.io/pages/docs' },
+    { title: 'Examples', description: 'Real-world code examples', url: 'https://plushveil.github.io/pages/examples' }
   ]
 
   export const team = [
-    { name: 'Alice Johnson', role: 'Developer', image: 'https://via.placeholder.com/150' },
-    { name: 'Bob Smith', role: 'Designer', image: 'https://via.placeholder.com/150' },
-    { name: 'Carol Williams', role: 'Manager', image: 'https://via.placeholder.com/150' }
+    { name: 'Alice Johnson', role: 'Developer' },
+    { name: 'Bob Smith', role: 'Designer' },
+    { name: 'Carol Williams', role: 'Manager' }
   ]
 </script>
 
@@ -30,18 +30,7 @@
   </head>
   <body class="min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div class="container mx-auto px-6 py-4">
-        <div class="flex justify-between items-center">
-          <a href="/" class="text-2xl font-bold text-blue-600">@plushveil/pages</a>
-          <div class="flex gap-6">
-            <a href="/" class="hover:text-blue-600 transition">Home</a>
-            <a href="/docs" class="hover:text-blue-600 transition">Docs</a>
-            <a href="/examples" class="text-blue-600 font-semibold">Examples</a>
-          </div>
-        </div>
-      </div>
-    </nav>
+    ${import('./snippets/header.html', { with: { activePage: 'examples' } })}
 
     <div class="container mx-auto px-6 py-12">
       <div class="max-w-6xl mx-auto">
@@ -359,7 +348,7 @@
           <h2 class="text-3xl font-bold mb-4">Ready to Build?</h2>
           <p class="text-xl mb-8 text-blue-100">Start creating your own pages today</p>
           <div class="flex gap-4 justify-center flex-wrap">
-            <a href="/docs" class="btn btn-primary bg-white text-blue-600 hover:bg-blue-50">Read the Docs</a>
+            <a href="./docs.page" class="btn btn-primary bg-white text-blue-600 hover:bg-blue-50">Read the Docs</a>
             <a href="https://github.com/plushveil/pages" target="_blank" class="btn btn-secondary bg-blue-700 text-white hover:bg-blue-600">View on GitHub</a>
           </div>
         </section>
@@ -367,26 +356,6 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-400 py-12 mt-20">
-      <div class="container mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div class="mb-4 md:mb-0">
-            <p class="text-lg font-semibold text-white mb-2">@plushveil/pages</p>
-            <p>A lightweight static site generator</p>
-          </div>
-          <div class="flex flex-wrap gap-6 justify-center">
-            <a href="/" class="hover:text-white transition">Home</a>
-            <a href="/docs" class="hover:text-white transition">Docs</a>
-            <a href="/examples" class="hover:text-white transition">Examples</a>
-            <a href="https://github.com/plushveil/pages" target="_blank" class="hover:text-white transition">GitHub</a>
-            <a href="https://www.npmjs.com/package/@plushveil/pages" target="_blank" class="hover:text-white transition">npm</a>
-            <a href="https://marketplace.visualstudio.com/items?itemName=plushveil.pages" target="_blank" class="hover:text-white transition">VS Code</a>
-          </div>
-        </div>
-        <div class="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-          <p>MIT © Plushveil</p>
-        </div>
-      </div>
-    </footer>
+    ${import('./snippets/footer.html')}
   </body>
 </html>
