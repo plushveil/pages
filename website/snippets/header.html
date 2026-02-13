@@ -1,10 +1,8 @@
 <script target="nav">
   import page from 'page:page'
-  const activePage = page.url.pathname === '/' ? 'home' : page.url.pathname.slice(1)
+  const activePage = page.url.pathname === '/' ? '/home' : page.url.pathname
   export const getLinkClass = (page) => {
-    return page === activePage
-      ? 'text-blue-600 font-semibold'
-      : 'hover:text-blue-600 transition'
+    return activePage.includes(page) ? 'text-blue-600 font-semibold' : 'hover:text-blue-600 transition'
   }
 </script>
 
@@ -13,9 +11,9 @@
     <div class="flex justify-between items-center">
       <a href="../index.page" class="text-2xl font-bold text-blue-600">@plushveil/pages</a>
       <div class="flex gap-6">
-        <a href="../index.page" class="${getLinkClass('home')}">Home</a>
-        <a href="../docs.page" class="${getLinkClass('docs')}">Docs</a>
-        <a href="../examples.page" class="${getLinkClass('examples')}">Examples</a>
+        <a href="../index.page" class="${getLinkClass('/home')}">Home</a>
+        <a href="../docs.page" class="${getLinkClass('/docs')}">Docs</a>
+        <a href="../examples.page" class="${getLinkClass('/examples')}">Examples</a>
       </div>
     </div>
   </div>
