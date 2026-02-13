@@ -10,7 +10,7 @@
   `).join('')}</span>
 <span class="token-punctuation">&lt;/</span><span class="token-tag">div</span><span class="token-punctuation">&gt;</span>
 
-<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"page-list"</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"div.page-list"</span><span class="token-punctuation">&gt;</span>
   <span class="token-keyword">export</span> <span class="token-keyword">const</span> pages = [
     {
       title: <span class="token-string">'Home'</span>,
@@ -30,7 +30,7 @@
   `).join('')}</span>
 <span class="token-punctuation">&lt;/</span><span class="token-tag">div</span><span class="token-punctuation">&gt;</span>
 
-<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"team-grid"</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"div.team-grid"</span><span class="token-punctuation">&gt;</span>
   <span class="token-keyword">export</span> <span class="token-keyword">const</span> team = [
     {
       name: <span class="token-string">'Alice Johnson'</span>,
@@ -39,7 +39,7 @@
     },
     <span class="token-comment">// ... more team members</span>
   ]
-<span class="token-punctuation">&lt;/</span><span class="token-tag">script</span><span class="token-punctuation">&gt;</span></code><code></code></pre></div><div><h3 class="text-xl font-semibold mb-4">Result</h3><div class="bg-white p-6 rounded-lg border border-gray-200"><div class="grid grid-cols-3 gap-4"><div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">A</span> </div> <h3 class="font-semibold text-sm">Alice Johnson</h3> <p class="text-xs text-gray-600">Developer</p> </div> <div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">B</span> </div> <h3 class="font-semibold text-sm">Bob Smith</h3> <p class="text-xs text-gray-600">Designer</p> </div> <div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">C</span> </div> <h3 class="font-semibold text-sm">Carol Williams</h3> <p class="text-xs text-gray-600">Manager</p> </div></div></div></div></div></section><!-- Example 3: Conditional Rendering --><section class="mb-16"><h2 class="text-3xl font-bold mb-6">Example 3: Conditional Rendering</h2><div class="mb-6"><h3 class="text-xl font-semibold mb-4">Code</h3><pre class="code-block"><code><span class="token-punctuation">&lt;</span><span class="token-tag">div</span> <span class="token-attr-name">class</span><span class="token-punctuation">=</span><span class="token-attr-value">"banner"</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">script</span><span class="token-punctuation">&gt;</span></code><code></code></pre></div><div><h3 class="text-xl font-semibold mb-4">Result</h3><div class="bg-white p-6 rounded-lg border border-gray-200"><div class="grid grid-cols-3 gap-4"><div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">A</span> </div> <h3 class="font-semibold text-sm">Alice Johnson</h3> <p class="text-xs text-gray-600">Developer</p> </div> <div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">B</span> </div> <h3 class="font-semibold text-sm">Bob Smith</h3> <p class="text-xs text-gray-600">Designer</p> </div> <div class="text-center"> <div class="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center"> <span class="text-2xl">C</span> </div> <h3 class="font-semibold text-sm">Carol Williams</h3> <p class="text-xs text-gray-600">Manager</p> </div></div></div></div></div></section><!-- Example 3: Conditional Rendering --><section class="mb-16"><h2 class="text-3xl font-bold mb-6">Example 3: Conditional Rendering</h2><div class="mb-6"><h3 class="text-xl font-semibold mb-4">Code</h3><pre class="code-block"><code><span class="token-punctuation">&lt;</span><span class="token-tag">div</span> <span class="token-attr-name">class</span><span class="token-punctuation">=</span><span class="token-attr-value">"div.banner"</span><span class="token-punctuation">&gt;</span>
   <span class="token-template-literal">${isProduction ? `
     &lt;!-- Production analytics --&gt;
     &lt;script src="analytics.js"&gt;&lt;/script&gt;
