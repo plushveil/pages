@@ -1,1 +1,79 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+}
+
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+.btn {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 text-gray-800 hover:bg-gray-300;
+}
+
+.code-block {
+  @apply bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm leading-relaxed;
+}
+
+.code-block code {
+  @apply block;
+}
+
+/* Syntax highlighting for HTML in code blocks */
+.code-block .token-tag {
+  @apply text-pink-400;
+}
+
+.code-block .token-attr-name {
+  @apply text-cyan-400;
+}
+
+.code-block .token-attr-value {
+  @apply text-green-300;
+}
+
+.code-block .token-punctuation {
+  @apply text-gray-400;
+}
+
+.code-block .token-keyword {
+  @apply text-purple-400;
+}
+
+.code-block .token-string {
+  @apply text-green-300;
+}
+
+.code-block .token-comment {
+  @apply text-gray-500 italic;
+}
+
+.code-block .token-function {
+  @apply text-yellow-300;
+}
+
+.code-block .token-template-literal {
+  @apply text-orange-300;
+}
+
+.feature-card {
+  @apply bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+}
