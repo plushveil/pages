@@ -43,7 +43,7 @@ export function resolve (specifier, folders = [process.cwd()], options = { exist
 export function getFilesInFolder (folder, iterated = []) {
   folder = resolve(folder, undefined, { folder: true })
   return fs.readdirSync(folder).reduce((files, file) => {
-    const filepath = path.resolve(folder, file)
+    const filepath = fs.realpathSync(path.resolve(folder, file))
     if (fs.statSync(filepath).isDirectory()) {
       if (!iterated.includes(filepath)) {
         iterated.push(filepath)

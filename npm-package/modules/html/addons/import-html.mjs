@@ -1,6 +1,7 @@
 import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
+import * as fs from 'node:fs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -21,18 +22,20 @@ module.registerHooks({
     if (extensions.some(ext => specifier.endsWith(ext))) {
       const parentPath = url.fileURLToPath(context.parentURL)
       const resolved = path.resolve(path.dirname(parentPath), ...specifier.split('/'))
-      const fileUrl = url.pathToFileURL(resolved)
-      const hash = (new URL(context.parentURL)).hash || `#${Date.now()}${Math.random()}`
-      fileUrl.hash = hash
-      return {
-        format: 'module',
-        url: fileUrl.href,
-        importAttributes: {
-          ...context.importAttributes,
-          specifier,
-          parentURL: import.meta.url
-        },
-        shortCircuit: true
+      if (fs.existsSync(resolved)) {
+        const fileUrl = url.pathToFileURL(resolved)
+        const hash = (new URL(context.parentURL)).hash || `#${Date.now()}${Math.random()}`
+        fileUrl.hash = hash
+        return {
+          format: 'module',
+          url: fileUrl.href,
+          importAttributes: {
+            ...context.importAttributes,
+            specifier,
+            parentURL: import.meta.url
+          },
+          shortCircuit: true
+        }
       }
     }
     return nextResolve(specifier, context)
@@ -65,6 +68,10 @@ module.registerHooks({
             importAttributes: '${key}',
             params: {
               ...page.params,
+              headers: {
+                ...page.params.headers,
+                'X-Partial': 'true'
+              },
               __filename: url.fileURLToPath(import.meta.url),
               __dirname: path.dirname(url.fileURLToPath(import.meta.url)),
             }

@@ -3,6 +3,8 @@ import * as url from 'node:url'
 import * as path from 'node:path'
 import * as module from 'node:module'
 
+import ts from 'typescript'
+
 import getExports from '../utils/getExports.mjs'
 import getNodesInRange from '../utils/getNodesInRange.mjs'
 
@@ -153,6 +155,22 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
 }
 
 /**
+ * Transpile TypeScript code to JavaScript.
+ * @param {string} code - The code.
+ * @returns {string} The transpiled code.
+ */
+function getCode (code) {
+  const { outputText } = ts.transpileModule(code, {
+    compilerOptions: {
+      module: ts.ModuleKind.ESNext,
+      target: ts.ScriptTarget.ES2020,
+      sourceMap: false
+    }
+  })
+  return outputText
+}
+
+/**
  * after is executed when the interpretation is done.
  * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
@@ -178,6 +196,7 @@ function getScriptsForNode (node, nodes, htmlDocument) {
   const scripts = idNodeScriptsMap[id][closestHtmlNode] || []
   return scripts.map((scriptDetails) => {
     const node = nodes.find(node => node.offset.start === scriptDetails.htmlNode.startTagEnd)
+    node.code = getCode(node.text)
     return { ...scriptDetails, node }
   }).filter(Boolean)
 }

@@ -70,7 +70,7 @@ module.registerHooks({
  * @returns {Promise<any>} The result.
  */
 export default async function exec (code, scripts, page, config, api) {
-  for (const script of (scripts || [])) scriptsMap[`${script.id}`] = script.node.text
+  for (const script of (scripts || [])) scriptsMap[`${script.id}`] = script.node.code || script.node.text
 
   const imported = ['default']
   const codeWithContext = [
