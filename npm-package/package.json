@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "c8": "^10.1.3",
-    "eslint": "^9",
+    "eslint": "^9.39.2",
     "eslint-plugin-jsdoc": "^62.5.4",
     "eslint-plugin-mocha": "^11.2.0",
     "mocha": "^11.7.5",
