@@ -132,28 +132,99 @@
 
         </section>
 
-        <!-- Importing Components -->
+        <!-- Reusable Components -->
         <section class="mb-16">
-          <h2 class="text-3xl font-bold mb-6 border-b pb-2">Importing Components</h2>
+          <h2 class="text-3xl font-bold mb-6 border-b pb-2">Reusable Components</h2>
 
-          <p class="mb-4">Import and reuse HTML snippets across pages:</p>
+          <p class="mb-6">There are two ways to reuse code across pages:</p>
 
-          <h3 class="text-2xl font-semibold mb-4 mt-8">Create a Component</h3>
-          <p class="mb-2">File: <code class="bg-gray-100 px-2 py-1 rounded">snippets/header.html</code></p>
-          <pre class="code-block mb-6"><code>&lt;header class="site-header"&gt;
-  &lt;h1&gt;My Site&lt;/h1&gt;
-  &lt;nav&gt;...&lt;/nav&gt;
-&lt;/header&gt;</code></pre>
+          <h3 class="text-2xl font-semibold mb-4">Method 1: Simple Imports</h3>
+          <p class="mb-4">Import HTML snippets directly using template literals:</p>
 
-          <h3 class="text-2xl font-semibold mb-4 mt-8">Import in Page</h3>
-          <pre class="code-block mb-6"><code>&lt;!DOCTYPE html&gt;
-&lt;html&gt;
-  &lt;head&gt;...&lt;/head&gt;
-  &lt;body&gt;
-    ${import('./snippets/header.html')}
-    &lt;main&gt;Content here&lt;/main&gt;
-  &lt;/body&gt;
-&lt;/html&gt;</code></pre>
+          <p class="mb-2 text-sm text-gray-600">Create a snippet: <code class="bg-gray-100 px-2 py-1 rounded">snippets/header.html</code></p>
+          <pre class="code-block mb-4"><code><span class="token-punctuation">&lt;</span><span class="token-tag">header</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">h1</span><span class="token-punctuation">&gt;</span>My Site<span class="token-punctuation">&lt;/</span><span class="token-tag">h1</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">nav</span><span class="token-punctuation">&gt;</span>...<span class="token-punctuation">&lt;/</span><span class="token-tag">nav</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">header</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <p class="mb-2 text-sm text-gray-600">Import in page:</p>
+          <pre class="code-block mb-6"><code><span class="token-punctuation">&lt;</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span>
+  <span class="token-template-literal">${import('./snippets/header.html')}</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">main</span><span class="token-punctuation">&gt;</span>Content<span class="token-punctuation">&lt;/</span><span class="token-tag">main</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <h4 class="text-xl font-semibold mb-3 mt-6">Passing Attributes to Imports</h4>
+          <p class="mb-4">You can pass data to imported snippets using import attributes:</p>
+
+          <p class="mb-2 text-sm text-gray-600">Create snippet with attributes: <code class="bg-gray-100 px-2 py-1 rounded">snippets/card.html</code></p>
+          <pre class="code-block mb-4"><code><span class="token-punctuation">&lt;</span><span class="token-tag">div</span> <span class="token-attr-name">class</span><span class="token-punctuation">=</span><span class="token-attr-value">"card"</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">h2</span><span class="token-punctuation">&gt;</span><span class="token-template-literal">${title}</span><span class="token-punctuation">&lt;/</span><span class="token-tag">h2</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">p</span><span class="token-punctuation">&gt;</span><span class="token-template-literal">${description}</span><span class="token-punctuation">&lt;/</span><span class="token-tag">p</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">div</span><span class="token-punctuation">&gt;</span>
+
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"html"</span><span class="token-punctuation">&gt;</span>
+  <span class="token-keyword">import</span> args <span class="token-keyword">from</span> <span class="token-string">'page:args'</span>
+  <span class="token-keyword">export</span> <span class="token-keyword">const</span> title = args.title || <span class="token-string">'Default Title'</span>
+  <span class="token-keyword">export</span> <span class="token-keyword">const</span> description = args.description || <span class="token-string">'No description'</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">script</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <p class="mb-2 text-sm text-gray-600">Import with attributes in page:</p>
+          <pre class="code-block mb-4"><code><span class="token-punctuation">&lt;</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span>
+  <span class="token-template-literal">${import('./snippets/card.html', { with: { title: 'Hello', description: 'World' } })}</span>
+  <span class="token-template-literal">${import('./snippets/card.html', { with: { title: 'Another Card' } })}</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <p class="text-sm text-gray-600 mt-2">
+            Use <code class="bg-gray-100 px-2 py-1 rounded">page:args</code> import to access attributes passed via the <code class="bg-gray-100 px-2 py-1 rounded">with</code> option.
+          </p>
+
+          <h3 class="text-2xl font-semibold mb-4 mt-4">Method 2: Auto-Loading Components</h3>
+          <p class="mb-4">Create reusable components with separate HTML, CSS, and JavaScript that automatically load:</p>
+
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p class="text-sm text-gray-800">
+              <strong class="mr-1">📦 Enable:</strong> Add <code class="bg-white px-2 py-1 rounded mr-1">&lt;enable-components&gt;&lt;/enable-components&gt;</code> in <code class="bg-white px-2 py-1 rounded mr-1">&lt;head&gt;</code> to enable component auto-loading.
+            </p>
+          </div>
+
+          <p class="mb-2 text-sm font-semibold">1. Create folder structure:</p>
+          <pre class="code-block mb-4 text-sm"><code>components/
+└── my-button/
+    ├── my-button.html
+    ├── my-button.css
+    └── my-button.ts</code></pre>
+
+          <p class="mb-2 text-sm font-semibold">2. Component HTML (<code class="bg-gray-100 px-2 py-1 rounded">components/my-button/my-button.html</code>):</p>
+          <pre class="code-block mb-4"><code><span class="token-punctuation">&lt;</span><span class="token-tag">my-button</span> <span class="token-attr-name">class</span><span class="token-punctuation">=</span><span class="token-attr-value">"btn"</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">button</span><span class="token-punctuation">&gt;</span><span class="token-template-literal">${__attributes.label || 'Click'}</span><span class="token-punctuation">&lt;/</span><span class="token-tag">button</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">my-button</span><span class="token-punctuation">&gt;</span>
+
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"my-button"</span><span class="token-punctuation">&gt;</span>
+  <span class="token-keyword">import</span> page <span class="token-keyword">from</span> <span class="token-string">'page:page'</span>
+  <span class="token-keyword">export</span> <span class="token-keyword">const</span> __attributes = page.params.__attributes
+<span class="token-punctuation">&lt;/</span><span class="token-tag">script</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <p class="mb-2 text-sm font-semibold">3. Use in pages:</p>
+          <pre class="code-block mb-4"><code><span class="token-punctuation">&lt;</span><span class="token-tag">html</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">head</span><span class="token-punctuation">&gt;</span>
+    <span class="token-punctuation">&lt;</span><span class="token-tag">link</span> <span class="token-attr-name">rel</span><span class="token-punctuation">=</span><span class="token-attr-value">"canonical"</span> <span class="token-attr-name">href</span><span class="token-punctuation">=</span><span class="token-attr-value">"/"</span> <span class="token-punctuation">/&gt;</span>
+    <span class="token-punctuation">&lt;</span><span class="token-tag">enable-components</span><span class="token-punctuation">&gt;&lt;/</span><span class="token-tag">enable-components</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;/</span><span class="token-tag">head</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span>
+    <span class="token-punctuation">&lt;</span><span class="token-tag">my-button</span> <span class="token-attr-name">label</span><span class="token-punctuation">=</span><span class="token-attr-value">"Submit"</span><span class="token-punctuation">&gt;&lt;/</span><span class="token-tag">my-button</span><span class="token-punctuation">&gt;</span>
+  <span class="token-punctuation">&lt;/</span><span class="token-tag">body</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">html</span><span class="token-punctuation">&gt;</span></code></pre>
+
+          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-4">
+            <p class="text-sm text-gray-700 mb-2"><strong>How it works:</strong></p>
+            <ul class="text-sm text-gray-700 space-y-1 list-disc list-inside ml-2">
+              <li>Component names must have a hyphen (e.g., <code class="bg-white px-2 py-1 rounded">my-button</code>)</li>
+              <li>HTML is injected where the component is used</li>
+              <li>CSS/JS files auto-link in <code class="bg-white px-2 py-1 rounded">&lt;enable-components&gt;</code></li>
+              <li>Attributes passed via <code class="bg-white px-2 py-1 rounded">page.params.__attributes</code></li>
+              <li>Classes from wrapper merge with the component element</li>
+            </ul>
+          </div>
         </section>
 
         <!-- CLI Commands -->
@@ -161,11 +232,11 @@
           <h2 class="text-3xl font-bold mb-6 border-b pb-2">CLI Commands</h2>
 
           <h3 class="text-2xl font-semibold mb-4">Serve (Development)</h3>
-          <pre class="code-block mb-4"><code>npx pages serve &lt;folder&gt; [--config pages.config.mjs]</code></pre>
+          <pre class="code-block mb-4"><code><span class="token-function">npx</span> pages serve <span class="token-operator">&lt;</span>folder<span class="token-operator">&gt;</span> <span class="token-punctuation">[</span><span class="token-attr-name">--config</span> pages.config.mjs<span class="token-punctuation">]</span></code></pre>
           <p class="mb-6 text-gray-600">Starts a development server with hot reload.</p>
 
           <h3 class="text-2xl font-semibold mb-4">Build (Production)</h3>
-          <pre class="code-block mb-4"><code>npx pages build &lt;folder&gt; [--config pages.config.mjs]</code></pre>
+          <pre class="code-block mb-4"><code><span class="token-function">npx</span> pages build <span class="token-operator">&lt;</span>folder<span class="token-operator">&gt;</span> <span class="token-punctuation">[</span><span class="token-attr-name">--config</span> pages.config.mjs<span class="token-punctuation">]</span></code></pre>
           <p class="mb-6 text-gray-600">Builds static files to the <code class="bg-gray-100 px-2 py-1 rounded">./build</code> folder.</p>
         </section>
 
@@ -175,34 +246,34 @@
 
           <p class="mb-4">Create a <code class="bg-gray-100 px-2 py-1 rounded">pages.config.mjs</code> file:</p>
 
-          <pre class="code-block mb-6"><code>/**
+          <pre class="code-block mb-6"><code><span class="token-comment">/**
  * @file Configuration for pages
- */
+ */</span>
 
-export const baseURI = new URL('https://example.com')
+<span class="token-keyword">export</span> <span class="token-keyword">const</span> baseURI = <span class="token-keyword">new</span> <span class="token-function">URL</span>(<span class="token-string">'https://example.com'</span>)
 
-export const build = {
+<span class="token-keyword">export</span> <span class="token-keyword">const</span> build = {
   ignore: [
-    /\/(node_modules|.git)\//,
-    /\/(components|snippets)\//,
+    <span class="token-regex">/\/(node_modules|.git)\//</span>,
+    <span class="token-regex">/\/(components|snippets)\//</span>,
   ],
 }
 
-export const html = {
-  minify: true,
-  resolve: true
+<span class="token-keyword">export</span> <span class="token-keyword">const</span> html = {
+  minify: <span class="token-boolean">true</span>,
+  resolve: <span class="token-boolean">true</span>
 }
 
-export const css = {
-  minify: true,
-  integrity: true,
-  tailwind: 'tailwind.config.mjs',
+<span class="token-keyword">export</span> <span class="token-keyword">const</span> css = {
+  minify: <span class="token-boolean">true</span>,
+  integrity: <span class="token-boolean">true</span>,
+  tailwind: <span class="token-string">'tailwind.config.mjs'</span>,
 }
 
-export const js = {
-  minify: true,
-  integrity: true,
-  target: '.browserslistrc'
+<span class="token-keyword">export</span> <span class="token-keyword">const</span> js = {
+  minify: <span class="token-boolean">true</span>,
+  integrity: <span class="token-boolean">true</span>,
+  target: <span class="token-string">'.browserslistrc'</span>
 }</code></pre>
         </section>
 
@@ -262,22 +333,22 @@ export const js = {
 
           <p class="mb-4">Use TypeScript in your script blocks:</p>
 
-          <pre class="code-block mb-6"><code>&lt;script target="html"&gt;
-  interface Item {
-    name: string
-    price: number
+          <pre class="code-block mb-6"><code><span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"html"</span><span class="token-punctuation">&gt;</span>
+  <span class="token-keyword">interface</span> Item {
+    name: <span class="token-keyword">string</span>
+    price: <span class="token-keyword">number</span>
   }
 
-  export const items: Item[] = [
-    { name: 'Product 1', price: 29.99 },
-    { name: 'Product 2', price: 39.99 },
+  <span class="token-keyword">export</span> <span class="token-keyword">const</span> items: Item[] = [
+    { name: <span class="token-string">'Product 1'</span>, price: <span class="token-number">29.99</span> },
+    { name: <span class="token-string">'Product 2'</span>, price: <span class="token-number">39.99</span> },
   ]
 
-  export const total: number = items.reduce(
-    (sum, item) => sum + item.price,
-    0
+  <span class="token-keyword">export</span> <span class="token-keyword">const</span> total: <span class="token-keyword">number</span> = items.<span class="token-function">reduce</span>(
+    (sum, item) <span class="token-operator">=&gt;</span> sum + item.price,
+    <span class="token-number">0</span>
   )
-&lt;/script&gt;</code></pre>
+<span class="token-punctuation">&lt;/</span><span class="token-tag">script</span><span class="token-punctuation">&gt;</span></code></pre>
         </section>
 
         <!-- API Reference -->
@@ -287,22 +358,22 @@ export const js = {
           <p class="mb-4">Use @plushveil/pages in your Node.js scripts:</p>
 
           <h3 class="text-2xl font-semibold mb-4 mt-8">Serve Pages</h3>
-          <pre class="code-block mb-6"><code>import { serve } from '@plushveil/pages'
+          <pre class="code-block mb-6"><code><span class="token-keyword">import</span> { serve } <span class="token-keyword">from</span> <span class="token-string">'@plushveil/pages'</span>
 
-const server = await serve('pages/', 'pages.config.mjs')
-// Server is now running</code></pre>
+<span class="token-keyword">const</span> server = <span class="token-keyword">await</span> <span class="token-function">serve</span>(<span class="token-string">'pages/'</span>, <span class="token-string">'pages.config.mjs'</span>)
+<span class="token-comment">// Server is now running</span></code></pre>
 
           <h3 class="text-2xl font-semibold mb-4 mt-8">Build Pages</h3>
-          <pre class="code-block mb-6"><code>import { build } from '@plushveil/pages'
+          <pre class="code-block mb-6"><code><span class="token-keyword">import</span> { build } <span class="token-keyword">from</span> <span class="token-string">'@plushveil/pages'</span>
 
-await build('pages/', 'pages.config.mjs', 'build/')
-// Pages built to build/ folder</code></pre>
+<span class="token-keyword">await</span> <span class="token-function">build</span>(<span class="token-string">'pages/'</span>, <span class="token-string">'pages.config.mjs'</span>, <span class="token-string">'build/'</span>)
+<span class="token-comment">// Pages built to build/ folder</span></code></pre>
 
           <h3 class="text-2xl font-semibold mb-4 mt-8">Render Individual Page</h3>
-          <pre class="code-block mb-6"><code>import { render } from '@plushveil/pages'
+          <pre class="code-block mb-6"><code><span class="token-keyword">import</span> { render } <span class="token-keyword">from</span> <span class="token-string">'@plushveil/pages'</span>
 
-const html = await render('pages/index.page', 'pages.config.mjs')
-console.log(html)</code></pre>
+<span class="token-keyword">const</span> html = <span class="token-keyword">await</span> <span class="token-function">render</span>(<span class="token-string">'pages/index.page'</span>, <span class="token-string">'pages.config.mjs'</span>)
+<span class="token-function">console</span>.<span class="token-function">log</span>(html)</code></pre>
         </section>
       </div>
     </div>
