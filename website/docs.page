@@ -74,7 +74,7 @@
   `).join('')}</span>
 <span class="token-punctuation">&lt;/</span><span class="token-tag">ul</span><span class="token-punctuation">&gt;</span>
 
-<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"html"</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"ul"</span><span class="token-punctuation">&gt;</span>
   <span class="token-keyword">export</span> <span class="token-keyword">const</span> items = [
     { name: <span class="token-string">'Item 1'</span> },
     { name: <span class="token-string">'Item 2'</span> },
@@ -151,7 +151,7 @@
   <span class="token-punctuation">&lt;</span><span class="token-tag">p</span><span class="token-punctuation">&gt;</span><span class="token-template-literal">${description}</span><span class="token-punctuation">&lt;/</span><span class="token-tag">p</span><span class="token-punctuation">&gt;</span>
 <span class="token-punctuation">&lt;/</span><span class="token-tag">div</span><span class="token-punctuation">&gt;</span>
 
-<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"html"</span><span class="token-punctuation">&gt;</span>
+<span class="token-punctuation">&lt;</span><span class="token-tag">script</span> <span class="token-attr-name">target</span><span class="token-punctuation">=</span><span class="token-attr-value">"div"</span><span class="token-punctuation">&gt;</span>
   <span class="token-keyword">import</span> args <span class="token-keyword">from</span> <span class="token-string">'page:args'</span>
   <span class="token-keyword">export</span> <span class="token-keyword">const</span> title = args.title || <span class="token-string">'Default Title'</span>
   <span class="token-keyword">export</span> <span class="token-keyword">const</span> description = args.description || <span class="token-string">'No description'</span>
