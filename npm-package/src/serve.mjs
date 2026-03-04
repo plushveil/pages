@@ -18,6 +18,7 @@ const __dirname = path.dirname(__filename)
 const __worker = path.resolve(__dirname, 'worker.mjs')
 
 const apps = []
+const sourcesWatchers = {}
 
 process.on('SIGINT', (event) => {
   for (const app of apps) {
@@ -253,7 +254,16 @@ async function getPageWatcher (config) {
     }
 
     for (const page of pages) {
-      if (!page.sources) page.sources = await getPageSources(page)
+      if (!page.sources) {
+        page.sources = await getPageSources(page)
+        for (const source of page.sources) {
+          if (sourcesWatchers[source]) continue
+          if (!(fs.existsSync(source)) || source.includes('node_modules')) continue
+          const sourceWatcher = fs.watch(source, () => cachebuster(source, url.pathToFileURL(source)))
+          sourcesWatchers[source] = sourceWatcher
+          sourceWatcher.unref()
+        }
+      }
       if (page.sources && page.sources.includes(file)) page.cache = null
     }
 
@@ -280,7 +290,10 @@ async function getPageWatcher (config) {
         const sourceMap = await response.json()
         if (!sourceMap.sources) return []
         return sourceMap.sources.map((source) => {
-          if (!source.startsWith(arg)) return source
+          if (!source.startsWith(arg)) {
+            if (source === '<no source>') return '<no source>'
+            return path.resolve(process.cwd(), source)
+          }
           let relativePath = source.slice(arg.length)
           while (relativePath.startsWith('/')) relativePath = relativePath.slice(1)
           return path.resolve(config.root, relativePath)
