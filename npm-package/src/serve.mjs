@@ -91,7 +91,7 @@ function createWorker (config, workers) {
  */
 function getRequestHandler (config, watcher, workers, cache) {
   /**
-   *
+   * @returns {Promise<threads.Worker>} A free worker.
    */
   async function getWorker () {
     const worker = workers.find(worker => !worker.busy)
@@ -193,6 +193,9 @@ function getRequestHandler (config, watcher, workers, cache) {
  */
 async function getPageWatcher (config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
+  /**
+   * @type {import('./pages.mjs').Page[]}
+   */
   let pages = []
   await refreshAll()
   const inProgress = {}
@@ -247,6 +250,99 @@ async function getPageWatcher (config) {
           }
         }
       }
+    }
+
+    for (const page of pages) {
+      if (!page.dependencies) page.dependencies = await getDependencies(page)
+      if (page.dependencies.find(dependency => file.endsWith(dependency))) page.cache = null
+    }
+  }
+
+  /**
+   * Get page dependencies.
+   * @param {import('./pages.mjs').Page} page - The page.
+   * @returns {Promise<string[]>} The page dependencies.
+   */
+  async function getDependencies (page) {
+    const dependencies = []
+    const sourcemap = parseSourceMapComment(await readLastNonEmptyLine(path.resolve(url.fileURLToPath(page.fileUrl))))
+    if (!sourcemap) return dependencies
+
+    try {
+      const sourcemapObj = JSON.parse(sourcemap)
+      if (sourcemapObj.sources) return sourcemapObj.sources
+    } catch {}
+
+    return dependencies
+
+    /**
+     * @param {string} filePath - The path to the file.
+     * @param {number} chunkSize - The size of the chunk to read from the end of the file.
+     * @returns {Promise<string|null>} The last non-empty line or null if not found.
+     */
+    async function readLastNonEmptyLine (filePath, chunkSize = 2048) {
+      const file = await fs.promises.open(filePath, 'r')
+
+      try {
+        const { size } = await file.stat()
+        if (size === 0) return null
+
+        const start = Math.max(0, size - chunkSize)
+        const length = size - start
+
+        const buffer = Buffer.alloc(length)
+        await file.read(buffer, 0, length, start)
+
+        const text = buffer.toString('utf8')
+
+        // walk backwards without splitting whole string
+        let end = text.length - 1
+
+        // skip trailing whitespace/newlines
+        while (end >= 0 && (text[end] === '\n' || text[end] === '\r' || text[end] === ' ' || text[end] === '\t')) {
+          end--
+        }
+
+        if (end < 0) return null
+
+        let startIdx = end
+        while (startIdx >= 0 && text[startIdx] !== '\n' && text[startIdx] !== '\r') {
+          startIdx--
+        }
+
+        return text.slice(startIdx + 1, end + 1)
+      } finally {
+        await file.close()
+      }
+    }
+
+    /**
+     * @param {string|null} line - The line to parse.
+     * @returns {Promise<string|null>} The parsed source map comment or null if not found.
+     */
+    function parseSourceMapComment (line) {
+      if (!line) return null
+      const SOURCE_MAP_PREFIX = '//# sourceMappingURL='
+
+      const trimmed = line.trim()
+      if (!trimmed.startsWith(SOURCE_MAP_PREFIX)) return null
+
+      const value = trimmed.slice(SOURCE_MAP_PREFIX.length).trim()
+      if (!value) return null
+
+      // Inline sourcemap: data:application/json;base64,XXXX
+      if (value.startsWith('data:')) {
+        const match = value.match(/^data:.*?;base64,(.+)$/)
+        if (!match) return null
+        const base64 = match[1]
+        const decoded = Buffer.from(base64, 'base64').toString('utf8')
+        return decoded
+      }
+
+      // file reference
+      const sourceMapPage = pages.find(page => page.url.toString().endsWith(value))
+      if (!sourceMapPage) return null
+      return fs.promises.readFile(path.resolve(url.fileURLToPath(sourceMapPage.fileUrl)), { encoding: 'utf8' })
     }
   }
 
