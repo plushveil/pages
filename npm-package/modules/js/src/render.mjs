@@ -20,44 +20,49 @@ const __dirname = path.dirname(__filename)
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render (page, config, api) {
-  const file = page.fileUrl && url.fileURLToPath(page.fileUrl)
-  if (file && !fs.existsSync(file)) return ''
-  if (!file && !page.content) return ''
+  try {
+    const file = page.fileUrl && url.fileURLToPath(page.fileUrl)
+    if (file && !fs.existsSync(file)) return ''
+    if (!file && !page.content) return ''
 
-  const pagesLoaderPlugin = { name: 'pages-loader', setup: getPagesLoaderPluginSetup(page, config, api) }
+    const pagesLoaderPlugin = { name: 'pages-loader', setup: getPagesLoaderPluginSetup(page, config, api) }
 
-  const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
-  const target = getTarget(config)
-  const build = await esbuild.build({
-    stdin: {
-      contents: script,
-      resolveDir: file ? path.dirname(file) : process.cwd(),
-    },
-    write: false,
-    bundle: true,
-    target,
-    minify: !!(config?.js?.minify),
-    format: 'iife',
-    sourcemap: 'inline',
-    plugins: [pagesLoaderPlugin],
-  })
+    const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
+    const target = getTarget(config)
+    const build = await esbuild.build({
+      stdin: {
+        contents: script,
+        resolveDir: file ? path.dirname(file) : process.cwd(),
+      },
+      write: false,
+      bundle: true,
+      target,
+      minify: !!(config?.js?.minify),
+      format: 'iife',
+      sourcemap: 'inline',
+      plugins: [pagesLoaderPlugin],
+    })
 
-  if (!page.fileUrl || ['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
-    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
-    return js
-  } else {
-    const pages = await getPages(file, config, api)
-    const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
+    if (!page.fileUrl || ['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
+      const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+      return js
+    } else {
+      const pages = await getPages(file, config, api)
+      const map = pages.find(page => page.params.headers['Content-Type'] === 'application/json')
 
-    if (page.url.toString() === map.url.toString()) {
-      const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
-      const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
-      return sourcemap
+      if (page.url.toString() === map.url.toString()) {
+        const base64 = build.outputFiles[0].text.slice(build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') + 50)
+        const sourcemap = Buffer.from(base64, 'base64').toString('utf8')
+        return sourcemap
+      }
+
+      const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
+      const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
+      return js + sourcemap
     }
-
-    const sourcemap = `\n//# sourceMappingURL=${map.url}\n`
-    const js = build.outputFiles[0].text.slice(0, build.outputFiles[0].text.lastIndexOf('//# sourceMappingURL=') - 1)
-    return js + sourcemap
+  } catch (err) {
+    console.log(page)
+    throw err
   }
 }
 

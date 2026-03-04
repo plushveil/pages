@@ -26,7 +26,6 @@ export const build = {
     /Dockerfile$/,
     /\.mjs$/,
     /\.d\.ts$/,
-    /\.json$/,
     /\.md$/,
   ],
   after: async (output, config) => {
