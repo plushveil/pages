@@ -253,96 +253,41 @@ async function getPageWatcher (config) {
     }
 
     for (const page of pages) {
-      if (!page.sources) page.sources = await getSources(page)
-      if (page.sources.find(source => file.endsWith(source))) page.cache = null
+      if (!page.sources) page.sources = await getPageSources(page)
+      if (page.sources && page.sources.includes(file)) page.cache = null
     }
-  }
-
-  /**
-   * Get page sources.
-   * @param {import('./pages.mjs').Page} page - The page.
-   * @returns {Promise<string[]>} The page sources.
-   */
-  async function getSources (page) {
-    const sources = []
-    const sourcemap = parseSourceMapComment(await readLastNonEmptyLine(path.resolve(url.fileURLToPath(page.fileUrl))))
-    if (!sourcemap) return sources
-
-    try {
-      const sourcemapObj = JSON.parse(sourcemap)
-      if (sourcemapObj.sources) return sourcemapObj.sources
-    } catch {}
-
-    return sources
 
     /**
-     * @param {string} filePath - The path to the file.
-     * @param {number} chunkSize - The size of the chunk to read from the end of the file.
-     * @returns {Promise<string|null>} The last non-empty line or null if not found.
+     * @param {import('./pages.mjs').Page} page - The page.
+     * @returns {Promise<string[]>} The source files that the page depends on.
      */
-    async function readLastNonEmptyLine (filePath, chunkSize = 2048) {
-      const file = await fs.promises.open(filePath, 'r')
-
+    async function getPageSources (page) {
+      const arg = path.relative(process.cwd(), config.root)
+      const pageUrl = page.url.toString()
+      if (!(pageUrl.endsWith('.js') || pageUrl.endsWith('.css'))) return []
+      if (pageUrl.endsWith('.map.css') || pageUrl.endsWith('.map.js')) {
+        const source = pageUrl.replace(/\.map\.(css|js)$/, '.$1')
+        const sourcePage = pages.find(p => p.url.toString() === source)
+        if (sourcePage) return [path.resolve(url.fileURLToPath(sourcePage.fileUrl))]
+        return []
+      }
+      const sourceMapUrl = pageUrl.replace(/(\.js|\.css)$/, '.map$1')
+      const sourceMapPage = pages.find(p => p.url.toString() === sourceMapUrl)
+      if (!sourceMapPage) return []
       try {
-        const { size } = await file.stat()
-        if (size === 0) return null
-
-        const start = Math.max(0, size - chunkSize)
-        const length = size - start
-
-        const buffer = Buffer.alloc(length)
-        await file.read(buffer, 0, length, start)
-
-        const text = buffer.toString('utf8')
-
-        // walk backwards without splitting whole string
-        let end = text.length - 1
-
-        // skip trailing whitespace/newlines
-        while (end >= 0 && (text[end] === '\n' || text[end] === '\r' || text[end] === ' ' || text[end] === '\t')) {
-          end--
-        }
-
-        if (end < 0) return null
-
-        let startIdx = end
-        while (startIdx >= 0 && text[startIdx] !== '\n' && text[startIdx] !== '\r') {
-          startIdx--
-        }
-
-        return text.slice(startIdx + 1, end + 1)
-      } finally {
-        await file.close()
+        const response = await fetch(sourceMapPage.url)
+        if (!response.ok) return []
+        const sourceMap = await response.json()
+        if (!sourceMap.sources) return []
+        return sourceMap.sources.map((source) => {
+          if (!source.startsWith(arg)) return source
+          let relativePath = source.slice(arg.length)
+          while (relativePath.startsWith('/')) relativePath = relativePath.slice(1)
+          return path.resolve(config.root, relativePath)
+        })
+      } catch {
+        return []
       }
-    }
-
-    /**
-     * @param {string|null} line - The line to parse.
-     * @returns {Promise<string|null>} The parsed source map comment or null if not found.
-     */
-    function parseSourceMapComment (line) {
-      if (!line) return null
-      const SOURCE_MAP_PREFIX = '//# sourceMappingURL='
-
-      const trimmed = line.trim()
-      if (!trimmed.startsWith(SOURCE_MAP_PREFIX)) return null
-
-      const value = trimmed.slice(SOURCE_MAP_PREFIX.length).trim()
-      if (!value) return null
-
-      // Inline sourcemap: data:application/json;base64,XXXX
-      if (value.startsWith('data:')) {
-        const match = value.match(/^data:.*?;base64,(.+)$/)
-        if (!match) return null
-        const base64 = match[1]
-        const decoded = Buffer.from(base64, 'base64').toString('utf8')
-        return decoded
-      }
-
-      // file reference
-      const sourceMapPage = pages.find(page => page.url.toString().endsWith(value))
-      if (!sourceMapPage) return null
-      return fs.promises.readFile(path.resolve(url.fileURLToPath(sourceMapPage.fileUrl)), { encoding: 'utf8' })
     }
   }
 
