@@ -34,5 +34,10 @@
     "mocha": "^11.7.5",
     "neostandard": "^0.12.2",
     "npm-run-all": "^4.1.5"
+  },
+  "overrides": {
+    "c8": {
+      "yargs": "^18.0.0"
+    }
   }
 }
