@@ -253,27 +253,27 @@ async function getPageWatcher (config) {
     }
 
     for (const page of pages) {
-      if (!page.dependencies) page.dependencies = await getDependencies(page)
-      if (page.dependencies.find(dependency => file.endsWith(dependency))) page.cache = null
+      if (!page.sources) page.sources = await getSources(page)
+      if (page.sources.find(source => file.endsWith(source))) page.cache = null
     }
   }
 
   /**
-   * Get page dependencies.
+   * Get page sources.
    * @param {import('./pages.mjs').Page} page - The page.
-   * @returns {Promise<string[]>} The page dependencies.
+   * @returns {Promise<string[]>} The page sources.
    */
-  async function getDependencies (page) {
-    const dependencies = []
+  async function getSources (page) {
+    const sources = []
     const sourcemap = parseSourceMapComment(await readLastNonEmptyLine(path.resolve(url.fileURLToPath(page.fileUrl))))
-    if (!sourcemap) return dependencies
+    if (!sourcemap) return sources
 
     try {
       const sourcemapObj = JSON.parse(sourcemap)
       if (sourcemapObj.sources) return sourcemapObj.sources
     } catch {}
 
-    return dependencies
+    return sources
 
     /**
      * @param {string} filePath - The path to the file.
