@@ -258,7 +258,7 @@ async function getPageWatcher (config) {
         page.sources = await getPageSources(page)
         for (const source of page.sources) {
           if (sourcesWatchers[source]) continue
-          if (!(fs.existsSync(source)) || source.includes('node_modules')) continue
+          if (source.includes('node_modules') || !(fs.existsSync(source))) continue
           const sourceWatcher = fs.watch(source, () => cachebuster(source, url.pathToFileURL(source)))
           sourcesWatchers[source] = sourceWatcher
           sourceWatcher.unref()
