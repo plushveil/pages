@@ -65,7 +65,10 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
         const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+((\s+[^=> ]+(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?)*)\s*>/)?.[1] || ''
         const attributes = getAttributesFromString(attributeString)
         const component = { name: name[1], attributeString, attributes }
-        await addComponent(component, node, id, page, config, api)
+        const nodeIndex = nodes.indexOf(node)
+        const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${name[1]}`))
+        const contentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
+        await addComponent(component, node, id, page, config, api, contentNodes)
       }
     }
   }
@@ -120,8 +123,9 @@ export function after (iterator, htmlDocument, page, config, api) {
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param config
  * @param api
+ * @param {import('../parser/iterator.mjs').Node} contentNodes - The node to update.
  */
-async function addComponent (component, node, id, page, config, api) {
+async function addComponent (component, node, id, page, config, api, contentNodes = []) {
   const exists = components[id].nodes.find(c => c.name === component.name && c.attributeString === component.attributeString)
   if (exists) {
     node.textUpdate = (node.textUpdate || node.text) + (exists.html || '')
@@ -144,7 +148,16 @@ async function addComponent (component, node, id, page, config, api) {
       const tag = `<${component.name}${component.attributeString}>`
       node.textUpdate = (node.textUpdate || node.text).replaceAll(tag, `${tag}${component.html}`)
     } else {
-      node.textUpdate = (node.textUpdate || node.text) + component.html
+      if (component.html.includes('<slot>') && component.html.includes('</slot>')) {
+        const start = component.html.slice(0, component.html.indexOf('<slot>'))
+        const end = component.html.slice(component.html.indexOf('</slot>') + 7)
+        node.textUpdate = (node.textUpdate || node.text) + start
+        const last = contentNodes[contentNodes.length - 1]
+        if (last) last.textUpdate = (last.textUpdate || last.text) + end
+        else node.textUpdate = (node.textUpdate || node.text) + end
+      } else {
+        node.textUpdate = (node.textUpdate || node.text) + component.html
+      }
     }
 
     if (rendered.classString) {
