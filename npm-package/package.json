@@ -1,6 +1,6 @@
 {
   "name": "@plushveil/pages",
-  "version": "0.0.71",
+  "version": "0.0.72",
   "main": "src/pages.mjs",
   "type": "module",
   "bin": {

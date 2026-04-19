@@ -31,6 +31,10 @@ export default async function render (page, config, api) {
     const bundle = await rolldown({
       input: 'virtual-entry',
       plugins: [virtualEntryPlugin, pagesLoaderPlugin],
+      onwarn (warning, warn) {
+        if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
+        warn(warning)
+      },
     })
 
     if (!page.fileUrl || ['.html', '.htms', '.page'].find(ext => page.fileUrl.toString().endsWith(ext))) {
