@@ -56,6 +56,7 @@ export default async function render (page, config, api) {
           minify: !!(config?.js?.minify),
         })
         await bundle.close()
+        if (!output[0].map) return '{}'
         return output[0].map.toString()
       }
 
