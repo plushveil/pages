@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Context Injection Demo - @plushveil/pages</title><meta name="description" content="Demonstration of runtime context injection in @plushveil/pages" /><link rel="canonical" href="https://plushveil.github.io/context-demo"><link rel="icon" type="image/x-icon" href="https://plushveil.github.io/assets/favicon.ico" /><link rel="stylesheet" href="https://plushveil.github.io/assets/tailwind.css" /><script src="https://plushveil.github.io/assets/context-demo-ctxdemo.js" defer></script></head><body class="min-h-screen bg-gray-50"><div class="container mx-auto px-4 py-12 max-w-4xl"><h1 class="text-4xl font-bold mb-6">Context Injection Demo</h1><div class="bg-white rounded-lg shadow-md p-6 mb-6"><h2 class="text-2xl font-semibold mb-4">What is Context Injection?</h2><p class="text-gray-700 mb-4">Context injection allows you to pass dynamic configuration to your JavaScript bundles at runtime via query parameters (serve mode) or at build time (build mode).</p><p class="text-gray-700">This page demonstrates the feature by loading <code class="bg-gray-100 px-2 py-1 rounded">context-demo.js?ctx=demo</code>which injects a context object into the bundle.</p></div><div class="bg-blue-50 border-l-4 border-blue-500 p-6 mb-6"><h3 class="text-xl font-semibold mb-3">Live Demo Output:</h3><pre id="output" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm overflow-x-auto">Loading...</pre></div><div class="bg-red-50 border-l-4 border-red-500 p-6 mb-6"><h3 class="text-lg font-semibold mb-2">⚠️ Security Warning</h3><p class="text-gray-700">Context objects are embedded in your JavaScript bundle and exposed via <code class="bg-gray-100 px-2 py-1 rounded">window.ctx</code>.<strong>Never include sensitive data like real API keys, secrets, or private tokens in context objects.</strong>Anything in the context is visible to anyone who can view your JavaScript source. Use context for public configuration only (API endpoints, feature flags, public IDs).</p></div><div class="bg-white rounded-lg shadow-md p-6 mb-6"><h2 class="text-2xl font-semibold mb-4">Configuration</h2><p class="text-gray-700 mb-3">In <code class="bg-gray-100 px-2 py-1 rounded">pages.config.mjs</code>:</p><pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>export const js = {
+  // For serve: contexts resolved from ?ctx=X
+  // For build: generate separate files
+  buildContexts: ['demo', 'production'],
+
+  contextResolve: (ctxName) => {
+    if (ctxName === 'demo') {
+      return {
+        publicApiUrl: 'https://demo.api.example.com',
+        publicApiKey: 'demo_key_12345',
+        features: { darkMode: true, analytics: false }
+      }
+    }
+    if (ctxName === 'production') {
+      return {
+        publicApiUrl: 'https://api.example.com',
+        publicApiKey: 'prod_key_67890',
+        features: { darkMode: true, analytics: true }
+      }
+    }
+  }
+}</code><code></code></pre></div><div class="bg-white rounded-lg shadow-md p-6 mb-6"><h2 class="text-2xl font-semibold mb-4">Usage in JavaScript</h2><p class="text-gray-700 mb-3">The <code class="bg-gray-100 px-2 py-1 rounded">ctx</code>object is automatically available in your scripts:</p><pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>// ctx is automatically available - no import needed
+console.log('API URL:', ctx.publicApiUrl)
+console.log('API Key:', ctx.publicApiKey)
+console.log('Features:', ctx.features)
+
+// Use it in your app
+if (ctx.features.darkMode) {
+  document.body.classList.add('dark-mode')
+}
+
+// Also available as window.ctx
+console.log(window.ctx === ctx) // true</code><code></code></pre></div><div class="bg-white rounded-lg shadow-md p-6 mb-6"><h2 class="text-2xl font-semibold mb-4">Tree-Shaking with Context</h2><p class="text-gray-700 mb-3">Context properties in conditions enable dead code elimination:</p><pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>// Analytics only loaded in production
+if (ctx.name !== 'production') import('./analytics.js')
+
+// Both ctx and window.ctx work
+if (window.ctx.features.analytics) {
+  trackPageView()
+}
+
+// When ctx.name === 'demo', the import and analytics code
+// are completely removed from the bundle via tree-shaking</code><code></code></pre></div><div class="bg-white rounded-lg shadow-md p-6 mb-6"><h2 class="text-2xl font-semibold mb-4">Loading Different Contexts</h2><div class="space-y-4"><div><h3 class="font-semibold mb-2">Serve Mode (Dynamic):</h3><code class="bg-gray-100 px-2 py-1 rounded block">&lt;script src="./script.js?ctx=demo"&gt;&lt;/script&gt;</code><p class="text-sm text-gray-600 mt-1">Context resolved at request time</p></div><div><h3 class="font-semibold mb-2">Build Mode (Static):</h3><code class="bg-gray-100 px-2 py-1 rounded block">Generates: script.js, script-ctxdemo.js, script-ctxproduction.js</code><p class="text-sm text-gray-600 mt-1">Each file has its context baked in</p></div></div></div><div class="bg-yellow-50 border-l-4 border-yellow-500 p-6"><h3 class="text-lg font-semibold mb-2">💡 Use Cases</h3><ul class="list-disc list-inside space-y-2 text-gray-700"><li>Different API endpoints for dev/staging/production</li><li>Feature flags without runtime overhead</li><li>API keys and configuration per environment</li><li>A/B testing variants</li><li>Locale-specific configuration</li></ul></div></div></body></html>
