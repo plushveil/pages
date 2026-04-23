@@ -6,7 +6,11 @@
  * The base URI of the website.
  * @type {URL}
  */
-export const baseURI = new URL(process.env.HOST || 'http://localhost:3000')
+export const baseURI = new URL(
+  process.env.HOST
+    ? (process.env.HOST.includes('://') ? process.env.HOST : `https://${process.env.HOST}`)
+    : 'http://localhost:3000'
+)
 
 /**
  * Configuration of the build module.
