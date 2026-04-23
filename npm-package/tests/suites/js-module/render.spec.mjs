@@ -5,7 +5,7 @@ import render from '../../../modules/js/src/render.mjs'
 describe('JS Module Render - Context Injection', function () {
   it('injects context when __resolvedCtx is provided', async function () {
     const page = {
-      content: "import ctx from 'page:ctx'; console.log(ctx.key);",
+      content: "console.log(ctx.key);",
       params: {
         __resolvedCtx: { key: 'value123' }
       }
@@ -17,20 +17,20 @@ describe('JS Module Render - Context Injection', function () {
     assert.ok(result.includes('window.ctx'), 'should assign to window.ctx')
   })
 
-  it('exports undefined when no context is provided', async function () {
+  it('handles undefined context gracefully', async function () {
     const page = {
-      content: "import ctx from 'page:ctx'; console.log(ctx);",
+      content: "console.log('no ctx');",
       params: {}
     }
     const config = { js: { minify: false } }
     const result = await render(page, config, {})
 
-    assert.ok(result.includes('undefined') || result.includes('void 0'), 'should export undefined when no context')
+    assert.ok(result.includes('no ctx'), 'should render without context')
   })
 
   it('makes context available as window.ctx', async function () {
     const page = {
-      content: "import ctx from 'page:ctx'; if (window.ctx) console.log('has window.ctx');",
+      content: "if (window.ctx) console.log('has window.ctx');",
       params: {
         __resolvedCtx: { test: 'data' }
       }
@@ -44,7 +44,7 @@ describe('JS Module Render - Context Injection', function () {
 
   it('handles nested context objects', async function () {
     const page = {
-      content: "import ctx from 'page:ctx'; console.log(ctx.nested.value);",
+      content: "console.log(ctx.nested.value);",
       params: {
         __resolvedCtx: {
           nested: { value: 42 },
@@ -59,10 +59,9 @@ describe('JS Module Render - Context Injection', function () {
     assert.ok(result.includes('42'), 'should include nested value')
   })
 
-  it('bundles context module with other imports', async function () {
+  it('bundles context with other code', async function () {
     const page = {
       content: `
-        import ctx from 'page:ctx';
         const data = { ctx, extra: 'value' };
         console.log(data);
       `,

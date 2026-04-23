@@ -1,5 +1,4 @@
-import ctx from 'page:ctx'
-
+// ctx is automatically available - no import needed
 // Display the context in the output area
 const output = document.getElementById('output')
 
@@ -7,7 +6,7 @@ if (output) {
   const lines = [
     '// Context loaded successfully!',
     '',
-    `import ctx from 'page:ctx'`,
+    '// ctx is automatically available - no import needed',
     '',
     '// Context object:',
     JSON.stringify(ctx, null, 2),
@@ -19,6 +18,10 @@ if (output) {
     '',
     '// Also available as window.ctx:',
     `window.ctx === ctx // ${window.ctx === ctx}`,
+    '',
+    '// Tree-shaking example:',
+    `// if (ctx.name !== 'production') import('./analytics.js')`,
+    `// ↑ Analytics only loaded when needed!`,
     '',
     '// This demonstrates dynamic configuration injection!',
   ]

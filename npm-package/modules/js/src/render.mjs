@@ -25,16 +25,18 @@ export default async function render (page, config, api) {
     // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
     const ctx = page.params?.__resolvedCtx
 
-    const script = typeof page.content === 'string' ? page.content : `${ctx ? `import 'page:ctx';\n` : ''}export * from '${path.resolve(file)}'\n`
+    const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
     const resolveDir = file ? path.dirname(file) : process.cwd()
 
-    const virtualEntryPlugin = createVirtualEntryPlugin(script, resolveDir)
+    const virtualEntryPlugin = createVirtualEntryPlugin(script, resolveDir, ctx)
     const pagesLoaderPlugin = createPagesLoaderPlugin(page, config, api)
-    const contextPlugin = createContextPlugin(ctx)
 
     const bundle = await rolldown({
       input: 'virtual-entry',
-      plugins: [virtualEntryPlugin, pagesLoaderPlugin, contextPlugin],
+      plugins: [virtualEntryPlugin, pagesLoaderPlugin],
+      treeshake: {
+        moduleSideEffects: false,
+      },
       onwarn (warning, warn) {
         if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
         warn(warning)
@@ -80,11 +82,12 @@ export default async function render (page, config, api) {
 
 /**
  * Creates a virtual entry plugin for Rolldown.
- * @param {string} script - The virtual entry script content.
+ * @param {string} code - The virtual entry script content.
  * @param {string} resolveDir - The directory to resolve imports from.
+ * @param {any} ctx - The context object for constant inlining.
  * @returns {import('rolldown').Plugin}
  */
-function createVirtualEntryPlugin (script, resolveDir) {
+function createVirtualEntryPlugin (code, resolveDir, ctx) {
   return {
     name: 'virtual-entry',
     resolveId (source, importer) {
@@ -95,7 +98,22 @@ function createVirtualEntryPlugin (script, resolveDir) {
       return null
     },
     load (id) {
-      if (id === VIRTUAL_ENTRY_ID) return script
+      if (id === VIRTUAL_ENTRY_ID) {
+        if (ctx) {
+          // Replace ctx property accesses with literals for DCE
+          for (const [key, value] of Object.entries(ctx)) {
+            const regex = new RegExp(`\\b(?:window\\.)?ctx\\.${key}\\b(?=\\s*[!=<>])`, 'g')
+            code = code.replace(regex, JSON.stringify(value))
+          }
+
+          code = [
+            `const ctx = Object.freeze(${JSON.stringify(ctx)});`,
+            'if (typeof window !== "undefined") window.ctx = ctx;',
+            code
+          ].join('\n')
+        }
+        return { code, moduleSideEffects: false }
+      }
       return null
     },
   }
@@ -124,36 +142,6 @@ function createPagesLoaderPlugin (page, config, api) {
       }
       const content = await renderPage(subpage, config, 'utf-8', id.endsWith('.css') ? 'css' : 'html')
       return { code: 'export default ' + JSON.stringify(content) }
-    },
-  }
-}
-
-/**
- * Creates the context plugin for Rolldown.
- * Provides the context object as a virtual module that can be imported.
- * @param {any} ctx - The context object to inject.
- * @returns {import('rolldown').Plugin}
- */
-function createContextPlugin (ctx) {
-  const CONTEXT_MODULE_ID = 'page:ctx'
-  const RESOLVED_ID = '\0' + CONTEXT_MODULE_ID
-
-  return {
-    name: 'page-ctx',
-    resolveId (source) {
-      if (source === CONTEXT_MODULE_ID) return RESOLVED_ID
-      return null
-    },
-    load (id) {
-      if (id === RESOLVED_ID) {
-        if (!ctx) return 'export default undefined;'
-        // Export as a constant for tree-shaking and constant folding
-        // Also assign to window.ctx for backward compatibility
-        return `const ctx = ${JSON.stringify(ctx)};
-if (typeof window !== 'undefined') window.ctx = ctx;
-export default ctx;`
-      }
-      return null
     },
   }
 }
