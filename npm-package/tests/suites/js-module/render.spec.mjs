@@ -5,7 +5,7 @@ import render from '../../../modules/js/src/render.mjs'
 describe('JS Module Render - Context Injection', function () {
   it('injects context when __resolvedCtx is provided', async function () {
     const page = {
-      content: "console.log(ctx.key);",
+      content: 'console.log(ctx.key);',
       params: {
         __resolvedCtx: { key: 'value123' }
       }
@@ -44,7 +44,7 @@ describe('JS Module Render - Context Injection', function () {
 
   it('handles nested context objects', async function () {
     const page = {
-      content: "console.log(ctx.nested.value);",
+      content: 'console.log(ctx.nested.value);',
       params: {
         __resolvedCtx: {
           nested: { value: 42 },
