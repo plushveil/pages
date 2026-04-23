@@ -3,6 +3,7 @@ import * as url from 'node:url'
 import * as path from 'node:path'
 
 import { rolldown } from 'rolldown'
+import createContextTransformPlugin from './createContextTransformPlugin.mjs'
 
 import getPages from './pages.mjs'
 import { render as renderPage } from '../../../src/pages.mjs'
@@ -25,17 +26,19 @@ export default async function render (page, config, api) {
     // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
     const ctx = page.params?.__resolvedCtx
 
-    const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
+    const script = typeof page.content === 'string' ? page.content : `import('${path.resolve(file)}');\n`
     const resolveDir = file ? path.dirname(file) : process.cwd()
 
     const virtualEntryPlugin = createVirtualEntryPlugin(script, resolveDir, ctx)
     const pagesLoaderPlugin = createPagesLoaderPlugin(page, config, api)
+    const contextLoaderPlugin = createContextLoaderPlugin(ctx)
+    const contextTransformPlugin = createContextTransformPlugin(ctx)
 
     const bundle = await rolldown({
       input: 'virtual-entry',
-      plugins: [virtualEntryPlugin, pagesLoaderPlugin],
+      plugins: [contextLoaderPlugin, contextTransformPlugin, virtualEntryPlugin, pagesLoaderPlugin],
       treeshake: {
-        moduleSideEffects: true,
+        moduleSideEffects: typeof page.content === 'string' ? false : [path.resolve(file)],
       },
       onwarn (warning, warn) {
         if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
@@ -47,13 +50,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: config?.js?.minify
-          ? {
-              compress: {
-                const_to_let: false,
-              },
-            }
-          : false,
+        minify: !!(config?.js?.minify)
       })
       await bundle.close()
       return output[0].code
@@ -65,13 +62,7 @@ export default async function render (page, config, api) {
         const { output } = await bundle.generate({
           format: 'iife',
           sourcemap: true,
-          minify: config?.js?.minify
-            ? {
-                compress: {
-                  const_to_let: false,
-                },
-              }
-            : false,
+          minify: !!(config?.js?.minify)
         })
         await bundle.close()
         if (!output[0].map) return '{}'
@@ -81,13 +72,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: config?.js?.minify
-          ? {
-              compress: {
-                const_to_let: false,
-              },
-            }
-          : false,
+        minify: !!(config?.js?.minify)
       })
       await bundle.close()
       return output[0].code + `\n//# sourceMappingURL=${map.url}\n`
@@ -118,15 +103,8 @@ function createVirtualEntryPlugin (code, resolveDir, ctx) {
     load (id) {
       if (id === VIRTUAL_ENTRY_ID) {
         if (ctx) {
-          // Replace ctx property accesses with literals for DCE
-          for (const [key, value] of Object.entries(ctx)) {
-            const regex = new RegExp(`\\b(?:window\\.)?ctx\\.${key}\\b(?=\\s*[!=<>])`, 'g')
-            code = code.replace(regex, JSON.stringify(value))
-          }
-
           code = [
-            `const ctx = Object.freeze(${JSON.stringify(ctx)});`,
-            'if (typeof window !== "undefined") window.ctx = ctx;',
+            'import ctx from \'page:ctx\';',
             code
           ].join('\n')
         }
@@ -134,6 +112,33 @@ function createVirtualEntryPlugin (code, resolveDir, ctx) {
       }
       return null
     },
+  }
+}
+
+/**
+ *
+ * @param ctx
+ */
+function createContextLoaderPlugin (ctx) {
+  return {
+    name: 'context-loader',
+    resolveId (source) {
+      if (source === 'page:ctx') return 'page:ctx'
+      return null
+    },
+    load (id) {
+      if (id === 'page:ctx') {
+        return {
+          code: [
+            `const ctx = Object.freeze(${JSON.stringify(ctx)});`,
+            'if (typeof window !== \'undefined\') window.ctx = ctx;',
+            'export default ctx;'
+          ].join('\n'),
+          moduleSideEffects: true
+        }
+      }
+      return null
+    }
   }
 }
 
@@ -149,7 +154,6 @@ function createPagesLoaderPlugin (page, config, api) {
     name: 'pages-loader',
     async load (id) {
       if (!/\.(htms|page|html|css)$/.test(id)) return null
-
       const subpage = {
         ...page,
         params: {
@@ -160,6 +164,6 @@ function createPagesLoaderPlugin (page, config, api) {
       }
       const content = await renderPage(subpage, config, 'utf-8', id.endsWith('.css') ? 'css' : 'html')
       return { code: 'export default ' + JSON.stringify(content) }
-    },
+    }
   }
 }
