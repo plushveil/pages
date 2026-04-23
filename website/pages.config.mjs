@@ -34,3 +34,7 @@ export const css = {
   minify: true,
   integrity: false,
 }
+
+/**
+ * Configuration of the js module.
+ */

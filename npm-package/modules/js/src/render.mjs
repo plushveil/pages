@@ -22,15 +22,19 @@ export default async function render (page, config, api) {
     if (file && !fs.existsSync(file)) return ''
     if (!file && !page.content) return ''
 
+    // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
+    const ctx = page.params?.__resolvedCtx
+
     const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
     const resolveDir = file ? path.dirname(file) : process.cwd()
 
     const virtualEntryPlugin = createVirtualEntryPlugin(script, resolveDir)
     const pagesLoaderPlugin = createPagesLoaderPlugin(page, config, api)
+    const contextPlugin = createContextPlugin(ctx)
 
     const bundle = await rolldown({
       input: 'virtual-entry',
-      plugins: [virtualEntryPlugin, pagesLoaderPlugin],
+      plugins: [virtualEntryPlugin, pagesLoaderPlugin, contextPlugin],
       onwarn (warning, warn) {
         if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
         warn(warning)
@@ -120,6 +124,35 @@ function createPagesLoaderPlugin (page, config, api) {
       }
       const content = await renderPage(subpage, config, 'utf-8', id.endsWith('.css') ? 'css' : 'html')
       return { code: 'export default ' + JSON.stringify(content) }
+    },
+  }
+}
+
+/**
+ * Creates the context plugin for Rolldown.
+ * Provides the context object as a virtual module that can be imported.
+ * @param {any} ctx - The context object to inject.
+ * @returns {import('rolldown').Plugin}
+ */
+function createContextPlugin (ctx) {
+  const CONTEXT_MODULE_ID = 'pages:context'
+
+  return {
+    name: 'pages-context',
+    resolveId (source) {
+      if (source === CONTEXT_MODULE_ID) return CONTEXT_MODULE_ID
+      return null
+    },
+    load (id) {
+      if (id === CONTEXT_MODULE_ID) {
+        if (!ctx) return 'export default undefined;'
+        // Export as a constant for tree-shaking and constant folding
+        // Also assign to window.ctx for backward compatibility
+        return `const ctx = ${JSON.stringify(ctx)};
+if (typeof window !== 'undefined') window.ctx = ctx;
+export default ctx;`
+      }
+      return null
     },
   }
 }

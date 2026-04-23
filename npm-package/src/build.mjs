@@ -20,8 +20,18 @@ const __worker = path.resolve(__dirname, 'worker.mjs')
  * @returns {Promise<string>} The output folder.
  */
 export default async function build (folder, config, output) {
+  const root = utils.resolve(folder, undefined, { exists: true, folder: true })
+
+  // If no config specified, look for config in the folder being built
+  if (!config) {
+    const configInFolder = path.join(root, 'pages.config.mjs')
+    if (fs.existsSync(configInFolder)) {
+      config = configInFolder
+    }
+  }
+
   config = await getConfig(config)
-  config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
+  config.root = root
   output = getOutput(output)
 
   console.log(`Building ${path.relative(process.cwd(), config.root)} to ${output}`)
@@ -82,6 +92,8 @@ function render (output, config, page) {
     worker.on('message', cb(message => { resolve(message); worker.terminate() }))
     worker.on('error', cb(err => worker.terminate() || reject(err)))
     worker.on('exit', cb(code => reject(new Error(`Worker stopped with exit code ${code}`))))
+
+    // Context is now set in pages.mjs based on buildContexts
     worker.postMessage(['pageToFile', JSON.stringify(page), file])
   })
 }

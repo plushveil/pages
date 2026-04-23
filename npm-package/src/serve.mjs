@@ -36,8 +36,18 @@ process.on('SIGINT', (event) => {
  * @returns {Promise<http.Server>} The server.
  */
 export default async function serve (folder, config, cache = true) {
+  const root = utils.resolve(folder, undefined, { exists: true, folder: true })
+
+  // If no config specified, look for config in the served folder first
+  if (!config) {
+    const configInFolder = path.join(root, 'pages.config.mjs')
+    if (fs.existsSync(configInFolder)) {
+      config = configInFolder
+    }
+  }
+
   config = await getConfig(config)
-  config.root = utils.resolve(folder, undefined, { exists: true, folder: true })
+  config.root = root
 
   const watcher = getPageWatcher(config)
   const parallel = os.cpus().length
@@ -121,6 +131,8 @@ function getRequestHandler (config, watcher, workers, cache) {
       return
     }
 
+    const queryParams = Object.fromEntries(reqUrl.searchParams.entries())
+
     // ETag-based (entity tag) caching
     const etag = page.params?.headers?.ETag
     if (etag && req.headers['if-none-match'] === etag) {
@@ -157,10 +169,13 @@ function getRequestHandler (config, watcher, workers, cache) {
 
         // Cache the content for 3 minutes
         if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !(data.includes('/*! tailwindcss'))) {
-          if (page.cache?.timeout) clearTimeout(page.cache.timeout)
-          const weakPage = new WeakRef(page)
-          const timeout = setTimeout(() => { const derefPage = weakPage.deref(); if (derefPage) derefPage.cache = null }, 180000).unref()
-          page.cache = { data, timeout }
+          const hasQueryParams = Object.keys(queryParams).length > 0
+          if (!hasQueryParams) {
+            if (page.cache?.timeout) clearTimeout(page.cache.timeout)
+            const weakPage = new WeakRef(page)
+            const timeout = setTimeout(() => { const derefPage = weakPage.deref(); if (derefPage) derefPage.cache = null }, 180000).unref()
+            page.cache = { data, timeout }
+          }
         }
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
@@ -183,7 +198,15 @@ function getRequestHandler (config, watcher, workers, cache) {
       res.end('Internal server error')
     })
 
-    worker.postMessage(['pipe', JSON.stringify({ ...page, cache: undefined })])
+    // Resolve context before sending to worker (functions can't be serialized)
+    const ctxName = queryParams.ctx
+    const resolvedCtx = (ctxName && config?.js?.contextResolve?.(ctxName)) || undefined
+    const pageWithContext = {
+      ...page,
+      params: { ...page.params, ...queryParams, __resolvedCtx: resolvedCtx },
+      cache: undefined
+    }
+    worker.postMessage(['pipe', JSON.stringify(pageWithContext)])
   }
 }
 
