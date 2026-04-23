@@ -7,6 +7,7 @@ import * as url from 'node:url'
 import getConfig from './config.mjs'
 import * as utils from './utils.mjs'
 import { pages as getPages } from './pages.mjs'
+import discoverContexts from '../modules/html/src/discover-contexts.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -35,10 +36,26 @@ export default async function build (folder, config, output) {
   output = getOutput(output)
 
   console.log(`Building ${path.relative(process.cwd(), config.root)} to ${output}`)
-  const pages = (await Promise.all(utils.getFilesInFolder(config.root).map(file => {
+
+  // Discover contexts from HTML files before generating pages
+  const allFiles = utils.getFilesInFolder(config.root)
+  const htmlFiles = allFiles.filter(file => /\.(page|htms|html)$/.test(file))
+  const contextsMap = discoverContexts(htmlFiles, config)
+
+  // Store discovered contexts in config for JS module to use
+  // Convert Map to plain object for JSON serialization
+  config.js = config.js || {}
+  config.js.__discoveredContexts = Object.fromEntries(
+    Array.from(contextsMap.entries()).map(([key, set]) => [key, Array.from(set)])
+  )
+
+  const pages = (await Promise.all(allFiles.map(file => {
     if (config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))) return []
     return getPages(file, config)
   }))).flat().filter(page => page && (page.params?.headers?.['X-Partial'] !== 'true'))
+
+  // Store all pages in config for HTML reference resolution
+  config.__allPages = pages
   const parallel = Math.min(os.cpus().length, pages.length)
 
   let done = 0
@@ -88,7 +105,24 @@ function render (output, config, page) {
   return new Promise((resolve, reject) => {
     let done = false
     const cb = (fn) => (...args) => (done) ? null : (() => { done = true; return fn(...args) })()
-    const worker = new threads.Worker(url.pathToFileURL(__worker), { workerData: { config: JSON.stringify(config) } })
+    // Prepare config for serialization - fileUrl needs to be a string
+    const serializableConfig = {
+      ...config,
+      baseURI: config.baseURI.toString(),
+      fileUrl: config.fileUrl ? config.fileUrl.toString() : undefined,
+      // Pass all pages for HTML reference resolution (convert URLs to strings)
+      __allPages: config.__allPages?.map(p => ({
+        ...p,
+        url: p.url.toString(),
+        fileUrl: p.fileUrl ? p.fileUrl.toString() : undefined
+      })),
+      // Pass discovered contexts to worker so JS files can be rendered with correct variants
+      js: {
+        ...config.js,
+        __discoveredContexts: config.js?.__discoveredContexts
+      }
+    }
+    const worker = new threads.Worker(url.pathToFileURL(__worker), { workerData: { config: JSON.stringify(serializableConfig) } })
     worker.on('message', cb(message => { resolve(message); worker.terminate() }))
     worker.on('error', cb(err => worker.terminate() || reject(err)))
     worker.on('exit', cb(code => reject(new Error(`Worker stopped with exit code ${code}`))))

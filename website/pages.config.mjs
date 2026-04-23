@@ -43,10 +43,8 @@ export const css = {
  * Configuration of the js module.
  */
 export const js = {
-  // Build: generate script-ctxdemo.js and script-ctxproduction.js variants
-  buildContexts: ['demo', 'production'],
-
   // Resolve context names to configuration objects
+  // Contexts are auto-discovered from HTML files with ?ctx=X query parameters
   contextResolve: (ctxName) => {
     if (ctxName === 'demo') {
       return {

@@ -36,43 +36,62 @@ export default async function pages (file, config, api) {
 
   results.push(src, map)
 
-  // Generate context variants if buildContexts is configured
+  // Collect contexts from auto-discovery and/or buildContexts config
+  const contexts = new Set()
+
+  // Check if this file has auto-discovered contexts from HTML
+  const discoveredContexts = config?.js?.__discoveredContexts
+  if (discoveredContexts) {
+    const fileUrl = '/' + filepath
+    const fileContexts = discoveredContexts[fileUrl]
+    if (Array.isArray(fileContexts)) {
+      fileContexts.forEach(ctx => contexts.add(ctx))
+    }
+  }
+
+  // Fall back to buildContexts for backward compatibility
   const buildContexts = config?.js?.buildContexts
   if (Array.isArray(buildContexts) && buildContexts.length > 0) {
-    for (const ctxName of buildContexts) {
-      // Resolve context to check if it exists
-      const resolvedCtx = config?.js?.contextResolve?.(ctxName)
-      if (!resolvedCtx) continue
+    buildContexts.forEach(ctx => contexts.add(ctx))
+  }
 
-      // Create variant filename: script.js?ctx=1 -> script-ctx1.js
-      const variantName = filepath.replace(/\.js$/, `-ctx${ctxName}.js`)
-
-      const ctxSrc = {
-        url: new URL(variantName, config.baseURI),
-        params: {
-          headers: {
-            'Content-Type': 'application/javascript',
-          },
-          ctx: ctxName,  // Pass context to render
-          __resolvedCtx: resolvedCtx,
-        },
-        fileUrl: url.pathToFileURL(file),
-      }
-
-      const ctxMap = {
-        url: new URL(variantName.replace(/\.js$/, '.map.js'), config.baseURI),
-        params: {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          ctx: ctxName,
-          __resolvedCtx: resolvedCtx,
-        },
-        fileUrl: url.pathToFileURL(file),
-      }
-
-      results.push(ctxSrc, ctxMap)
+  // Generate context variants for each discovered or configured context
+  for (const ctxName of contexts) {
+    // Resolve context to check if it exists
+    const resolvedCtx = config?.js?.contextResolve?.(ctxName)
+    if (!resolvedCtx) {
+      console.warn(`Context '${ctxName}' referenced but not defined in contextResolve`)
+      continue
     }
+
+    // Create variant filename: script.js?ctx=demo -> script-ctxdemo.js
+    const variantName = filepath.replace(/\.js$/, `-ctx${ctxName}.js`)
+
+    const ctxSrc = {
+      url: new URL(variantName, config.baseURI),
+      params: {
+        headers: {
+          'Content-Type': 'application/javascript',
+        },
+        ctx: ctxName,  // Pass context to render
+        __resolvedCtx: resolvedCtx,
+      },
+      fileUrl: url.pathToFileURL(file),
+    }
+
+    const ctxMap = {
+      url: new URL(variantName.replace(/\.js$/, '.map.js'), config.baseURI),
+      params: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        ctx: ctxName,
+        __resolvedCtx: resolvedCtx,
+      },
+      fileUrl: url.pathToFileURL(file),
+    }
+
+    results.push(ctxSrc, ctxMap)
   }
 
   return results

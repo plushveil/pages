@@ -3,9 +3,27 @@ import * as path from 'node:path'
 import * as threads from 'node:worker_threads'
 
 import { render } from './pages.mjs'
+import getConfig from './config.mjs'
 
-const config = JSON.parse(threads.workerData.config)
-config.baseURI = new URL(config.baseURI)
+const configData = JSON.parse(threads.workerData.config)
+// Reload config from fileUrl to get functions back (like contextResolve)
+// Merge configs carefully to preserve both functions and discovered contexts
+let config
+if (configData.fileUrl) {
+  const loadedConfig = await getConfig(configData.fileUrl)
+  config = {
+    ...configData,
+    ...loadedConfig,
+    // Merge js config to preserve both contextResolve (from loaded) and __discoveredContexts (from serialized)
+    js: {
+      ...loadedConfig.js,
+      __discoveredContexts: configData.js?.__discoveredContexts
+    }
+  }
+} else {
+  config = configData
+}
+config.baseURI = new URL(config.baseURI || configData.baseURI)
 
 threads.parentPort.on('message', async ([task, ...args]) => {
   if (task === 'pageToFile') return pageToFile(...args)

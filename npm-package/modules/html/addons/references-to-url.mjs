@@ -25,7 +25,14 @@ if (isChildWorker) sendPagesToParent().finally(() => process.exit(0))
  */
 async function sendPagesToParent () {
   try {
-    const config = { ...(await getConfig(thread.workerData.config)), root: thread.workerData.configRoot }
+    const baseConfig = await getConfig(thread.workerData.config)
+    // Restore discovered contexts if provided
+    const jsConfig = { ...baseConfig.js }
+    if (thread.workerData.discoveredContexts) {
+      jsConfig.__discoveredContexts = thread.workerData.discoveredContexts
+    }
+    const config = { ...baseConfig, root: thread.workerData.configRoot, js: jsConfig }
+
     const pages = (await getPagesFromWorker(thread.workerData.file, config))
     thread.parentPort.postMessage(JSON.stringify(pages))
     process.nextTick(() => process.exit(0))
@@ -100,10 +107,46 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   for (const attributeValue of Object.values(htmlNode.attributes)) {
     if (!text.includes(attributeValue)) continue
     const value = attributeValue.slice(1, -1)
-    const page = files.includes(value) ? (await getPage(value)) : (resolveAttributes.some(resolveAttribute => value.startsWith(resolveAttribute))) ? (await getPage(value)) : null
-    if (!page) continue
 
-    text = text.replace(value, page.url.toString())
+    // Split path and query parameters
+    const [pathname, queryString] = value.includes('?') ? value.split('?', 2) : [value, null]
+    const queryParams = queryString ? new URLSearchParams(queryString) : null
+    const ctxParam = queryParams?.get('ctx')
+
+    // Resolve the base path (without query params)
+    const basePage = files.includes(pathname) ? (await getPage(pathname)) : (resolveAttributes.some(resolveAttribute => pathname.startsWith(resolveAttribute))) ? (await getPage(pathname)) : null
+
+    if (!basePage) continue
+
+    // Handle context-specific resolution
+    if (ctxParam) {
+      // Try to find context-specific variant from getPages result
+      // First, get all pages for this file
+      const resolved = basePage.fileUrl ? (typeof basePage.fileUrl === 'string' ? basePage.fileUrl : basePage.fileUrl.toString()) : null
+      let ctxPage = null
+
+      if (resolved) {
+        // Parse file:// URL if needed
+        const filePath = resolved.startsWith('file://') ? url.fileURLToPath(resolved) : resolved
+        const allPagesForFile = await getPages(filePath, config)
+        ctxPage = allPagesForFile.find(p => p.params?.ctx === ctxParam)
+      }
+
+      if (ctxPage) {
+        // Use context-specific page (e.g., script-ctxdemo.js)
+        const ctxUrl = typeof ctxPage.url === 'string' ? ctxPage.url : ctxPage.url.toString()
+        text = text.replace(value, ctxUrl)
+      } else {
+        // Context not found, preserve query param for serve mode
+        text = text.replace(value, `${basePage.url.toString()}?${queryString}`)
+      }
+    } else if (queryString) {
+      // No context param, but has other query params - preserve them
+      text = text.replace(value, `${basePage.url.toString()}?${queryString}`)
+    } else {
+      // No query params, use base page
+      text = text.replace(value, basePage.url.toString())
+    }
   }
 
   if (text !== before) node.textUpdate = text
@@ -118,7 +161,17 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
     try {
       resolved = utils.resolve(value, [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))], { exists: true, file: true })
     } catch (err) {
-      return null
+      // If .js file not found, try .ts extension (common for TypeScript sources)
+      if (value.endsWith('.js')) {
+        try {
+          const tsValue = value.replace(/\.js$/, '.ts')
+          resolved = utils.resolve(tsValue, [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))], { exists: true, file: true })
+        } catch (tsErr) {
+          return null
+        }
+      } else {
+        return null
+      }
     }
 
     const pages = await getPages(resolved, config)
@@ -167,6 +220,7 @@ async function getPages (file, config) {
           file,
           config: config.fileUrl.toString(),
           configRoot: config.root.toString(),
+          discoveredContexts: config.js?.__discoveredContexts,
           specifier: __filename
         }
       })
