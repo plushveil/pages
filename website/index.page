@@ -136,6 +136,12 @@
 
           <div class="feature-card">
             <div class="text-3xl mb-4">🔧</div>
+            <h3 class="text-xl font-semibold mb-2">Context Injection</h3>
+            <p class="text-gray-600">Inject dynamic configuration into your JS bundles. <a href="/context-demo" class="text-blue-600 hover:text-blue-800 font-semibold">View demo →</a></p>
+          </div>
+
+          <div class="feature-card">
+            <div class="text-3xl mb-4">🔧</div>
             <h3 class="text-xl font-semibold mb-2">VS Code Extension</h3>
             <p class="text-gray-600">Syntax highlighting and IntelliSense for .page files.</p>
           </div>

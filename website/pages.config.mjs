@@ -38,3 +38,37 @@ export const css = {
 /**
  * Configuration of the js module.
  */
+export const js = {
+  // Build: generate script-ctxdemo.js and script-ctxproduction.js variants
+  buildContexts: ['demo', 'production'],
+
+  // Resolve context names to configuration objects
+  contextResolve: (ctxName) => {
+    if (ctxName === 'demo') {
+      return {
+        apiUrl: 'https://demo.api.example.com',
+        apiKey: 'demo_key_12345',
+        features: {
+          darkMode: true,
+          analytics: false,
+          debugMode: true
+        }
+      }
+    }
+    if (ctxName === 'production') {
+      return {
+        apiUrl: 'https://api.example.com',
+        apiKey: 'prod_key_67890',
+        features: {
+          darkMode: true,
+          analytics: true,
+          debugMode: false
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Configuration of the js module.
+ */

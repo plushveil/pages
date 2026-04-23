@@ -57,3 +57,69 @@ describe('modules/js - render', function () {
     assert.ok(result.includes('bar'), 'should bundle dependency content')
   })
 })
+
+  describe('context injection', function () {
+    it('injects context when __resolvedCtx is provided', async function () {
+      const page = {
+        content: "import ctx from 'pages:context'; console.log(ctx.key);",
+        params: {
+          __resolvedCtx: { key: 'value123' }
+        }
+      }
+      const config = { js: { minify: false } }
+      const result = await render(page, config, {})
+      assert.ok(result.includes('value123'), 'should include context value')
+    })
+
+    it('exports undefined when no context provided', async function () {
+      const page = {
+        content: "import ctx from 'pages:context'; console.log(ctx);",
+        params: {}
+      }
+      const config = { js: { minify: false } }
+      const result = await render(page, config, {})
+      assert.ok(result.includes('undefined'), 'should export undefined when no context')
+    })
+
+    it('assigns context to window.ctx', async function () {
+      const page = {
+        content: "import ctx from 'pages:context'; console.log(window.ctx);",
+        params: {
+          __resolvedCtx: { testKey: 'testValue' }
+        }
+      }
+      const config = { js: { minify: false } }
+      const result = await render(page, config, {})
+      assert.ok(result.includes('window.ctx'), 'should assign to window.ctx')
+      assert.ok(result.includes('testValue'), 'should include context value')
+    })
+
+    it('handles complex context objects', async function () {
+      const page = {
+        content: "import ctx from 'pages:context'; console.log(ctx.nested.array[0]);",
+        params: {
+          __resolvedCtx: {
+            nested: { array: [1, 2, 3] },
+            string: 'hello'
+          }
+        }
+      }
+      const config = { js: { minify: false } }
+      const result = await render(page, config, {})
+      assert.ok(result.includes('[1,2,3]') || result.includes('[1, 2, 3]'), 'should serialize nested objects')
+    })
+
+    it('context is bundled as a module', async function () {
+      const page = {
+        content: "import ctx from 'pages:context'; export default ctx;",
+        params: {
+          __resolvedCtx: { moduleKey: 'moduleValue' }
+        }
+      }
+      const config = { js: { minify: false } }
+      const result = await render(page, config, {})
+      assert.ok(result.length > 0, 'should bundle successfully')
+      assert.ok(result.includes('moduleValue'), 'should include context in bundle')
+    })
+  })
+})
