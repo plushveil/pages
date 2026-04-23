@@ -58,7 +58,7 @@ export default async function pages (file, config, api) {
   // Generate context variants for each discovered or configured context
   for (const ctxName of contexts) {
     // Resolve context to check if it exists
-    const resolvedCtx = config?.js?.contextResolve?.(ctxName)
+    const resolvedCtx = await config?.js?.contextResolve?.(ctxName)
     if (!resolvedCtx) {
       console.warn(`Context '${ctxName}' referenced but not defined in contextResolve`)
       continue

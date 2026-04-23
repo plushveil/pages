@@ -200,7 +200,7 @@ function getRequestHandler (config, watcher, workers, cache) {
 
     // Resolve context before sending to worker (functions can't be serialized)
     const ctxName = queryParams.ctx
-    const resolvedCtx = (ctxName && config?.js?.contextResolve?.(ctxName)) || undefined
+    const resolvedCtx = await ((ctxName && config?.js?.contextResolve?.(ctxName)) || undefined)
     const pageWithContext = {
       ...page,
       params: { ...page.params, ...queryParams, __resolvedCtx: resolvedCtx },
