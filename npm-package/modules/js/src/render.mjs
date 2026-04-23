@@ -25,7 +25,7 @@ export default async function render (page, config, api) {
     // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
     const ctx = page.params?.__resolvedCtx
 
-    const script = typeof page.content === 'string' ? page.content : `export * from '${path.resolve(file)}'\n`
+    const script = typeof page.content === 'string' ? page.content : `${ctx ? `import 'page:ctx';\n` : ''}export * from '${path.resolve(file)}'\n`
     const resolveDir = file ? path.dirname(file) : process.cwd()
 
     const virtualEntryPlugin = createVirtualEntryPlugin(script, resolveDir)
