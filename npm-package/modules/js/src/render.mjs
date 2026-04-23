@@ -35,7 +35,7 @@ export default async function render (page, config, api) {
       input: 'virtual-entry',
       plugins: [virtualEntryPlugin, pagesLoaderPlugin],
       treeshake: {
-        moduleSideEffects: false,
+        moduleSideEffects: true,
       },
       onwarn (warning, warn) {
         if (warning.code === 'MISSING_NAME_OPTION_FOR_IIFE_EXPORT') return
@@ -47,7 +47,13 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: !!(config?.js?.minify),
+        minify: config?.js?.minify
+          ? {
+              compress: {
+                const_to_let: false,
+              },
+            }
+          : false,
       })
       await bundle.close()
       return output[0].code
@@ -59,7 +65,13 @@ export default async function render (page, config, api) {
         const { output } = await bundle.generate({
           format: 'iife',
           sourcemap: true,
-          minify: !!(config?.js?.minify),
+          minify: config?.js?.minify
+            ? {
+                compress: {
+                  const_to_let: false,
+                },
+              }
+            : false,
         })
         await bundle.close()
         if (!output[0].map) return '{}'
@@ -69,7 +81,13 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: !!(config?.js?.minify),
+        minify: config?.js?.minify
+          ? {
+              compress: {
+                const_to_let: false,
+              },
+            }
+          : false,
       })
       await bundle.close()
       return output[0].code + `\n//# sourceMappingURL=${map.url}\n`
@@ -112,7 +130,7 @@ function createVirtualEntryPlugin (code, resolveDir, ctx) {
             code
           ].join('\n')
         }
-        return { code, moduleSideEffects: false }
+        return { code, moduleSideEffects: true }
       }
       return null
     },
