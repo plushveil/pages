@@ -89,7 +89,7 @@ function createVirtualEntryPlugin (script, resolveDir) {
     name: 'virtual-entry',
     resolveId (source, importer) {
       if (source === 'virtual-entry') return VIRTUAL_ENTRY_ID
-      if (importer === VIRTUAL_ENTRY_ID && !path.isAbsolute(source) && !source.startsWith('\0')) {
+      if (importer === VIRTUAL_ENTRY_ID && !path.isAbsolute(source) && !source.startsWith('\0') && !source.startsWith('page:')) {
         return path.resolve(resolveDir, source)
       }
       return null
@@ -135,16 +135,17 @@ function createPagesLoaderPlugin (page, config, api) {
  * @returns {import('rolldown').Plugin}
  */
 function createContextPlugin (ctx) {
-  const CONTEXT_MODULE_ID = 'pages:context'
+  const CONTEXT_MODULE_ID = 'page:ctx'
+  const RESOLVED_ID = '\0' + CONTEXT_MODULE_ID
 
   return {
-    name: 'pages-context',
+    name: 'page-ctx',
     resolveId (source) {
-      if (source === CONTEXT_MODULE_ID) return CONTEXT_MODULE_ID
+      if (source === CONTEXT_MODULE_ID) return RESOLVED_ID
       return null
     },
     load (id) {
-      if (id === CONTEXT_MODULE_ID) {
+      if (id === RESOLVED_ID) {
         if (!ctx) return 'export default undefined;'
         // Export as a constant for tree-shaking and constant folding
         // Also assign to window.ctx for backward compatibility

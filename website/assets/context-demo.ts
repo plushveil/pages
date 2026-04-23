@@ -1,4 +1,4 @@
-import ctx from 'pages:context'
+import ctx from 'page:ctx'
 
 // Display the context in the output area
 const output = document.getElementById('output')
@@ -7,7 +7,7 @@ if (output) {
   const lines = [
     '// Context loaded successfully!',
     '',
-    `import ctx from 'pages:context'`,
+    `import ctx from 'page:ctx'`,
     '',
     '// Context object:',
     JSON.stringify(ctx, null, 2),
