@@ -31,6 +31,16 @@
         <pre id="output" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm overflow-x-auto">Loading...</pre>
       </div>
 
+      <div class="bg-red-50 border-l-4 border-red-500 p-6 mb-6">
+        <h3 class="text-lg font-semibold mb-2">⚠️ Security Warning</h3>
+        <p class="text-gray-700">
+          Context objects are embedded in your JavaScript bundle and exposed via <code class="bg-gray-100 px-2 py-1 rounded">window.ctx</code>.
+          <strong>Never include sensitive data like real API keys, secrets, or private tokens in context objects.</strong>
+          Anything in the context is visible to anyone who can view your JavaScript source.
+          Use context for public configuration only (API endpoints, feature flags, public IDs).
+        </p>
+      </div>
+
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-2xl font-semibold mb-4">Configuration</h2>
         <p class="text-gray-700 mb-3">In <code class="bg-gray-100 px-2 py-1 rounded">pages.config.mjs</code>:</p>
@@ -42,15 +52,15 @@
   contextResolve: (ctxName) => {
     if (ctxName === 'demo') {
       return {
-        apiUrl: 'https://demo.api.example.com',
-        apiKey: 'demo_key_12345',
+        publicApiUrl: 'https://demo.api.example.com',
+        publicApiKey: 'demo_key_12345',
         features: { darkMode: true, analytics: false }
       }
     }
     if (ctxName === 'production') {
       return {
-        apiUrl: 'https://api.example.com',
-        apiKey: 'prod_key_67890',
+        publicApiUrl: 'https://api.example.com',
+        publicApiKey: 'prod_key_67890',
         features: { darkMode: true, analytics: true }
       }
     }
@@ -64,8 +74,8 @@
         <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>import ctx from 'page:ctx'
 
 // Access configuration
-console.log('API URL:', ctx.apiUrl)
-console.log('API Key:', ctx.apiKey)
+console.log('API URL:', ctx.publicApiUrl)
+console.log('API Key:', ctx.publicApiKey)
 console.log('Features:', ctx.features)
 
 // Use it in your app

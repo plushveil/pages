@@ -46,8 +46,8 @@ export const js = {
   contextResolve: (ctxName) => {
     if (ctxName === 'demo') {
       return {
-        apiUrl: 'https://demo.api.example.com',
-        apiKey: 'demo_key_12345',
+        publicApiUrl: 'https://demo.api.example.com',
+        publicApiKey: 'demo_key_12345',
         features: {
           darkMode: true,
           analytics: false,
@@ -57,8 +57,8 @@ export const js = {
     }
     if (ctxName === 'production') {
       return {
-        apiUrl: 'https://api.example.com',
-        apiKey: 'prod_key_67890',
+        publicApiUrl: 'https://api.example.com',
+        publicApiKey: 'prod_key_67890',
         features: {
           darkMode: true,
           analytics: true,

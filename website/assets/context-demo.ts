@@ -13,8 +13,8 @@ if (output) {
     JSON.stringify(ctx, null, 2),
     '',
     '// Accessing properties:',
-    `ctx.apiUrl = ${JSON.stringify(ctx?.apiUrl)}`,
-    `ctx.apiKey = ${JSON.stringify(ctx?.apiKey)}`,
+    `ctx.publicApiUrl = ${JSON.stringify(ctx?.publicApiUrl)}`,
+    `ctx.publicApiKey = ${JSON.stringify(ctx?.publicApiKey)}`,
     `ctx.features = ${JSON.stringify(ctx?.features)}`,
     '',
     '// Also available as window.ctx:',
@@ -28,5 +28,5 @@ if (output) {
 
 // Also log to console for inspection
 console.log('Context Demo - Context object:', ctx)
-console.log('Context Demo - API URL:', ctx?.apiUrl)
+console.log('Context Demo - API URL:', ctx?.publicApiUrl)
 console.log('Context Demo - Features:', ctx?.features)
