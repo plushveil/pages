@@ -67,8 +67,16 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
         const component = { name: name[1], attributeString, attributes }
         const nodeIndex = nodes.indexOf(node)
         const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${name[1]}`))
-        const contentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
-        await addComponent(component, node, id, page, config, api, contentNodes)
+
+        const componentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
+        const lastIndexOfTagOpenNode = componentNodes.reduce((lastIndex, currentNode, currentIndex) => {
+          if (currentNode.type === 'tag-open') return currentIndex
+          return lastIndex
+        }, -1)
+        const contentNodes = componentNodes.slice(lastIndexOfTagOpenNode + 1)
+        const targetNode = contentNodes.length > 0 ? contentNodes[contentNodes.length - 1] : node
+
+        await addComponent(component, targetNode, id, page, config, api, contentNodes)
       }
     }
   }
