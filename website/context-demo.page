@@ -34,7 +34,7 @@
       <div class="bg-red-50 border-l-4 border-red-500 p-6 mb-6">
         <h3 class="text-lg font-semibold mb-2">⚠️ Security Warning</h3>
         <p class="text-gray-700">
-          Context objects are embedded in your JavaScript bundle and exposed via <code class="bg-gray-100 px-2 py-1 rounded">window.ctx</code>.
+          Context objects are embedded in your JavaScript bundle.
           <strong>Never include sensitive data like real API keys, secrets, or private tokens in context objects.</strong>
           Anything in the context is visible to anyone who can view your JavaScript source.
           Use context for public configuration only (API endpoints, feature flags, public IDs).
@@ -70,8 +70,10 @@
 
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-2xl font-semibold mb-4">Usage in JavaScript</h2>
-        <p class="text-gray-700 mb-3">The <code class="bg-gray-100 px-2 py-1 rounded">ctx</code> object is automatically available in your scripts:</p>
-        <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>// ctx is automatically available - no import needed
+        <p class="text-gray-700 mb-3">Import the <code class="bg-gray-100 px-2 py-1 rounded">ctx</code> object from <code class="bg-gray-100 px-2 py-1 rounded">page:ctx</code> to access context:</p>
+        <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>// Import ctx from the virtual module
+import ctx from 'page:ctx'
+
 console.log('API URL:', ctx.publicApiUrl)
 console.log('API Key:', ctx.publicApiKey)
 console.log('Features:', ctx.features)
@@ -79,20 +81,19 @@ console.log('Features:', ctx.features)
 // Use it in your app
 if (ctx.features.darkMode) {
   document.body.classList.add('dark-mode')
-}
-
-// Also available as window.ctx
-console.log(window.ctx === ctx) // true</code></pre>
+}</code></pre>
       </div>
 
       <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 class="text-2xl font-semibold mb-4">Tree-Shaking with Context</h2>
         <p class="text-gray-700 mb-3">Context properties in conditions enable dead code elimination:</p>
-        <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>// Analytics only loaded in production
+        <pre class="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto"><code>import ctx from 'page:ctx'
+
+// Analytics only loaded in production
 if (ctx.name !== 'production') import('./analytics.js')
 
-// Both ctx and window.ctx work
-if (window.ctx.features.analytics) {
+// Context properties are inlined at build time
+if (ctx.features.analytics) {
   trackPageView()
 }
 

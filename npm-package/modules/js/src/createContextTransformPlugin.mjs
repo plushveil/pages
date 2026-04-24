@@ -44,14 +44,20 @@ export default function createContextTransformPlugin (ctx) {
 
     transform (code, id) {
       if (!/\.(ts|js|mjs|cjs)$/.test(id)) return
-      if (!code.includes('ctx')) return
+
+      // Skip if no ctx references exist
+      if (!code.includes('page:ctx')) return
+
+      // Skip if ctx is being declared locally (const/let/var ctx)
+      // This prevents transforming user's own ctx variables
+      if (/(?:^|[;\n])\s*(?:const|let|var)\s+ctx\s*[=;]/.test(code)) return
 
       for (const path in flat) {
         const value = flat[path]
         const pathRegex = escapeRegex(path)
 
-        // allow window.ctx, ctx, ctx?, window.ctx?
-        const base = `(?:window\\.)?ctx\\??\\.${pathRegex}`
+        // allow ctx, ctx? (but not window.ctx to avoid namespace pollution)
+        const base = `ctx\\??\\.${pathRegex}`
 
         // --- ARRAY HANDLING ---
         if (Array.isArray(value)) {

@@ -102,12 +102,6 @@ function createVirtualEntryPlugin (code, resolveDir, ctx) {
     },
     load (id) {
       if (id === VIRTUAL_ENTRY_ID) {
-        if (ctx) {
-          code = [
-            'import ctx from \'page:ctx\';',
-            code
-          ].join('\n')
-        }
         return { code, moduleSideEffects: true }
       }
       return null
@@ -131,10 +125,8 @@ function createContextLoaderPlugin (ctx) {
         return {
           code: [
             `const ctx = Object.freeze(${JSON.stringify(ctx)});`,
-            'if (typeof window !== \'undefined\') window.ctx = ctx;',
             'export default ctx;'
-          ].join('\n'),
-          moduleSideEffects: true
+          ].join('\n')
         }
       }
       return null
