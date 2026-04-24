@@ -29,19 +29,6 @@
 
 //#endregion
 
-//#region page:ctx
-	const ctx$1 = Object.freeze({
-		"publicApiUrl": "https://demo.api.example.com",
-		"publicApiKey": "demo_key_12345",
-		"features": {
-			"darkMode": true,
-			"analytics": false,
-			"debugMode": true
-		}
-	});
-	if (typeof window !== "undefined") window.ctx = ctx$1;
-
-//#endregion
 //#region website/assets/context-demo.ts
 	var require_context_demo = /* @__PURE__ */ __commonJSMin((() => {
 		const output = document.getElementById("output");
@@ -54,8 +41,8 @@
 			JSON.stringify(ctx, null, 2),
 			"",
 			"// Accessing properties:",
-			`"https://demo.api.example.com" = ${JSON.stringify("https://demo.api.example.com")}`,
-			`"demo_key_12345" = ${JSON.stringify("demo_key_12345")}`,
+			`ctx.publicApiUrl = ${JSON.stringify(ctx?.publicApiUrl)}`,
+			`ctx.publicApiKey = ${JSON.stringify(ctx?.publicApiKey)}`,
 			`ctx.features = ${JSON.stringify(ctx?.features)}`,
 			"",
 			"// Also available as window.ctx:",
@@ -68,7 +55,7 @@
 			"// This demonstrates dynamic configuration injection!"
 		].join("\n");
 		console.log("Context Demo - Context object:", ctx);
-		console.log("Context Demo - API URL:", "https://demo.api.example.com");
+		console.log("Context Demo - API URL:", ctx?.publicApiUrl);
 		console.log("Context Demo - Features:", ctx?.features);
 	}));
 
