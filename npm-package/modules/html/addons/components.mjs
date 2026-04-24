@@ -69,14 +69,18 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
         const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${name[1]}`))
 
         const componentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
-        const lastIndexOfTagOpenNode = componentNodes.reduce((lastIndex, currentNode, currentIndex) => {
-          if (currentNode.type === 'tag-open') return currentIndex
-          return lastIndex
-        }, -1)
-        const contentNodes = componentNodes.slice(lastIndexOfTagOpenNode + 1)
-        const targetNode = contentNodes.length > 0 ? contentNodes[contentNodes.length - 1] : node
 
-        await addComponent(component, targetNode, id, page, config, api, contentNodes)
+        let lastIndexOfTagOpenNode = -1
+        for (let i in componentNodes) {
+          const currentNode = componentNodes[i]
+          const text = currentNode.textUpdate || currentNode.text
+          if (text.includes('<')) break
+          if (currentNode.type === 'tag-open') lastIndexOfTagOpenNode = i
+          if (text.includes('>')) break
+        }
+
+        const targetNode = lastIndexOfTagOpenNode !== -1 ? componentNodes[lastIndexOfTagOpenNode] : node
+        await addComponent(component, targetNode, id, page, config, api, componentNodes)
       }
     }
   }
