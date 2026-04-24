@@ -71,7 +71,7 @@ export async function forEach (node, nodes, htmlDocument, page, config, api) {
         const componentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
 
         let lastIndexOfTagOpenNode = -1
-        for (let i in componentNodes) {
+        for (const i in componentNodes) {
           const currentNode = componentNodes[i]
           const text = currentNode.textUpdate || currentNode.text
           if (text.includes('<')) break
