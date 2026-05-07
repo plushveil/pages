@@ -1,1 +1,0 @@
-{"version":3,"file":"_pages-virtual-entry.js","names":[],"sources":["../website/assets/script.ts"],"sourcesContent":["console.log('npm install @plushveil/pages to build a website just like this!')\n"],"mappings":";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAAA,UAAQ,IAAI,kEAAkE"}
