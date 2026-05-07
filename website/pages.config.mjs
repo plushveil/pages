@@ -70,7 +70,3 @@ export const js = {
     }
   }
 }
-
-/**
- * Configuration of the js module.
- */
