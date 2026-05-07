@@ -9,7 +9,7 @@
 export const baseURI = new URL(
   process.env.HOST
     ? (process.env.HOST.includes('://') ? process.env.HOST : `https://${process.env.HOST}`)
-    : 'http://localhost:3000'
+    : 'http://localhost:8080'
 )
 
 /**
