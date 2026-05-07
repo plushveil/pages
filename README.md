@@ -30,7 +30,7 @@ npx @plushveil/pages serve . --config pages.config.mjs
 npx @plushveil/pages serve website/ --config website/pages.config.mjs
 ```
 
-The site will be available at `http://localhost:3000`
+The site will be available at `http://localhost:8080`
 
 ## Building
 
