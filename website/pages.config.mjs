@@ -36,13 +36,17 @@ export const html = {
  */
 export const css = {
   minify: true,
-  integrity: false,
+  integrity: true,
 }
 
 /**
  * Configuration of the js module.
  */
 export const js = {
+  minify: true,
+  integrity: true,
+  target: '.browserslistrc',
+
   // Resolve context names to configuration objects
   // Contexts are auto-discovered from HTML files with ?ctx=X query parameters
   contextResolve: (ctxName) => {

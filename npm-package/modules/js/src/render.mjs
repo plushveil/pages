@@ -23,6 +23,9 @@ export default async function render (page, config, api) {
     if (file && !fs.existsSync(file)) return ''
     if (!file && !page.content) return ''
 
+    // Config
+    const minify = !!(config?.js?.minify)
+
     // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
     const ctx = page.params?.__resolvedCtx
 
@@ -50,7 +53,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: !!(config?.js?.minify)
+        minify: minify
       })
       await bundle.close()
       return output[0].code
@@ -62,7 +65,7 @@ export default async function render (page, config, api) {
         const { output } = await bundle.generate({
           format: 'iife',
           sourcemap: true,
-          minify: !!(config?.js?.minify)
+          minify: minify
         })
         await bundle.close()
         if (!output[0].map) return '{}'
@@ -72,7 +75,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: !!(config?.js?.minify)
+        minify: minify
       })
       await bundle.close()
       return output[0].code + `\n//# sourceMappingURL=${map.url}\n`

@@ -75,6 +75,5 @@ export const js = {
  */
 export const css = {
   minify: true,
-  integrity: true,
-  tailwind: 'tailwind.config.mjs',
+  integrity: true
 }
