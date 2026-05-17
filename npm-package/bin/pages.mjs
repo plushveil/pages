@@ -21,7 +21,7 @@ try {
 /**
  * Looks for a package.json in the given directory and generates a CLI based on the JSDoc comments in the `main` file.
  * @param {string} cwd - The directory to search for a package.json file.
- * @returns {Promise<any>} - The result of the CLI execution.
+ * @returns {Promise<unknown>} - The result of the CLI execution.
  */
 export default async function main (cwd = process.cwd()) {
   cwd = path.resolve(cwd)

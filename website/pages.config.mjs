@@ -1,51 +1,11 @@
-/**
- * @file Configuration for the @plushveil/pages website
- */
-
-/**
- * The base URI of the website.
- * @type {URL}
- */
-export const baseURI = new URL(
-  process.env.HOST
-    ? (process.env.HOST.includes('://') ? process.env.HOST : `https://${process.env.HOST}`)
-    : `http://localhost:${process.env.PORT || 8080}`
-)
-
-/**
- * Configuration of the build module.
- */
-export const build = {
-  ignore: [
-    /\/(node_modules|.git)\//,
-    /\/(snippets)\//,
-    /\.config\.mjs$/,
-  ],
-}
-
-/**
- * Configuration of the html module.
- */
-export const html = {
-  minify: true,
-  resolve: true
-}
-
-/**
- * Configuration of the css module.
- */
-export const css = {
-  minify: true,
-  integrity: true,
-}
+export * from '../npm-package/pages.config.mjs'
+import { js as jsConfig } from '../npm-package/pages.config.mjs'
 
 /**
  * Configuration of the js module.
  */
 export const js = {
-  minify: true,
-  integrity: true,
-  target: '.browserslistrc',
+  ...jsConfig,
 
   // Resolve context names to configuration objects
   // Contexts are auto-discovered from HTML files with ?ctx=X query parameters

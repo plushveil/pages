@@ -53,7 +53,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: minify
+        minify
       })
       await bundle.close()
       return output[0].code
@@ -65,7 +65,7 @@ export default async function render (page, config, api) {
         const { output } = await bundle.generate({
           format: 'iife',
           sourcemap: true,
-          minify: minify
+          minify
         })
         await bundle.close()
         if (!output[0].map) return '{}'
@@ -75,7 +75,7 @@ export default async function render (page, config, api) {
       const { output } = await bundle.generate({
         format: 'iife',
         sourcemap: false,
-        minify: minify
+        minify
       })
       await bundle.close()
       return output[0].code + `\n//# sourceMappingURL=${map.url}\n`
