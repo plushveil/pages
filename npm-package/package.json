@@ -1,6 +1,6 @@
 {
   "name": "@plushveil/pages",
-  "version": "0.0.91",
+  "version": "0.0.92",
   "keywords": [
     "engine",
     "html",
@@ -18,6 +18,7 @@
   "types": "dist/src/pages.d.ts",
   "scripts": {
     "build": "npm run -s build:types",
+    "prepack": "npm run -s build",
     "build:types": "tsc -p tsconfig.build.json",
     "pages": "cli_from_jsdoc",
     "lint": "npm run lint:format && npm run lint:lint",

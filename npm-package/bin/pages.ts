@@ -8,7 +8,7 @@ import * as cli from '@plushveil/cli_from_jsdoc'
 
 const pagesFilename = await fs.promises.realpath(url.fileURLToPath(import.meta.url))
 const pagesDirname = path.dirname(pagesFilename)
-const rootDir = path.resolve(pagesDirname, '..')
+const rootDir = path.resolve(pagesDirname, '..', '..')
 
 try {
   await main(rootDir)
