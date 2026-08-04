@@ -84,8 +84,18 @@ jobs:
 
       - name: Publish extension
         run: |
-          cd npm-package && npm ci --include=dev && PACKAGE_TGZ=$(npm pack --pack-destination ../vscode-extension) && cd ..
-          cd vscode-extension && npm pkg set dependencies.@plushveil/pages=file:./${PACKAGE_TGZ} && npm install --include=dev --ignore-scripts && rm -f ./*.tgz && npm run build
+          cd npm-package
+          npm ci --include=dev
+          rm -f ../vscode-extension/*.tgz
+          npm pack --pack-destination ../vscode-extension --silent > /dev/null
+          PACKAGE_TGZ=$(basename "$(ls -1t ../vscode-extension/*.tgz | head -n1)")
+          cd ..
+
+          cd vscode-extension
+          npm pkg set dependencies.@plushveil/pages=file:./${PACKAGE_TGZ}
+          npm install --include=dev --ignore-scripts
+          npm run build
+
           npm install -g @vscode/vsce --allow-scripts=@vscode/vsce-sign,keytar
           vsce package --skip-license
           vsce publish --pat ${{ secrets.VSCODE_TOKEN }} || true
