@@ -1,0 +1,58 @@
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as process from 'node:process'
+import * as url from 'node:url'
+
+import * as utils from './utils.js'
+
+const configFilename = url.fileURLToPath(import.meta.url)
+const configDirname = path.dirname(configFilename)
+const rootDir = path.resolve(configDirname, '..')
+
+const host = process.env.HOST || 'localhost'
+export const port = String(process.env.PORT || 8080)
+const pathname = process.env.PATHNAME || '/'
+const protocol = port === '443' ? 'https' : 'http'
+
+/**
+ * @typedef {object} Config
+ * @property {URL} fileUrl - The file URL of the configuration.
+ * @property {URL} baseURI - The base URI of the website.
+ * @property {string} [root] - The root page.
+ * @property {import('../pages.config.ts').BuildConfig} build - Configuration of the build interface.
+ * @property {import('../pages.config.ts').HtmlConfig} html - Configuration of the html module.
+ * @property {import('../pages.config.ts').JsConfig} js - Configuration of the js module.
+ * @property {import('../pages.config.ts').CssConfig} css - Configuration of the css module.
+ * @property {import('node:https').ServerOptions} [ssl] - The SSL options. If port is 443, this is required.
+ */
+
+/**
+ * Retrieve the configuration from a given location hint.
+ *
+ * @param {string} file - The name of the configuration.
+ * @returns {Promise<Config>} The configuration.
+ */
+export default async function getConfig(file = 'pages.config.js') {
+  if (typeof file === 'object' && file) return file
+  if (typeof file !== 'string' && file) throw new TypeError('The file must be a string.')
+
+  const filepath = utils.resolve(file, [process.cwd()], { exists: false })
+  if (fs.existsSync(filepath)) {
+    const fileUrl = url.pathToFileURL(filepath)
+    return { ...(await import(fileUrl)), fileUrl }
+  }
+
+  if (file === 'pages.config.js') {
+    const fileUrl = url.pathToFileURL(path.resolve(rootDir, 'pages.config.js'))
+    return { ...(await import(fileUrl)), fileUrl }
+  } else {
+    throw new Error(`Cannot find configuration: ${file}`)
+  }
+}
+
+/**
+ * The base URI.
+ *
+ * @type {URL}
+ */
+export const baseURI = process.env.BASEURI ? new URL(process.env.BASEURI) : new URL(pathname, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowJs": false,
+    "checkJs": false,
+    "noCheck": true,
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts", "modules/**/*.ts", "bin/**/*.ts", "pages.config.ts"],
+  "exclude": ["node_modules", "tests/**/*"]
+}

@@ -1,0 +1,16 @@
+module.exports = {
+  arrowParens: 'always',
+  bracketSpacing: true,
+  endOfLine: 'lf',
+  ignorePatterns: ['node_modules', 'dist', '.vscode-test', 'package-lock.json'],
+  insertFinalNewline: true,
+  jsxSingleQuote: true,
+  printWidth: 220,
+  quoteProps: 'as-needed',
+  semi: false,
+  singleQuote: true,
+  sortImports: true,
+  tabWidth: 2,
+  trailingComma: 'all',
+  useTabs: false,
+}

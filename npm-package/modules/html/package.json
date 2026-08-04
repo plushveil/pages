@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "main": "html.mjs",
+  "main": "../../dist/modules/html/html.js",
   "scripts": {
     "test": "clear && npm run -s pages diagnose modules/html/test/page.page",
     "pages": "cd .. && npm run -s pages"

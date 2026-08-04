@@ -1,2 +1,4 @@
 node_modules
 dist
+types
+pages.config.js

@@ -1,24 +1,46 @@
 {
   "name": "pages",
   "displayName": "Pages",
-  "publisher": "plushveil",
+  "version": "0.0.17",
   "description": "Syntax Highlighting for HTML and JavaScript in Page files",
+  "categories": [
+    "Linters"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/plushveil/pages.git"
   },
-  "version": "0.0.17",
-  "engines": {
-    "vscode": "^1.125.0"
+  "publisher": "plushveil",
+  "main": "dist/extension.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "npm run lint:format && npm run lint:lint",
+    "lint:format": "oxfmt",
+    "lint:lint": "oxlint --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run -s build && npm run -s test:lint && npm run -s test:format && npm run -s typecheck && npm run -s test:unit",
+    "test:lint": "oxlint",
+    "test:format": "oxfmt --check",
+    "test:unit": "node --test test/**/*.test.js",
+    "test:integration": "vscode-test"
   },
-  "categories": [
-    "Linters"
-  ],
-  "main": "src/extension.js",
-  "activationEvents": [
-    "onLanguage:pages",
-    "onCommand:pages.serve"
-  ],
+  "dependencies": {
+    "@plushveil/pages": "file:../npm-package",
+    "vscode-html-languageservice": "^5.6.2",
+    "vscode-languageclient": "^10.1.0",
+    "vscode-languageserver": "^10.1.0",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "26.x",
+    "@types/vscode": "^1.125.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "oxfmt": "^0.62.0",
+    "oxlint": "^1.77.0",
+    "typescript": "^5.9.3"
+  },
   "contributes": {
     "configuration": {
       "type": "object",
@@ -78,26 +100,7 @@
       }
     ]
   },
-  "scripts": {
-    "test": "npm run -s test:lint && npm run -s test:unit",
-    "test:lint": "eslint .",
-    "test:unit": "vscode-test"
-  },
-  "dependencies": {
-    "@plushveil/pages": "latest",
-    "typescript": "^7.0.2",
-    "vscode-html-languageservice": "^5.6.2",
-    "vscode-languageclient": "^10.1.0",
-    "vscode-languageserver": "^10.1.0",
-    "vscode-languageserver-textdocument": "^1.0.12"
-  },
-  "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "26.x",
-    "@types/vscode": "^1.125.0",
-    "@vscode/test-cli": "^0.0.15",
-    "@vscode/test-electron": "^3.1.0",
-    "eslint": "^10.8.0",
-    "neostandard": "^0.13.0"
+  "engines": {
+    "vscode": "^1.125.0"
   }
 }

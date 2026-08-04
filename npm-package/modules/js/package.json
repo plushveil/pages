@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "main": "js.mjs",
+  "main": "../../dist/modules/js/js.js",
   "dependencies": {
     "rolldown": "^1.2.2"
   },

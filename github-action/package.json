@@ -1,5 +1,14 @@
 {
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
   "dependencies": {
     "@actions/core": "^1.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.2",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,4 +1,4 @@
 {
-  "spec": ["tests/**/*.spec.mjs"],
+  "spec": ["tests/**/*.spec.ts"],
   "timeout": false
 }
