@@ -14,10 +14,7 @@ const renderFilename = url.fileURLToPath(import.meta.url)
 const renderDirname = path.dirname(renderFilename)
 const moduleDir = path.resolve(renderDirname, '..')
 const packageRoot = path.resolve(moduleDir, '..', '..', '..')
-const tailwindEntryCandidates = [
-  path.resolve(moduleDir, 'tailwind.css'),
-  path.resolve(packageRoot, 'modules/css/tailwind.css'),
-]
+const tailwindEntryCandidates = [path.resolve(moduleDir, 'tailwind.css'), path.resolve(packageRoot, 'modules/css/tailwind.css')]
 const tailwindEntry = tailwindEntryCandidates.find((entry) => fs.existsSync(entry))
 const tailwindEntryDir = tailwindEntry ? path.dirname(tailwindEntry) : null
 const normalizedModuleDir = normalizeDirectory(moduleDir)

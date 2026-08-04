@@ -22,15 +22,7 @@ export { baseURI } from './src/config.js'
  * @type {BuildConfig}
  */
 export const build = {
-  ignore: [
-    /\/(?:node_modules|.git|.github)\//,
-    /\/(?:utils|modules|partials)\//,
-    /tsconfig\.json$/,
-    /Dockerfile$/,
-    /\.(?:d\.ts)$/,
-    /(?:^|\/)pages\.config\.(?:ts|js)$/,
-    /\.md$/,
-  ],
+  ignore: [/\/(?:node_modules|.git|.github)\//, /\/(?:utils|modules|partials)\//, /tsconfig\.json$/, /Dockerfile$/, /\.(?:d\.ts)$/, /(?:^|\/)pages\.config\.(?:ts|js)$/, /\.md$/],
   after: async (output, config) => {
     await sitemap('sitemap.xml', output, config)
   },
