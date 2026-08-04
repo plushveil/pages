@@ -1,7 +1,7 @@
 {
   "name": "pages",
   "displayName": "Pages",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "Syntax Highlighting for HTML and JavaScript in Page files",
   "categories": [
     "Linters"
