@@ -6,10 +6,10 @@
     "pages": "cd .. && npm run -s pages"
   },
   "dependencies": {
-    "acorn": "^8.15.0",
-    "css-select": "6.0.0",
-    "typescript": "^5.9.3",
-    "vscode-html-languageservice": "^5.6.1",
+    "@typescript/typescript6": "^6.0.2",
+    "acorn": "^8.17.0",
+    "css-select": "7.0.0",
+    "vscode-html-languageservice": "^5.6.2",
     "vscode-languageserver-textdocument": "^1.0.12"
   }
 }

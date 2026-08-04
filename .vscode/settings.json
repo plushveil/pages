@@ -1,0 +1,15 @@
+{
+  "oxc.enable": true,
+  "oxc.lint.run": "onType",
+  "oxc.fixKind": "safe_fix",
+  "oxc.trace.server": "off",
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit"
+  },
+
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+
+  "files.associations": {}
+}
