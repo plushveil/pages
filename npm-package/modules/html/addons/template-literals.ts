@@ -3,7 +3,7 @@ import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import ts from 'typescript'
+import ts from '@typescript/typescript6'
 
 import getExports from '../utils/getExports.js'
 import getNodesInRange from '../utils/getNodesInRange.js'
