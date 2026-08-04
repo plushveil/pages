@@ -7,7 +7,7 @@
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export function after(nodes, htmlDocument, page, config, api) {
+export function after(nodes, htmlDocument, _page, _config, _api) {
   for (const node of nodes) {
     const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
 
@@ -21,7 +21,7 @@ export function after(nodes, htmlDocument, page, config, api) {
 
     // if the last character is a space instead of a line break, assume it's on purpose and restore it
     let keepTrailingSpace = false
-    const lastCharMatch = text.match(/([^\s])\s*$/)
+    const lastCharMatch = text.match(/(?:[^\s])\s*$/)
     if (lastCharMatch) {
       const nextChar = text[lastCharMatch.index + 1]
       if (nextChar === ' ') keepTrailingSpace = true

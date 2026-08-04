@@ -18,13 +18,13 @@ const components = {}
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function beforeAsync(nodes, htmlDocument, page, config, api) {
+export async function beforeAsync(nodes, htmlDocument, page, config, _api) {
   if (!config.root) return
   if (page?.params?.headers?.['X-Partial'] === 'true') return
 
   const id = page?.url?.toString() || htmlDocument.getId()
   const componentsPath = path.resolve(config.root, 'components')
-  components[id] = components[id] || {
+  components[id] ||= {
     path: fs.existsSync(componentsPath) ? componentsPath : null,
     nodes: [],
     containers: [],
@@ -49,32 +49,32 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
   if (!components[id] || components[id].path === null) return
 
   if (node.type === 'template') {
-    const names = (node.textUpdate || node.text).matchAll(/<([a-zA-Z0-9]+-[^> ]+)([^>]*)>.*?<\/\1>/g)
-    for (const name of names) {
-      const attributeString = name[2]
+    const names = (node.textUpdate || node.text).matchAll(/<(?<name>[a-zA-Z0-9]+-[^> ]+)(?<attributes>[^>]*)>.*?<\/\k<name>>/g)
+    for (const match of names) {
+      const attributeString = match.groups?.attributes || ''
       const attributes = getAttributesFromString(attributeString)
-      const component = { name: name[1], attributeString, attributes }
+      const component = { name: match.groups?.name || '', attributeString, attributes }
       await addComponent(component, node, id, page, config, api)
     }
   }
 
   if (node.type === 'tag-open') {
-    const name = (node.textUpdate || node.text).match(/^<([^> ]+)/)
-    if (name) {
-      if (tags.includes(name[1])) {
+    const nameMatch = (node.textUpdate || node.text).match(/^<(?<tag>[^> ]+)/)
+    if (nameMatch) {
+      const tagName = nameMatch.groups?.tag || ''
+      if (tags.includes(tagName)) {
         components[id].containers.push(node)
-      } else if (name[1].includes('-')) {
-        const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+((\s+[^=> ]+(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?)*)\s*>/)?.[1] || ''
+      } else if (tagName.includes('-')) {
+        const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+(?<attributes>(?:\s+[^=> ]+(?:=(?:"[^"]*"|'[^']*'|[^"'\s>]+))?)*)\s*>/)?.groups?.attributes || ''
         const attributes = getAttributesFromString(attributeString)
-        const component = { name: name[1], attributeString, attributes }
+        const component = { name: tagName, attributeString, attributes }
         const nodeIndex = nodes.indexOf(node)
-        const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${name[1]}`))
+        const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${tagName}`))
 
         const componentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
 
         let lastIndexOfTagOpenNode = -1
-        for (const i in componentNodes) {
-          const currentNode = componentNodes[i]
+        for (const [i, currentNode] of componentNodes.entries()) {
           const text = currentNode.textUpdate || currentNode.text
           if (text.includes('<')) break
           if (currentNode.type === 'tag-open') lastIndexOfTagOpenNode = i
@@ -101,7 +101,7 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export function after(iterator, htmlDocument, page, config, api) {
+export function after(iterator, htmlDocument, page, _config, _api) {
   const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id]) return
   if (page?.params?.headers?.['X-Partial'] === 'true') return
@@ -180,9 +180,9 @@ async function addComponent(component, node, id, page, config, api, contentNodes
     }
 
     if (rendered.classString) {
-      const classMatch = (node.textUpdate || node.text).match(/class=["'](.*?)["']/)
+      const classMatch = (node.textUpdate || node.text).match(/class=["'](?<classValue>.*?)["']/)
       if (classMatch) {
-        const existingClasses = classMatch[1] || ''
+        const existingClasses = classMatch.groups?.classValue || ''
         const newClasses = `${existingClasses} ${rendered.classString}`.trim()
         node.textUpdate = (node.textUpdate || node.text).replace(classMatch[0], `class="${newClasses}"`)
       } else {
@@ -197,8 +197,8 @@ async function addComponent(component, node, id, page, config, api, contentNodes
     if (fs.existsSync(jsFile)) {
       const pages = await getJsPages(jsFile, config, api)
       if (pages.length > 0) {
-        const page = pages.find((p) => p.params.headers?.['Content-Type']?.includes('application/javascript')) || pages[0]
-        component.js = page.url.toString()
+        const jsPage = pages.find((p) => p.params.headers?.['Content-Type']?.includes('application/javascript')) || pages[0]
+        component.js = jsPage.url.toString()
         break
       }
     }
@@ -208,8 +208,8 @@ async function addComponent(component, node, id, page, config, api, contentNodes
   if (fs.existsSync(cssFile)) {
     const pages = await getCssPages(cssFile, config, api)
     if (pages.length > 0) {
-      const page = pages.find((p) => p.params.headers?.['Content-Type']?.includes('text/css')) || pages[0]
-      component.css = page.url.toString()
+      const cssPage = pages.find((p) => p.params.headers?.['Content-Type']?.includes('text/css')) || pages[0]
+      component.css = cssPage.url.toString()
     }
   }
 
@@ -225,11 +225,12 @@ async function addComponent(component, node, id, page, config, api, contentNodes
  */
 function getAttributesFromString(attributeString) {
   const attributes = {}
-  const regex = /([^\s=]+)(=("([^"]*)")|('([^']*)')|([^"'\s>]+))?/g
-  let match
+  const regex = /(?<attrName>[^\s=]+)(?:=(?:"(?<doubleQuoted>[^"]*)"|'(?<singleQuoted>[^']*)'|(?<bare>[^"'\s>]+)))?/g
+  let match = null
   while ((match = regex.exec(attributeString)) !== null) {
-    const attrName = match[1]
-    const attrValue = match[4] || match[6] || match[7] || true
+    const attrName = match.groups?.attrName
+    const attrValue = match.groups?.doubleQuoted || match.groups?.singleQuoted || match.groups?.bare || true
+    if (!attrName) continue
     attributes[attrName] = attrValue
   }
   return attributes
@@ -249,10 +250,10 @@ async function renderComponent(component, page, config, api, attributes) {
   const name = path.basename(component, path.extname(component))
 
   let content = await fs.promises.readFile(component, 'utf-8')
-  const match = content.match(new RegExp(`<${name} ([^>]*)>`))
+  const match = content.match(new RegExp(`<${name} (?<attributes>[^>]*)>`))
   let classString = ''
   if (match) {
-    classString = match[1].match(/class=["']([^'"]*)['"]/)?.[1] || ''
+    classString = match.groups?.attributes?.match(/class=["'](?<classValue>[^'"]*)['"]/)?.groups?.classValue || ''
     content = content.replace(new RegExp(`<${name}[^>]*>`), '')
     content = content.replace(new RegExp(`</${name}>`), '')
   } else {

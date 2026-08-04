@@ -17,11 +17,11 @@ export default function discoverContexts(htmlFiles, config) {
 
       // Match src="..." or href="..." attributes that contain query parameters
       // Captures: attribute name, full value including query params
-      const attrRegex = /(src|href)=["']([^"']*\?[^"']*)["']/gi
-      let match
+      const attrRegex = /(?<attribute>src|href)=["'](?<fullValue>[^"']*\?[^"']*)["']/gi
+      let match = null
 
       while ((match = attrRegex.exec(content)) !== null) {
-        const fullValue = match[2]
+        const fullValue = match.groups?.fullValue || ''
 
         // Parse the URL to extract path and query params
         if (!fullValue.includes('?ctx=')) continue
@@ -34,7 +34,7 @@ export default function discoverContexts(htmlFiles, config) {
 
         // Resolve relative path to absolute URL path
         // Handle ./, ../, and / prefixes
-        let resolvedPath
+        let resolvedPath = ''
         if (pathname.startsWith('./') || pathname.startsWith('../')) {
           // Relative to the HTML file
           const htmlDir = path.dirname(file)

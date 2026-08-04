@@ -13,14 +13,14 @@ import getConfig, { port } from './config.mjs'
 import { pages as getPages } from './pages.mjs'
 import * as utils from './utils.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const __worker = path.resolve(__dirname, 'worker.mjs')
+const serveFilename = url.fileURLToPath(import.meta.url)
+const serveDirname = path.dirname(serveFilename)
+const workerEntrypoint = path.resolve(serveDirname, 'worker.mjs')
 
 const apps = []
 const sourcesWatchers = {}
 
-process.on('SIGINT', (event) => {
+process.on('SIGINT', () => {
   for (const app of apps) {
     app.closeAllConnections()
     app.close()
@@ -74,7 +74,7 @@ export default async function serve(folder, config, cache = true) {
   const close = app.close.bind(app)
   app.close = () => {
     while (workers.length) workers.pop().terminate()
-    watcher.then((watcher) => watcher.close())
+    watcher.then((pageWatcher) => pageWatcher.close())
     close()
   }
 
@@ -90,13 +90,13 @@ export default async function serve(folder, config, cache = true) {
  * @returns {threads.Worker} The worker.
  */
 function createWorker(config, workers) {
-  const worker = new threads.Worker(__worker, { workerData: { config: JSON.stringify(config) } })
-  const terminate = worker.terminate.bind(worker)
-  worker.terminate = () => {
-    workers.splice(workers.indexOf(worker), 1)
+  const threadWorker = new threads.Worker(workerEntrypoint, { workerData: { config: JSON.stringify(config) } })
+  const terminate = threadWorker.terminate.bind(threadWorker)
+  threadWorker.terminate = () => {
+    workers.splice(workers.indexOf(threadWorker), 1)
     terminate()
   }
-  return worker
+  return threadWorker
 }
 
 /**
@@ -113,15 +113,15 @@ function getRequestHandler(config, watcher, workers, cache) {
    * @returns {Promise<threads.Worker>} A free worker.
    */
   async function getWorker() {
-    const worker = workers.find((worker) => !worker.busy)
-    if (worker) return worker
+    const freeWorker = workers.find((entry) => !entry.busy)
+    if (freeWorker) return freeWorker
     return new Promise((resolve) => {
       const interval = setInterval(() => {
         if (workers.length) {
-          const worker = workers.find((worker) => !worker.busy)
-          if (worker) {
+          const nextWorker = workers.find((entry) => !entry.busy)
+          if (nextWorker) {
             clearInterval(interval)
-            resolve(worker)
+            resolve(nextWorker)
           }
         }
       }, 100).unref()
@@ -136,8 +136,8 @@ function getRequestHandler(config, watcher, workers, cache) {
    */
   return async (req, res) => {
     const reqUrl = new URL(req.url, config.baseURI)
-    const page = (await watcher).getPages().find((page) => page.url.pathname === reqUrl.pathname)
-    if (!page) {
+    const matchedPage = (await watcher).getPages().find((entry) => entry.url.pathname === reqUrl.pathname)
+    if (!matchedPage) {
       res.writeHead(404)
       res.end('Not found')
       return
@@ -146,22 +146,22 @@ function getRequestHandler(config, watcher, workers, cache) {
     const queryParams = Object.fromEntries(reqUrl.searchParams.entries())
 
     // ETag-based (entity tag) caching
-    const etag = page.params?.headers?.ETag
+    const etag = matchedPage.params?.headers?.ETag
     if (etag && req.headers['if-none-match'] === etag) {
       res.writeHead(304)
       res.end()
       return
     }
 
-    const headers = page.params?.headers || {}
-    if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(page.url.pathname)
+    const headers = matchedPage.params?.headers || {}
+    if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(matchedPage.url.pathname)
 
     // Content cache
-    if (page.cache?.data) {
-      headers['Content-Length'] = Buffer.byteLength(page.cache.data)
+    if (matchedPage.cache?.data) {
+      headers['Content-Length'] = Buffer.byteLength(matchedPage.cache.data)
       if (etag) headers['ETag'] = etag
       res.writeHead(200, headers)
-      res.end(page.cache.data)
+      res.end(matchedPage.cache.data)
       return
     }
 
@@ -174,7 +174,7 @@ function getRequestHandler(config, watcher, workers, cache) {
       done = true
       if (type === 'content') {
         headers['Content-Length'] = Buffer.byteLength(data)
-        if (page.params?.headers?.ETag) headers['ETag'] = page.params.headers.ETag
+        if (matchedPage.params?.headers?.ETag) headers['ETag'] = matchedPage.params.headers.ETag
         res.writeHead(200, headers)
         res.end(data)
         worker.terminate()
@@ -183,20 +183,20 @@ function getRequestHandler(config, watcher, workers, cache) {
         if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !data.includes('/*! tailwindcss')) {
           const hasQueryParams = Object.keys(queryParams).length > 0
           if (!hasQueryParams) {
-            if (page.cache?.timeout) clearTimeout(page.cache.timeout)
-            const weakPage = new WeakRef(page)
+            if (matchedPage.cache?.timeout) clearTimeout(matchedPage.cache.timeout)
+            const weakPage = new WeakRef(matchedPage)
             const timeout = setTimeout(() => {
               const derefPage = weakPage.deref()
               if (derefPage) derefPage.cache = null
             }, 180000).unref()
-            page.cache = { data, timeout }
+            matchedPage.cache = { data, timeout }
           }
         }
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
-        headers['ETag'] = page.params?.headers?.ETag
+        headers['ETag'] = matchedPage.params?.headers?.ETag
         res.writeHead(200, headers)
-        const rs = fs.createReadStream(url.fileURLToPath(page.fileUrl))
+        const rs = fs.createReadStream(url.fileURLToPath(matchedPage.fileUrl))
         rs.pipe(res)
         worker.busy = false
       } else {
@@ -217,8 +217,8 @@ function getRequestHandler(config, watcher, workers, cache) {
     const ctxName = queryParams.ctx
     const resolvedCtx = await ((ctxName && config?.js?.contextResolve?.(ctxName)) || undefined)
     const pageWithContext = {
-      ...page,
-      params: { ...page.params, ...queryParams, __resolvedCtx: resolvedCtx },
+      ...matchedPage,
+      params: { ...matchedPage.params, ...queryParams, __resolvedCtx: resolvedCtx },
       cache: undefined,
     }
     worker.postMessage(['pipe', JSON.stringify(pageWithContext)])
@@ -239,7 +239,7 @@ async function getPageWatcher(config) {
   let pages = []
   await refreshAll()
   const inProgress = {}
-  const watcher = fs.watch(config.root, { recursive: true }, (_event, filename) => getPagesUpdate(filename))
+  const watcher = fs.watch(config.root, { recursive: true }, (_unusedEvent, filename) => getPagesUpdate(filename))
   return { getPages: () => pages, close: () => watcher.close() }
 
   async function refreshAll() {
@@ -276,11 +276,13 @@ async function getPageWatcher(config) {
           if (page.fileUrl.toString().endsWith(targetExt)) {
             if (mapping.includeComponents !== true) {
               if (page.fileUrl.toString().includes('components')) {
-                const componentFolder = page.fileUrl.toString().match(/components\/[^/]*/)[0]
+                const [componentFolder] = page.fileUrl.toString().match(/components\/[^/]*/) || []
+                if (!componentFolder) continue
                 if (!file.includes(componentFolder)) continue
               }
               if (fileUrl.toString().includes('components')) {
-                const componentFolder = fileUrl.toString().match(/components\/[^/]*/)[0]
+                const [componentFolder] = fileUrl.toString().match(/components\/[^/]*/) || []
+                if (!componentFolder) continue
                 if (!page.fileUrl.toString().includes(componentFolder)) continue
               }
             }
@@ -313,12 +315,12 @@ async function getPageWatcher(config) {
       const pageUrl = page.url.toString()
       if (!(pageUrl.endsWith('.js') || pageUrl.endsWith('.css'))) return []
       if (pageUrl.endsWith('.map.css') || pageUrl.endsWith('.map.js')) {
-        const source = pageUrl.replace(/\.map\.(css|js)$/, '.$1')
+        const source = pageUrl.replace(/\.map\.(?<ext>css|js)$/, '.$<ext>')
         const sourcePage = pages.find((p) => p.url.toString() === source)
         if (sourcePage) return [path.resolve(url.fileURLToPath(sourcePage.fileUrl))]
         return []
       }
-      const sourceMapUrl = pageUrl.replace(/(\.js|\.css)$/, '.map$1')
+      const sourceMapUrl = pageUrl.replace(/(?<ext>\.js|\.css)$/, '.map$<ext>')
       const sourceMapPage = pages.find((p) => p.url.toString() === sourceMapUrl)
       if (!sourceMapPage) return []
       try {

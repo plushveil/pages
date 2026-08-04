@@ -3,12 +3,12 @@ import * as module from 'node:module'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const importHtmlFilename = url.fileURLToPath(import.meta.url)
+const importHtmlDirname = path.dirname(importHtmlFilename)
 
 const extensions = ['.html', '.htms', '.page', '.svg']
 
-global.importAttributes = global.importAttributes || {}
+global.importAttributes ||= {}
 
 module.registerHooks({
   /**
@@ -41,17 +41,17 @@ module.registerHooks({
     return nextResolve(specifier, context)
   },
   /**
-   * @param {string} url - The URL returned by the resolve chain
+   * @param {string} moduleUrl - The URL returned by the resolve chain
    * @param {{ conditions: string[]; format: string; importAttributes: {} }} context - The context object
    * @param {Function<string, {}>} nextLoad - The subsequent load hook in the chain, or the Node.js default load hook after the last user-supplied load hook
    * @returns {{ format: string; shortCircuit: boolean; source: string }} - The result object
    * @see https://nodejs.org/api/module.html#loadurl-context-nextload
    */
-  load(url, context, nextLoad) {
+  load(moduleUrl, context, nextLoad) {
     if (context.importAttributes?.parentURL === import.meta.url) {
-      const keys = new URL(url).hash.split('|').filter(Boolean)
+      const keys = new URL(moduleUrl).hash.split('|').filter(Boolean)
       const key = keys[keys.length - 1]
-      global.importAttributes[key] = global.importAttributes[key] || []
+      global.importAttributes[key] ||= []
       global.importAttributes[key].push(context.importAttributes)
       return {
         format: 'module',
@@ -62,7 +62,7 @@ module.registerHooks({
           import page from 'page:page'
           import config from 'page:config'
           import api from 'page:api'
-          import render from '${path.resolve(__dirname, '..', 'src', 'render.mjs')}'
+          import render from '${path.resolve(importHtmlDirname, '..', 'src', 'render.mjs')}'
           const subpage = {
             ...page,
             importAttributes: '${key}',
@@ -86,6 +86,6 @@ module.registerHooks({
       }
     }
 
-    return nextLoad(url, context)
+    return nextLoad(moduleUrl, context)
   },
 })

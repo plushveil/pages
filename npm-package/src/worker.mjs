@@ -8,7 +8,7 @@ import { render } from './pages.mjs'
 const configData = JSON.parse(threads.workerData.config)
 // Reload config from fileUrl to get functions back (like contextResolve)
 // Merge configs carefully to preserve both functions and discovered contexts
-let config
+let config = configData
 if (configData.fileUrl) {
   const loadedConfig = await getConfig(configData.fileUrl)
   config = {
@@ -17,7 +17,7 @@ if (configData.fileUrl) {
     // Merge js config to preserve both contextResolve (from loaded) and __discoveredContexts (from serialized)
     js: {
       ...loadedConfig.js,
-      __discoveredContexts: configData.js?.__discoveredContexts,
+      __discoveredContexts: configData.js?.['__discoveredContexts'],
     },
   }
 } else {

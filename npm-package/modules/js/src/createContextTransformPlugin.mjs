@@ -12,6 +12,7 @@ function escapeRegex(str) {
 function flatten(obj, prefix = '') {
   const out = {}
   for (const key in obj) {
+    if (!Object.hasOwn(obj, key)) continue
     const value = obj[key]
     const path = prefix ? `${prefix}.${key}` : key
 
@@ -36,7 +37,7 @@ export default function createContextTransformPlugin(ctx) {
     name: 'inline-ctx-advanced',
 
     transform(code, id) {
-      if (!/\.(ts|js|mjs|cjs)$/.test(id)) return
+      if (!/\.(?:ts|js|mjs|cjs)$/.test(id)) return
 
       // Skip if no ctx references exist
       if (!code.includes('page:ctx')) return
@@ -45,9 +46,10 @@ export default function createContextTransformPlugin(ctx) {
       // This prevents transforming user's own ctx variables
       if (/(?:^|[;\n])\s*(?:const|let|var)\s+ctx\s*[=;]/.test(code)) return
 
-      for (const path in flat) {
-        const value = flat[path]
-        const pathRegex = escapeRegex(path)
+      for (const key in flat) {
+        if (!Object.hasOwn(flat, key)) continue
+        const value = flat[key]
+        const pathRegex = escapeRegex(key)
 
         // allow ctx, ctx? (but not window.ctx to avoid namespace pollution)
         const base = `ctx\\??\\.${pathRegex}`
@@ -55,7 +57,7 @@ export default function createContextTransformPlugin(ctx) {
         // --- ARRAY HANDLING ---
         if (Array.isArray(value)) {
           // includes('literal')
-          code = code.replace(new RegExp(`${base}\\.includes\\((['"\`])([^'"\\\`]+)\\1\\)`, 'g'), (_, __, literal) => (value.includes(literal) ? 'true' : 'false'))
+          code = code.replace(new RegExp(`${base}\\.includes\\((?<quote>['"\`])(?<literal>[^'"\\\`]+)\\k<quote>\\)`, 'g'), (_, __, literal) => (value.includes(literal) ? 'true' : 'false'))
 
           // startsWith('literal') (if array of strings)
           code = code.replace(

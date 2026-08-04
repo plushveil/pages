@@ -6,6 +6,6 @@
  * @param {import('../../../src/api.mjs').API} api - The API.
  * @returns {Promise<string>} The list of pages.
  */
-export default async function format(page, config, api) {
+export default async function format(_page, _config, _api) {
   return []
 }

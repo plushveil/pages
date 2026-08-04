@@ -9,7 +9,7 @@ import * as url from 'node:url'
  * @param {import('../../../src/pages.mjs')} api - The API.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-export default async function pages(file, config, api) {
+export default async function pages(file, config, _api) {
   const filepath = path.relative(config.root, file).replaceAll(path.sep, '/').replaceAll('../', '').replace(/\.ts$/, '.js')
 
   const results = []
@@ -41,7 +41,7 @@ export default async function pages(file, config, api) {
   const contexts = new Set()
 
   // Check if this file has auto-discovered contexts from HTML
-  const discoveredContexts = config?.js?.__discoveredContexts
+  const discoveredContexts = config?.js?.['__discoveredContexts']
   if (discoveredContexts) {
     const fileUrl = `/${filepath}`
     const fileContexts = discoveredContexts[fileUrl]

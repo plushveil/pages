@@ -5,8 +5,8 @@ import * as url from 'node:url'
 import getHtmlDocument from '../utils/getHtmlDocument.mjs'
 import { load as commonJsLoad } from './common-js.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const addonsFilename = url.fileURLToPath(import.meta.url)
+const addonsDirname = path.dirname(addonsFilename)
 
 const activeAddons = ['event-emitter', 'canonical-url', 'minify-inline', 'references-to-url', 'template-literals', 'import-page', 'import-html', 'minify', 'integrity', 'components']
 
@@ -25,7 +25,7 @@ module.registerHooks({
 export default async function executeAddons(page, config, api) {
   const htmlDocument = getHtmlDocument(page)
   const iterator = htmlDocument.iterator()
-  const addons = await Promise.all(activeAddons.map((addonName) => import(url.pathToFileURL(path.join(__dirname, `${addonName}.mjs`)).href)))
+  const addons = await Promise.all(activeAddons.map((addonName) => import(url.pathToFileURL(path.join(addonsDirname, `${addonName}.mjs`)).href)))
 
   // uniquely identify the execution across all addons and stages
   const id = `${Date.now()}-${Math.random()}`

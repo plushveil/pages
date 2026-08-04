@@ -44,14 +44,14 @@ export function resolve(specifier, folders = [process.cwd()], options = { exists
  */
 export function getFilesInFolder(folder, iterated = []) {
   folder = resolve(folder, undefined, { folder: true })
-  return fs.readdirSync(folder).reduce((files, file) => {
-    const filepath = fs.realpathSync(path.resolve(folder, file))
+  return fs.readdirSync(folder).reduce((files, entry) => {
+    const filepath = fs.realpathSync(path.resolve(folder, entry))
     if (fs.statSync(filepath).isDirectory()) {
       if (!iterated.includes(filepath)) {
         iterated.push(filepath)
-        for (const file of getFilesInFolder(filepath, iterated)) {
-          if (!files.includes(file)) {
-            files.push(file)
+        for (const nestedFile of getFilesInFolder(filepath, iterated)) {
+          if (!files.includes(nestedFile)) {
+            files.push(nestedFile)
           }
         }
       }

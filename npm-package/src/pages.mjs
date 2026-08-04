@@ -76,7 +76,10 @@ export async function pages(file, config, type = path.extname(file).slice(1)) {
  * @returns {Promise<string>} The rendered page.
  */
 export async function render(page, config, encoding, type = undefined) {
-  if (typeof page === 'string') page = (await pages(page, config))[0]
+  if (typeof page === 'string') {
+    const [resolvedPage] = await pages(page, config)
+    page = resolvedPage
+  }
   if (typeof page !== 'object') throw new TypeError('The page must be an object.')
   config = await getConfig(config)
   if (!config.root) config.root = path.dirname(url.fileURLToPath(page.fileUrl))

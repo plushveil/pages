@@ -9,10 +9,10 @@ import nested from 'postcss-nested'
 
 import getPages from './pages.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const __module = path.resolve(__dirname, '..')
-const __tailwind = path.resolve(__module, 'tailwind.css')
+const renderFilename = url.fileURLToPath(import.meta.url)
+const renderDirname = path.dirname(renderFilename)
+const moduleDir = path.resolve(renderDirname, '..')
+const tailwindEntry = path.resolve(moduleDir, 'tailwind.css')
 
 /**
  * Renders a page.
@@ -23,12 +23,12 @@ const __tailwind = path.resolve(__module, 'tailwind.css')
  * @returns {Promise<string>} The rendered page.
  */
 export default async function render(page, config, api) {
-  const file = page.params?.__filename ? page.params.__filename : url.fileURLToPath(page.fileUrl)
+  const file = page.params?.['__filename'] ? page.params['__filename'] : url.fileURLToPath(page.fileUrl)
   const content = typeof page.content === 'string' ? page.content : `@import "${file}";`
   const plugins = [
     atImport({
       resolve: (id, basedir) => {
-        if (id === 'tailwindcss' && basedir !== __module) return __tailwind
+        if (id === 'tailwindcss' && basedir !== moduleDir) return tailwindEntry
         return id
       },
     }),
@@ -42,7 +42,7 @@ export default async function render(page, config, api) {
     return css.toString()
   } else {
     const pages = await getPages(file, config, api)
-    const mapPage = pages.find((page) => page.params.headers['Content-Type'] === 'application/json')
+    const mapPage = pages.find((entry) => entry.params.headers['Content-Type'] === 'application/json')
     if (page.url.toString() === mapPage.url.toString()) return map.toString().replace(/"%3Cinput%20css[^"]*/, `"%3C${path.basename(file)}`)
     return `${css.toString()}\n/*# sourceMappingURL=${mapPage.url.toString()} */`
   }

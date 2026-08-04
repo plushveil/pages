@@ -7,7 +7,7 @@ import getConfig from '../../../src/config.mjs'
 import { pages as getPagesFromWorker } from '../../../src/pages.mjs'
 import * as utils from '../../../src/utils.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
+const addonFilename = url.fileURLToPath(import.meta.url)
 
 const resolveAttributes = ['./', '../', '/']
 
@@ -15,7 +15,7 @@ const cache = {}
 const cacheFiles = {}
 
 let workerCount = 0
-const isChildWorker = Boolean(!thread.isMainThread && thread.workerData?.file && thread.workerData?.config && thread.workerData?.specifier === __filename)
+const isChildWorker = Boolean(!thread.isMainThread && thread.workerData?.file && thread.workerData?.config && thread.workerData?.specifier === addonFilename)
 if (isChildWorker) sendPagesToParent().finally(() => process.exit(0))
 
 /**
@@ -29,7 +29,7 @@ async function sendPagesToParent() {
     // Restore discovered contexts if provided
     const jsConfig = { ...baseConfig.js }
     if (thread.workerData.discoveredContexts) {
-      jsConfig.__discoveredContexts = thread.workerData.discoveredContexts
+      jsConfig['__discoveredContexts'] = thread.workerData.discoveredContexts
     }
     const config = { ...baseConfig, root: thread.workerData.configRoot, js: jsConfig }
 
@@ -51,10 +51,10 @@ async function sendPagesToParent() {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function beforeAsync(nodes, htmlDocument, page, config, api) {
+export async function beforeAsync(nodes, htmlDocument, page, config, _api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
-  cacheFiles[id] = cacheFiles[id] || {}
+  const pageFile = page.params?.['__filename'] ? page.params['__filename'] : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
+  cacheFiles[id] ||= {}
   if (!pageFile) return
   if (!cacheFiles[id][pageFile]) {
     const dirs = [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))]
@@ -78,9 +78,9 @@ export async function beforeAsync(nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function afterAsync(nodes, htmlDocument, page, config, api) {
+export async function afterAsync(nodes, htmlDocument, page, _config, _api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
+  const pageFile = page.params?.['__filename'] ? page.params['__filename'] : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
   if (!pageFile) return
   delete cacheFiles[id][pageFile]
   if (!Object.values(cacheFiles[id]).find(Boolean)) delete cacheFiles[id]
@@ -96,16 +96,16 @@ export async function afterAsync(nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function forEachAsync(node, nodes, htmlDocument, page, config, api) {
+export async function forEachAsync(node, nodes, htmlDocument, page, config, _api) {
   if (node.type !== 'tag-open') return
-  if (!node.text.match(/[a-zA-Z0-9 ]+=[ ]*["']([^'"]*)["']/gi)) return
+  if (!node.text.match(/[a-zA-Z0-9 ]+=[ ]*["'][^'"]*["']/gi)) return
   if (isChildWorker) return
 
   const htmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
   if (!htmlNode || !htmlNode.attributes) return
 
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
+  const pageFile = page.params?.['__filename'] ? page.params['__filename'] : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
   if (!pageFile) return
   const files = cacheFiles[id][pageFile]
 
@@ -121,7 +121,12 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
     const ctxParam = queryParams?.get('ctx')
 
     // Resolve the base path (without query params)
-    const basePage = files.includes(pathname) ? await getPage(pathname) : resolveAttributes.some((resolveAttribute) => pathname.startsWith(resolveAttribute)) ? await getPage(pathname) : null
+    let basePage = null
+    if (files.includes(pathname)) {
+      basePage = await getPage(pathname)
+    } else if (resolveAttributes.some((resolveAttribute) => pathname.startsWith(resolveAttribute))) {
+      basePage = await getPage(pathname)
+    }
 
     if (!basePage) continue
 
@@ -129,7 +134,10 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
     if (ctxParam) {
       // Try to find context-specific variant from getPages result
       // First, get all pages for this file
-      const resolved = basePage.fileUrl ? (typeof basePage.fileUrl === 'string' ? basePage.fileUrl : basePage.fileUrl.toString()) : null
+      let resolved = null
+      if (basePage.fileUrl) {
+        resolved = typeof basePage.fileUrl === 'string' ? basePage.fileUrl : basePage.fileUrl.toString()
+      }
       let ctxPage = null
 
       if (resolved) {
@@ -165,7 +173,7 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
    * @returns {Promise<import('../../../src/pages.mjs').Page>} The page.
    */
   async function getPage(value) {
-    let resolved
+    let resolved = null
     try {
       resolved = utils.resolve(value, [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))], { exists: true, file: true })
     } catch {
@@ -198,13 +206,17 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
       if (paramsA === paramsB) return 1
       if (typeof paramsA !== 'object' || typeof paramsB !== 'object') return match
       for (const key in paramsA) {
+        if (!Object.hasOwn(paramsA, key)) continue
         if (paramsA[key] === paramsB[key]) match++
         if (typeof paramsA[key] === 'object') match += countMatches(paramsA[key], paramsB[key])
       }
       return match
     }
 
-    const pageMatch = pages.reduce((a, b) => (a ? (countMatches(a.params, page.params) >= countMatches(b.params, page.params) ? a : b) : b), null)
+    const pageMatch = pages.reduce((best, candidate) => {
+      if (!best) return candidate
+      return countMatches(best.params, page.params) >= countMatches(candidate.params, page.params) ? best : candidate
+    }, null)
     return pageMatch
   }
 }
@@ -222,16 +234,19 @@ async function getPages(file, config) {
 
   try {
     // eslint-disable-next-line no-unmodified-loop-condition
-    while (workerCount >= 4) await new Promise((resolve) => setTimeout(resolve, 100))
+    while (workerCount >= 4)
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100)
+      })
     workerCount++
     const response = await new Promise((resolve, reject) => {
-      const worker = new thread.Worker(__filename, {
+      const worker = new thread.Worker(addonFilename, {
         workerData: {
           file,
           config: config.fileUrl.toString(),
           configRoot: config.root.toString(),
-          discoveredContexts: config.js?.__discoveredContexts,
-          specifier: __filename,
+          discoveredContexts: config.js?.['__discoveredContexts'],
+          specifier: addonFilename,
         },
       })
       worker.on('exit', () => workerCount--)
@@ -240,7 +255,7 @@ async function getPages(file, config) {
     })
     const pages = (cache[file] = JSON.parse(response))
     return pages
-  } catch (err) {
+  } catch {
     const pages = (cache[file] = [])
     return pages
   }

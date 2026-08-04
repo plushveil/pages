@@ -6,7 +6,7 @@ import getNodesInRange from '../utils/getNodesInRange.mjs'
 
 const csp = {}
 
-global.eventEmitter = global.eventEmitter || new EventEmitter()
+global.eventEmitter ||= new EventEmitter()
 global.eventEmitter.on('csp', (cspUpdate) => {
   mergeContentSecurityPolicies(csp, cspUpdate)
 })
@@ -20,8 +20,8 @@ global.eventEmitter.on('csp', (cspUpdate) => {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function afterAsync(nodes, htmlDocument, page, config, api) {
-  const csp = {}
+export async function afterAsync(nodes, htmlDocument, _page, _config, _api) {
+  const pageCsp = {}
 
   await Promise.all(
     nodes
@@ -30,20 +30,21 @@ export async function afterAsync(nodes, htmlDocument, page, config, api) {
         const htmlNode = htmlDocument.findNodeAt(node.offset.start)
 
         if (htmlNode.tag.toLowerCase() === 'script' && !htmlNode.attributes?.src) {
-          const parent = getNodesInRange(htmlNode.start, htmlNode.startTagEnd, nodes)[0]
+          const [parent] = getNodesInRange(htmlNode.start, htmlNode.startTagEnd, nodes)
+          if (!parent) return
           const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
           const integrity = await generateIntegrityFromStringAsync(text, 'SHA-384')
           const parentText = typeof parent.textUpdate === 'string' ? parent.textUpdate : parent.text
           if (parentText.includes(`<${htmlNode.tag}`)) {
             parent.textUpdate = parentText.replace(`<${htmlNode.tag}`, `<${htmlNode.tag} integrity="${integrity}"`)
-            csp['script-src'] = csp['script-src'] || []
-            csp['script-src'].push(`'${integrity}'`)
+            pageCsp['script-src'] ||= []
+            pageCsp['script-src'].push(`'${integrity}'`)
           }
         }
       }),
   )
 
-  if (Object.keys(csp).length > 0) global.eventEmitter.emit('csp', csp)
+  if (Object.keys(pageCsp).length > 0) global.eventEmitter.emit('csp', pageCsp)
 }
 
 /**
@@ -55,25 +56,25 @@ export async function afterAsync(nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function after(nodes, htmlDocument, page, config, api) {
+export async function after(nodes, htmlDocument, _page, _config, _api) {
   const meta = htmlDocument.select('meta[http-equiv="Content-Security-Policy"]')
   if (meta.length === 0) return
 
   let next = false
-  const node = getNodesInRange(meta[0].start, meta[0].end, nodes).find((node) => {
+  const foundNode = getNodesInRange(meta[0].start, meta[0].end, nodes).find((entry) => {
     if (next) return true
-    const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
+    const text = typeof entry.textUpdate === 'string' ? entry.textUpdate : entry.text
     if (text.match(/content\s*=\s*"$/i)) next = true
     else if (text.match(/content\s*=/i)) return true
     return false
   })
-  if (!node) return
+  if (!foundNode) return
 
-  const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
-  const cspString = text.match(/=\s*"/) ? text.match(/content\s*=\s*"([^"]*)"/i)[1] : text
+  const text = typeof foundNode.textUpdate === 'string' ? foundNode.textUpdate : foundNode.text
+  const cspString = text.match(/=\s*"/) ? (text.match(/content\s*=\s*"(?<content>[^"]*)"/i)?.groups?.content ?? text) : text
   const policy = parseContentSecurityPolicyString(cspString)
   const updatedPolicy = mergeContentSecurityPolicies(policy, csp)
-  node.textUpdate = text.replace(cspString, contentSecurityPolicyToString(updatedPolicy))
+  foundNode.textUpdate = text.replace(cspString, contentSecurityPolicyToString(updatedPolicy))
 }
 
 /**
@@ -125,7 +126,7 @@ function contentSecurityPolicyToString(policy) {
 function mergeContentSecurityPolicies(merged = {}, ...policies) {
   for (const policy of policies) {
     for (const [name, values] of Object.entries(policy)) {
-      merged[name] = merged[name] || []
+      merged[name] ||= []
       for (const value of values) {
         if (!merged[name].includes(value)) merged[name].push(value)
       }

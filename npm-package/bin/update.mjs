@@ -5,15 +5,15 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-const __filename = await fs.promises.realpath(url.fileURLToPath(import.meta.url))
-const __dirname = path.dirname(__filename)
-const __root = path.resolve(__dirname, '..')
+const updateFilename = await fs.promises.realpath(url.fileURLToPath(import.meta.url))
+const updateDirname = path.dirname(updateFilename)
+const rootDir = path.resolve(updateDirname, '..')
 
 await main()
 
 async function main() {
-  const directories = [__root]
-  const modulesPath = path.resolve(__root, 'modules')
+  const directories = [rootDir]
+  const modulesPath = path.resolve(rootDir, 'modules')
   for (const moduleName of fs.readdirSync(modulesPath, { withFileTypes: true })) {
     if (!moduleName.isDirectory()) continue
     const modulePath = path.resolve(modulesPath, moduleName.name)

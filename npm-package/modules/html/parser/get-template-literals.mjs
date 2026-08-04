@@ -124,8 +124,8 @@ function escapeHTML(html) {
         .slice(start + 2)
         .replace(/\/\/.*/g, (m) => 'x'.repeat(m.length)) // replace comments with x
         .replace(/\/\*[\s\S]*?\*\//g, (m) => 'x'.repeat(m.length)) // replace multi-line comments with x
-        .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, (m) => 'x'.repeat(m.length)) // replace strings with x
-        .replace(/`(?:(?=(\\?))\1.)*?`/g, (m) => 'x'.repeat(m.length)) // replace strings in backticks with x
+        .replace(/(?<quote>["'])(?:(?=(?<escape>\\?))\k<escape>.)*?\k<quote>/g, (m) => 'x'.repeat(m.length)) // replace strings with x
+        .replace(/`(?:(?=(?<escape>\\?))\k<escape>.)*?`/g, (m) => 'x'.repeat(m.length)) // replace strings in backticks with x
 
       // find closing }
       let i = 0
@@ -160,7 +160,7 @@ function escapeHTML(html) {
 
       const length = templateLiteral.end - templateLiteral.start - 3
       if (length > 0) result.push(`\${${'9'.repeat(length)}}`)
-      else if (length === 0) result.push('${}')
+      else if (length === 0) result.push(`\${}`)
       else if (length === -1) result.push('${')
       else throw new Error(`Invalid template literal:\n${html}`)
       i = templateLiteral.end

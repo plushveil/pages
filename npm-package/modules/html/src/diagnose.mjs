@@ -8,7 +8,7 @@ import getHtmlDocument from '../utils/getHtmlDocument.mjs'
  * @param {import('../../../src/api.mjs').API} api - The API.
  * @returns {Promise<{ message: string; start: { line: number; character: number }; end: { line: number; character: number }; fix: string }[]>} The problems.
  */
-export default async function diagnose(page, config, api) {
+export default async function diagnose(page, _config, _api) {
   try {
     const htmlDocument = getHtmlDocument(page)
     const textDocument = htmlDocument.getTextDocument()
@@ -19,7 +19,7 @@ export default async function diagnose(page, config, api) {
      *
      * @param {import('../parser/iterator.mjs').Node} node - The node.
      */
-    function forEach(node) {
+    const forEach = (node) => {
       if (node.type === 'text') {
         let i = 0
         while (node.text.indexOf('`', i) !== -1) {

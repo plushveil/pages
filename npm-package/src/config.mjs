@@ -5,9 +5,9 @@ import * as url from 'node:url'
 
 import * as utils from './utils.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const __root = path.resolve(__dirname, '..')
+const configFilename = url.fileURLToPath(import.meta.url)
+const configDirname = path.dirname(configFilename)
+const rootDir = path.resolve(configDirname, '..')
 
 const host = process.env.HOST || 'localhost'
 export const port = String(process.env.PORT || 8080)
@@ -43,7 +43,7 @@ export default async function getConfig(file = 'pages.config.ts') {
   }
 
   if (file === 'pages.config.ts') {
-    const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.mjs'))
+    const fileUrl = url.pathToFileURL(path.resolve(rootDir, 'pages.config.mjs'))
     return { ...(await import(fileUrl)), fileUrl }
   } else {
     throw new Error(`Cannot find configuration: ${file}`)

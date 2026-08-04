@@ -11,21 +11,13 @@ export default class CSSSelectAdapter {
   #textDocument
 
   /**
-   * The HTML document
-   *
-   * @type {import('vscode-html-languageservice').HTMLDocument}
-   */
-  #htmlDocument
-
-  /**
    * Creates a new CSSSelectAdapter instance
    *
    * @param {import('vscode-languageserver-textdocument').TextDocument} textDocument - The text document
    * @param {import('vscode-html-languageservice').HTMLDocument} htmlDocument - The HTML document
    */
-  constructor(textDocument, htmlDocument) {
+  constructor(textDocument, _htmlDocument) {
     this.#textDocument = textDocument
-    this.#htmlDocument = htmlDocument
   }
 
   /**
@@ -200,7 +192,7 @@ export default class CSSSelectAdapter {
    * @param {import('vscode-html-languageservice').Node} elem
    * @returns {boolean}
    */
-  isHovered(elem) {
+  isHovered(_elem) {
     return false
   }
 
@@ -214,7 +206,7 @@ export default class CSSSelectAdapter {
    * @param {import('vscode-html-languageservice').Node} elem
    * @returns {boolean}
    */
-  isVisited(elem) {
+  isVisited(_elem) {
     return false
   }
 
@@ -224,7 +216,7 @@ export default class CSSSelectAdapter {
    * @param {import('vscode-html-languageservice').Node} elem
    * @returns {boolean}
    */
-  isActive(elem) {
+  isActive(_elem) {
     return false
   }
 }

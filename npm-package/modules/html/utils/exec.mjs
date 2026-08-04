@@ -36,18 +36,18 @@ module.registerHooks({
             shortCircuit: true,
           }
         }
-      } catch (err) {}
+      } catch {}
     }
     return nextResolve(specifier, context)
   },
   /**
-   * @param {string} url - The URL returned by the resolve chain
+   * @param {string} moduleUrl - The URL returned by the resolve chain
    * @param {{ conditions: string[]; format: string; importAttributes: {} }} context - The context object
    * @param {Function<string, {}>} nextLoad - The subsequent load hook in the chain, or the Node.js default load hook after the last user-supplied load hook
    * @returns {{ format: string; shortCircuit: boolean; source: string }} - The result object
    * @see https://nodejs.org/api/module.html#loadurl-context-nextload
    */
-  load(url, context, nextLoad) {
+  load(moduleUrl, context, nextLoad) {
     if (context.importAttributes?.parentURL === import.meta.url && context.importAttributes.script) {
       const source = scriptsMap[context.importAttributes.script]
       return {
@@ -56,7 +56,7 @@ module.registerHooks({
         source,
       }
     }
-    return nextLoad(url, context)
+    return nextLoad(moduleUrl, context)
   },
 })
 
@@ -70,7 +70,7 @@ module.registerHooks({
  * @param {import('../../../src/api.mjs').API} api - The API.
  * @returns {Promise<any>} The result.
  */
-export default async function exec(code, scripts, page, config, api) {
+export default async function exec(code, scripts, _page, _config, _api) {
   for (const script of scripts || []) scriptsMap[`${script.id}`] = script.node.code || script.node.text
 
   const imported = ['default']
@@ -82,19 +82,19 @@ export default async function exec(code, scripts, page, config, api) {
         return true
       })
       if (imports.length === 0) return ''
-      const url = new URL(import.meta.url)
-      url.searchParams.set('script_id', script.id)
-      const code = `const { ${imports.join(', ')} } = await import('${url}')`
-      return code
+      const importUrl = new URL(import.meta.url)
+      importUrl.searchParams.set('script_id', script.id)
+      const importCode = `const { ${imports.join(', ')} } = await import('${importUrl}')`
+      return importCode
     }),
     `return ${code}`,
   ].join('\n')
 
-  const __filename = url.fileURLToPath(import.meta.url)
-  const __dirname = path.dirname(__filename)
+  const execFilename = url.fileURLToPath(import.meta.url)
+  const execDirname = path.dirname(execFilename)
   const context = {
-    __filename,
-    __dirname,
+    __filename: execFilename,
+    __dirname: execDirname,
   }
 
   const fn = new AsyncFunction(...Object.keys(context), codeWithContext)
@@ -116,12 +116,15 @@ export default async function exec(code, scripts, page, config, api) {
  */
 function replaceError(text) {
   return text.replace(/\({0,1}file:\/\/[^\n]*/g, (match) => {
-    const file = match.match(/file:\/\/[^?#)]*/)[0]
+    const [file] = match.match(/file:\/\/[^?#)]*/) || ['']
     const pos = match
       .slice(file.length)
       .split(':')
       .slice(1, 3)
-      .map((p) => p.match(/\d+/)[0])
+      .map((p) => {
+        const [value] = p.match(/\d+/) || ['0']
+        return value
+      })
     return `(${file}${pos && pos.length === 2 ? `:${pos.join(':')}` : ''})`
   })
 }

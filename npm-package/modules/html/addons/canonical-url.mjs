@@ -9,16 +9,16 @@ import getNodesInRange from '../utils/getNodesInRange.mjs'
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export function afterAsync(nodes, htmlDocument, page, config, api) {
+export function afterAsync(nodes, htmlDocument, _page, _config, _api) {
   for (const node of nodes) {
     if (node.type === 'tag-open' && node.text.match(/<link/i)) {
       const htmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
       if (!(htmlNode.tag === 'link' && htmlNode.attributes.rel.slice(1, -1) === 'canonical')) continue
       node.isCanonical = true
       const nodesInCanonical = getNodesInRange(htmlNode.start, htmlNode.end, nodes)
-      nodesInCanonical.forEach((node) => {
-        node.isCanonicalPart = true
-        node.textUpdate = ''
+      nodesInCanonical.forEach((entry) => {
+        entry.isCanonicalPart = true
+        entry.textUpdate = ''
       })
     }
   }

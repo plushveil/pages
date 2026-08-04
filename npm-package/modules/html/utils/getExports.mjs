@@ -14,7 +14,7 @@ export default function getExports(code) {
     /**
      * @param node
      */
-    function visit(node) {
+    const visit = (node) => {
       // Named exports: export const foo, export function bar, export class Baz
       if (ts.getCombinedModifierFlags(node) & ts.ModifierFlags.Export) {
         if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isVariableStatement(node)) {

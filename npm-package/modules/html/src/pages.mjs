@@ -7,7 +7,8 @@ import executeAddons from '../addons/addons.mjs'
 import getNodesInRange from '../utils/getNodesInRange.mjs'
 import getUrl from '../utils/getUrl.mjs'
 
-const eventEmitter = (global.eventEmitter = global.eventEmitter || new EventEmitter())
+global.eventEmitter ||= new EventEmitter()
+const { eventEmitter } = global
 eventEmitter.setMaxListeners(0)
 
 /**
@@ -20,7 +21,7 @@ eventEmitter.setMaxListeners(0)
  * @param {boolean} options.eval - Whether to evaluate the JavaScript code. Defaults to true.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-export default async function pages(file, config, api, options = {}) {
+export default async function pages(file, config, api, _options = {}) {
   file = utils.resolve(file, [process.cwd(), path.dirname(url.fileURLToPath(config.fileUrl))], { exists: true, file: true })
   const fileUrl = url.pathToFileURL(file).toString()
   const canonicals = []
@@ -33,7 +34,7 @@ export default async function pages(file, config, api, options = {}) {
    * @param {import('../../../src/config.mjs').Config} config - The configuration.
    * @param {import('../../../src/api.mjs').API} api - The API.
    */
-  function forEachNode(node, nodes, htmlDocument, page, config, api) {
+  function forEachNode(node, nodes, htmlDocument, _page, _config, _api) {
     if (!node.text.match(/rel=['"]canonical['"]/i)) return
     const linkHtmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
     if (linkHtmlNode.tag !== 'link' || linkHtmlNode.attributes.rel.slice(1, -1) !== 'canonical') return
@@ -81,7 +82,7 @@ export default async function pages(file, config, api, options = {}) {
   await executeAddons(preflightPage, config, api)
   eventEmitter.off('node', forEachNode)
 
-  const pages = []
+  const results = []
   for (const canonical of canonicals) {
     const combinations = getCombinations(canonical.href)
     for (const combination of combinations) {
@@ -118,12 +119,12 @@ export default async function pages(file, config, api, options = {}) {
         }
       }
 
-      pages.push(page)
+      results.push(page)
     }
   }
 
-  if (pages.length === 0) {
-    pages.push({
+  if (results.length === 0) {
+    results.push({
       url: getUrl(path.relative(path.dirname(config.fileUrl.toString()), file), config),
       fileUrl: url.pathToFileURL(file),
       params: {
@@ -138,11 +139,11 @@ export default async function pages(file, config, api, options = {}) {
     })
   }
 
-  pages.forEach((page) => {
-    page.getSiblings = () => pages.filter((p) => p !== page)
+  results.forEach((entry) => {
+    entry.getSiblings = () => results.filter((p) => p !== entry)
   })
 
-  return pages
+  return results
 }
 
 /**

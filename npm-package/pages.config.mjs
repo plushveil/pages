@@ -22,7 +22,7 @@ export { baseURI } from './src/config.mjs'
  * @type {BuildConfig}
  */
 export const build = {
-  ignore: [/\/(node_modules|.git|.github)\//, /\/(utils|modules|partials)\//, /tsconfig\.json$/, /Dockerfile$/, /\.mjs$/, /\.d\.ts$/, /\.md$/],
+  ignore: [/\/(?:node_modules|.git|.github)\//, /\/(?:utils|modules|partials)\//, /tsconfig\.json$/, /Dockerfile$/, /\.mjs$/, /\.d\.ts$/, /\.md$/],
   after: async (output, config) => {
     await sitemap('sitemap.xml', output, config)
   },

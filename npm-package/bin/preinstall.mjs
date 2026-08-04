@@ -5,10 +5,10 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const preinstallFilename = url.fileURLToPath(import.meta.url)
+const preinstallDirname = path.dirname(preinstallFilename)
 
-const __modules = path.resolve(__dirname, '..', 'modules')
+const modulesDir = path.resolve(preinstallDirname, '..', 'modules')
 
 const isUpdate = process.argv.find((a) => a === '--update-all-modules')
 
@@ -23,9 +23,9 @@ try {
  * Install all dependencies for all modules.
  */
 async function main() {
-  if (!fs.existsSync(__modules)) return
+  if (!fs.existsSync(modulesDir)) return
 
-  const install = fs.readdirSync(__modules, { withFileTypes: true }).map((dirent) => (dirent.isDirectory() ? installModule(path.resolve(__modules, dirent.name)) : null))
+  const install = fs.readdirSync(modulesDir, { withFileTypes: true }).map((dirent) => (dirent.isDirectory() ? installModule(path.resolve(modulesDir, dirent.name)) : null))
 
   await Promise.all(install)
 }

@@ -8,10 +8,10 @@ import ts from 'typescript'
 import getExports from '../utils/getExports.mjs'
 import getNodesInRange from '../utils/getNodesInRange.mjs'
 
-const __filename = url.fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const templateLiteralsFilename = url.fileURLToPath(import.meta.url)
+const templateLiteralsDirname = path.dirname(templateLiteralsFilename)
 
-const exec = await fs.promises.readFile(path.resolve(__dirname, '..', 'utils', 'exec.mjs'), 'utf8')
+const execSource = await fs.promises.readFile(path.resolve(templateLiteralsDirname, '..', 'utils', 'exec.mjs'), 'utf8')
 
 module.registerHooks({
   /**
@@ -36,21 +36,21 @@ module.registerHooks({
     return nextResolve(specifier, context)
   },
   /**
-   * @param {string} url - The URL returned by the resolve chain
+   * @param {string} moduleUrl - The URL returned by the resolve chain
    * @param {{ conditions: string[]; format: string; importAttributes: {} }} context - The context object
    * @param {Function<string, {}>} nextLoad - The subsequent load hook in the chain, or the Node.js default load hook after the last user-supplied load hook
    * @returns {{ format: string; shortCircuit: boolean; source: string }} - The result object
    * @see https://nodejs.org/api/module.html#loadurl-context-nextload
    */
-  load(url, context, nextLoad) {
+  load(moduleUrl, context, nextLoad) {
     if (context.importAttributes?.parentURL === import.meta.url) {
       return {
         format: 'module',
         shortCircuit: true,
-        source: exec,
+        source: execSource,
       }
     }
-    return nextLoad(url, context)
+    return nextLoad(moduleUrl, context)
   },
 })
 
@@ -78,27 +78,26 @@ const idPreflightStopPositionMap = {}
  *
  * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
- * @param {import('../../../src/pages.mjs').Page} page - The page.
- * @param {import('../../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../../src/api.mjs').API} api - The API.
+ * @param {import('../../../src/pages.mjs').Page} _page - The page.
+ * @param {import('../../../src/config.mjs').Config} _config - The configuration.
+ * @param {import('../../../src/api.mjs').API} _api - The API.
  */
-export function beforeAsync(iterator, htmlDocument, page, config, api) {
+export function beforeAsync(iterator, htmlDocument, _page, _config, _api) {
   const textDocument = htmlDocument.getTextDocument()
   const id = htmlDocument.getId()
   const scripts = htmlDocument.select('script[target]')
-  const head = htmlDocument.select('link[rel="canonical"]')[0]
+  const [head] = htmlDocument.select('link[rel="canonical"]')
   idPreflightStopPositionMap[id] = head?.end || 0
 
   idNodeScriptsMap[id] = {}
-  for (let i = 0; i < scripts.length; i++) {
-    const script = scripts[i]
+  for (const [i, script] of scripts.entries()) {
     const text = textDocument.getText({ start: textDocument.positionAt(script.startTagEnd), end: textDocument.positionAt(script.endTagStart) })
     const scriptDetails = { id: i, htmlNode: script, exports: getExports(text) }
     const targetSelector = script.attributes.target.replace(/^["']|['"]$/g, '')
     const targets = htmlDocument.select(targetSelector)
     for (const target of targets) {
       traverse(target, (node) => {
-        idNodeScriptsMap[id][node] = idNodeScriptsMap[id][node] || []
+        idNodeScriptsMap[id][node] ||= []
         idNodeScriptsMap[id][node].push(scriptDetails)
       })
     }
@@ -147,10 +146,10 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
   /**
    * @type {import('../utils/exec.mjs').default}
    */
-  const exec = (await import(htmlDocument.getTextDocument().uri + hash)).default
+  const execFn = (await import(htmlDocument.getTextDocument().uri + hash)).default
   const scripts = getScriptsForNode(node, nodes, htmlDocument)
 
-  let result = await exec(node.text.slice(2, -1), scripts, page, config, api)
+  let result = await execFn(node.text.slice(2, -1), scripts, page, config, api)
   if (typeof result === 'object' && result && 'default' in result) result = result.default
   if (typeof result === 'function') result = await result()
   node.raw = result
@@ -177,13 +176,13 @@ function getCode(code) {
 /**
  * After is executed when the interpretation is done.
  *
- * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
+ * @param {import('../parser/iterator.mjs').Node[]} _iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
- * @param {import('../../../src/pages.mjs').Page} page - The page.
- * @param {import('../../../src/config.mjs').Config} config - The configuration.
- * @param {import('../../../src/api.mjs').API} api - The API.
+ * @param {import('../../../src/pages.mjs').Page} _page - The page.
+ * @param {import('../../../src/config.mjs').Config} _config - The configuration.
+ * @param {import('../../../src/api.mjs').API} _api - The API.
  */
-export function after(iterator, htmlDocument, page, config, api) {
+export function after(_iterator, htmlDocument, _page, _config, _api) {
   const id = htmlDocument.getId()
   delete idNodeScriptsMap[id]
 }
@@ -202,9 +201,9 @@ function getScriptsForNode(node, nodes, htmlDocument) {
   const scripts = idNodeScriptsMap[id][closestHtmlNode] || []
   return scripts
     .map((scriptDetails) => {
-      const node = nodes.find((node) => node.offset.start === scriptDetails.htmlNode.startTagEnd)
-      node.code = getCode(node.text)
-      return { ...scriptDetails, node }
+      const iterNode = nodes.find((entry) => entry.offset.start === scriptDetails.htmlNode.startTagEnd)
+      iterNode.code = getCode(iterNode.text)
+      return { ...scriptDetails, node: iterNode }
     })
     .filter(Boolean)
 }

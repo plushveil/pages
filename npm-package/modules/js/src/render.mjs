@@ -28,7 +28,7 @@ export default async function render(page, config, api) {
     const minify = Boolean(config?.js?.minify)
 
     // Use pre-resolved context from serve.mjs or pages.mjs (functions can't be serialized through worker)
-    const ctx = page.params?.__resolvedCtx
+    const ctx = page.params?.['__resolvedCtx']
 
     const script = typeof page.content === 'string' ? page.content : `import('${path.resolve(file)}');\n`
     const resolveDir = file ? path.dirname(file) : process.cwd()
@@ -60,7 +60,7 @@ export default async function render(page, config, api) {
       return output[0].code
     } else {
       const pages = await getPages(file, config, api)
-      const map = pages.find((page) => page.params.headers['Content-Type'] === 'application/json')
+      const map = pages.find((entry) => entry.params.headers['Content-Type'] === 'application/json')
 
       if (page.url.toString() === map.url.toString()) {
         const { output } = await bundle.generate({
@@ -95,7 +95,7 @@ export default async function render(page, config, api) {
  * @param {any} ctx - The context object for constant inlining.
  * @returns {import('rolldown').Plugin}
  */
-function createVirtualEntryPlugin(code, resolveDir, ctx) {
+function createVirtualEntryPlugin(code, resolveDir, _ctx) {
   return {
     name: 'virtual-entry',
     resolveId(source, importer) {
@@ -143,11 +143,11 @@ function createContextLoaderPlugin(ctx) {
  * @param {import('../../../src/pages.mjs')} api - The API.
  * @returns {import('rolldown').Plugin}
  */
-function createPagesLoaderPlugin(page, config, api) {
+function createPagesLoaderPlugin(page, config, _api) {
   return {
     name: 'pages-loader',
     async load(id) {
-      if (!/\.(htms|page|html|css)$/.test(id)) return null
+      if (!/\.(?:htms|page|html|css)$/.test(id)) return null
       const subpage = {
         ...page,
         params: {

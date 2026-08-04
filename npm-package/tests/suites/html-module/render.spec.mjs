@@ -2,6 +2,7 @@
 
 import * as assert from 'node:assert'
 import * as module from 'node:module'
+import { describe, it } from 'node:test'
 
 import render from '../../../modules/html/src/render.mjs'
 
@@ -23,16 +24,16 @@ module.registerHooks({
  */
 describe('modules/html - render', () => {
   it('with template literals', async () => {
-    await assert.rejects(() => render({ content: '${' }, {}, {}))
+    await assert.rejects(() => render({ content: `\${` }, {}, {}))
     assert.deepStrictEqual(await render({ content: '' }, {}, {}), '')
-    assert.deepStrictEqual(await render({ content: '<html>${1}</html>' }, {}, {}), '<html>1</html>')
-    assert.deepStrictEqual(await render({ content: '<html>${`1`}</html>' }, {}, {}), '<html>1</html>')
-    assert.deepStrictEqual(await render({ content: "<html>${'1'}</html>" }, {}, {}), '<html>1</html>')
-    assert.deepStrictEqual(await render({ content: '<html>${"1"}</html>' }, {}, {}), '<html>1</html>')
-    assert.deepStrictEqual(await render({ content: '${1}' }, {}, {}), '1')
+    assert.deepStrictEqual(await render({ content: `<html>\${1}</html>` }, {}, {}), '<html>1</html>')
+    assert.deepStrictEqual(await render({ content: `<html>\${\`1\`}</html>` }, {}, {}), '<html>1</html>')
+    assert.deepStrictEqual(await render({ content: `<html>\${'1'}</html>` }, {}, {}), '<html>1</html>')
+    assert.deepStrictEqual(await render({ content: `<html>\${"1"}</html>` }, {}, {}), '<html>1</html>')
+    assert.deepStrictEqual(await render({ content: `\${1}` }, {}, {}), '1')
     assert.deepStrictEqual(await render({ content: '1' }, {}, {}), '1')
-    assert.deepStrictEqual(await render({ content: '<html lang="${`DE`}"></html>' }, {}, {}), '<html lang="DE"></html>')
-    assert.deepStrictEqual(await render({ content: '<div alt="${(() => `${\'2\'}`)()}"></div>' }, {}, {}), '<div alt="2"></div>')
+    assert.deepStrictEqual(await render({ content: `<html lang="\${\`DE\`}"></html>` }, {}, {}), '<html lang="DE"></html>')
+    assert.deepStrictEqual(await render({ content: `<div alt="\${(() => \`\${'2'}\`)()}"></div>` }, {}, {}), '<div alt="2"></div>')
   })
 
   it('minify', async () => {

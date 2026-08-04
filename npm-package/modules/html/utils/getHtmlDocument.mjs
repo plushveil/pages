@@ -10,6 +10,6 @@ import parse from '../parser/parse.mjs'
  */
 export default function getHtmlDocument(page) {
   if (typeof page.content === 'string') return parse(page.content)
-  if (page.params?.__filename) return parse(url.pathToFileURL(page.params.__filename).toString())
+  if (page.params?.['__filename']) return parse(url.pathToFileURL(page.params['__filename']).toString())
   return parse(page.fileUrl.toString())
 }
