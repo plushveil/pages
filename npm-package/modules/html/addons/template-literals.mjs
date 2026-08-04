@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
-import * as url from 'node:url'
-import * as path from 'node:path'
 import * as module from 'node:module'
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 import ts from 'typescript'
 
@@ -16,42 +16,42 @@ const exec = await fs.promises.readFile(path.resolve(__dirname, '..', 'utils', '
 module.registerHooks({
   /**
    * @param {string} specifier - The specifier to resolve
-   * @param {{ conditions: string[], importAttributes: {}, parentURL: string }} context - The context object
+   * @param {{ conditions: string[]; importAttributes: {}; parentURL: string }} context - The context object
    * @param {Function<string, {}>} nextResolve - The subsequent resolve hook in the chain, or the Node.js default resolve hook after the last user-supplied resolve hook
-   * @returns {{ format: string, url: string, importAttributes: {}, shortCircuit: boolean }} - The result object
+   * @returns {{ format: string; url: string; importAttributes: {}; shortCircuit: boolean }} - The result object
    * @see https://nodejs.org/api/module.html#resolvespecifier-context-nextresolve
    */
-  resolve (specifier, context, nextResolve) {
+  resolve(specifier, context, nextResolve) {
     if (context.parentURL === import.meta.url) {
       return {
         format: 'module',
         url: specifier,
         importAttributes: {
           specifier,
-          parentURL: import.meta.url
+          parentURL: import.meta.url,
         },
-        shortCircuit: true
+        shortCircuit: true,
       }
     }
     return nextResolve(specifier, context)
   },
   /**
    * @param {string} url - The URL returned by the resolve chain
-   * @param {{ conditions: string[], format: string, importAttributes: {} }} context - The context object
+   * @param {{ conditions: string[]; format: string; importAttributes: {} }} context - The context object
    * @param {Function<string, {}>} nextLoad - The subsequent load hook in the chain, or the Node.js default load hook after the last user-supplied load hook
-   * @returns {{ format: string, shortCircuit: boolean, source: string }} - The result object
+   * @returns {{ format: string; shortCircuit: boolean; source: string }} - The result object
    * @see https://nodejs.org/api/module.html#loadurl-context-nextload
    */
-  load (url, context, nextLoad) {
+  load(url, context, nextLoad) {
     if (context.importAttributes?.parentURL === import.meta.url) {
       return {
         format: 'module',
         shortCircuit: true,
-        source: exec
+        source: exec,
       }
     }
     return nextLoad(url, context)
-  }
+  },
 })
 
 /**
@@ -64,24 +64,25 @@ module.registerHooks({
  */
 
 /**
- * @type {{[key: string]: {[key: string]: nodeDetails[]}}}
+ * @type {{ [key: string]: { [key: string]: nodeDetails[] } }}
  */
 const idNodeScriptsMap = {}
 
 /**
- * @type {{[key: string]: number}}
+ * @type {{ [key: string]: number }}
  */
 const idPreflightStopPositionMap = {}
 
 /**
- * beforeAsync is executed before the page is interpreted.
+ * BeforeAsync is executed before the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export function beforeAsync (iterator, htmlDocument, page, config, api) {
+export function beforeAsync(iterator, htmlDocument, page, config, api) {
   const textDocument = htmlDocument.getTextDocument()
   const id = htmlDocument.getId()
   const scripts = htmlDocument.select('script[target]')
@@ -110,17 +111,19 @@ export function beforeAsync (iterator, htmlDocument, page, config, api) {
 
   /**
    * Traverses the node and its children.
+   *
    * @param {import('vscode-html-languageservice').HTMLNode} node - The node
    * @param {Function} callback - The callback
    */
-  function traverse (node, callback) {
+  function traverse(node, callback) {
     callback(node)
     for (const child of node.children) traverse(child, callback)
   }
 }
 
 /**
- * forEach is executed for each node when the page is interpreted.
+ * ForEach is executed for each node when the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node} node - The node
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
@@ -128,7 +131,7 @@ export function beforeAsync (iterator, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
+export async function forEachAsync(node, nodes, htmlDocument, page, config, api) {
   if (node.type !== 'template') return
   if (typeof node.textUpdate === 'string') return
 
@@ -139,7 +142,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
   }
 
   const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
-  const hash = '#' + htmlDocument.getId() + '|' + Date.now() + Math.random() + (ia ? `|${ia}` : '')
+  const hash = `#${htmlDocument.getId()}|${Date.now()}${Math.random()}${ia ? `|${ia}` : ''}`
 
   /**
    * @type {import('../utils/exec.mjs').default}
@@ -156,47 +159,52 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
 
 /**
  * Transpile TypeScript code to JavaScript.
+ *
  * @param {string} code - The code.
  * @returns {string} The transpiled code.
  */
-function getCode (code) {
+function getCode(code) {
   const { outputText } = ts.transpileModule(code, {
     compilerOptions: {
       module: ts.ModuleKind.ESNext,
       target: ts.ScriptTarget.ES2020,
-      sourceMap: false
-    }
+      sourceMap: false,
+    },
   })
   return outputText
 }
 
 /**
- * after is executed when the interpretation is done.
+ * After is executed when the interpretation is done.
+ *
  * @param {import('../parser/iterator.mjs').Node[]} iterator - The iterator
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export function after (iterator, htmlDocument, page, config, api) {
+export function after(iterator, htmlDocument, page, config, api) {
   const id = htmlDocument.getId()
   delete idNodeScriptsMap[id]
 }
 
 /**
  * Retrieves the scripts for a node.
+ *
  * @param {import('../parser/iterator.mjs').Node} node - The node
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
  * @returns {nodeDetails[]} The scripts.
  */
-function getScriptsForNode (node, nodes, htmlDocument) {
+function getScriptsForNode(node, nodes, htmlDocument) {
   const id = htmlDocument.getId()
   const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
   const scripts = idNodeScriptsMap[id][closestHtmlNode] || []
-  return scripts.map((scriptDetails) => {
-    const node = nodes.find(node => node.offset.start === scriptDetails.htmlNode.startTagEnd)
-    node.code = getCode(node.text)
-    return { ...scriptDetails, node }
-  }).filter(Boolean)
+  return scripts
+    .map((scriptDetails) => {
+      const node = nodes.find((node) => node.offset.start === scriptDetails.htmlNode.startTagEnd)
+      node.code = getCode(node.text)
+      return { ...scriptDetails, node }
+    })
+    .filter(Boolean)
 }

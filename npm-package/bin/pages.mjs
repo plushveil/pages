@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import * as path from 'node:path'
 import * as fs from 'node:fs'
+import * as path from 'node:path'
 import * as url from 'node:url'
 
 import * as cli from '@plushveil/cli_from_jsdoc'
@@ -20,10 +20,11 @@ try {
 
 /**
  * Looks for a package.json in the given directory and generates a CLI based on the JSDoc comments in the `main` file.
+ *
  * @param {string} cwd - The directory to search for a package.json file.
  * @returns {Promise<unknown>} - The result of the CLI execution.
  */
-export default async function main (cwd = process.cwd()) {
+export default async function main(cwd = process.cwd()) {
   cwd = path.resolve(cwd)
 
   if (!fs.existsSync(cwd)) throw new Error(`Directory not found: ${cwd}`)

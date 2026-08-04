@@ -12,14 +12,15 @@ import * as utils from './utils.mjs'
 
 /**
  * Retrieve the API.
+ *
  * @returns {Promise<API>} The API.
  */
-export default function getApi () {
+export default function getApi() {
   return {
     pages: pages.pages,
     render: pages.render,
     diagnose: pages.diagnose,
     format: pages.format,
-    utils
+    utils,
   }
 }

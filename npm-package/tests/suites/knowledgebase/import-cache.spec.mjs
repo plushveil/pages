@@ -1,13 +1,13 @@
 /* eslint no-template-curly-in-string: "off" */
 
 import * as assert from 'node:assert'
-import * as module from 'node:module'
 import * as fs from 'node:fs'
+import * as module from 'node:module'
 import * as path from 'node:path'
+import { it } from 'node:test'
 import * as url from 'node:url'
 
 import nowDefaultImport from './now-random.mjs'
-import { it } from 'node:test'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -15,21 +15,21 @@ const __dirname = path.dirname(__filename)
 /**
  * Test nodes import cache
  */
-describe('knowledgebase - import caching', function () {
-  it('dynamic import uses cache', async function () {
+describe('knowledgebase - import caching', () => {
+  it('dynamic import uses cache', async () => {
     const nowDynamicImport = (await import('./now-random.mjs')).default
     assert.deepStrictEqual(nowDefaultImport, nowDynamicImport)
   })
 
-  it('registerHooks resolve - uses cache', async function () {
+  it('registerHooks resolve - uses cache', async () => {
     let active = true
     module.registerHooks({
-      load (url, context, nextLoad) {
-        if (active && (new URL(url)).pathname.endsWith('now-random.mjs')) {
+      load(url, context, nextLoad) {
+        if (active && new URL(url).pathname.endsWith('now-random.mjs')) {
           return {
             format: 'module',
             source: fs.readFileSync(path.join(__dirname, 'now-random.mjs'), 'utf8'),
-            shortCircuit: true
+            shortCircuit: true,
           }
         }
         return nextLoad(url, context)
@@ -43,10 +43,10 @@ describe('knowledgebase - import caching', function () {
     active = false
   })
 
-  it('registerHooks resolve - uses cache with importAttributes', async function () {
+  it('registerHooks resolve - uses cache with importAttributes', async () => {
     let active = true
     module.registerHooks({
-      resolve (specifier, context, nextResolve) {
+      resolve(specifier, context, nextResolve) {
         if (active && specifier.startsWith('./now-random.mjs')) {
           const specifierUrl = url.pathToFileURL(path.join(__dirname, 'now-random.mjs'))
           specifierUrl.searchParams.set('testsuite', '2')
@@ -54,17 +54,17 @@ describe('knowledgebase - import caching', function () {
             url: specifierUrl.href,
             format: 'module',
             shortCircuit: true,
-            importAttributes: specifierUrl
+            importAttributes: specifierUrl,
           }
         }
         return nextResolve(specifier, context)
       },
-      load (url, context, nextLoad) {
-        if (active && (new URL(url)).pathname.endsWith('now-random.mjs')) {
+      load(url, context, nextLoad) {
+        if (active && new URL(url).pathname.endsWith('now-random.mjs')) {
           return {
             format: 'module',
             source: fs.readFileSync(path.join(__dirname, 'now-random.mjs'), 'utf8'),
-            shortCircuit: true
+            shortCircuit: true,
           }
         }
         return nextLoad(url, context)
@@ -82,11 +82,11 @@ describe('knowledgebase - import caching', function () {
     active = false
   })
 
-  it('registerHooks resolve - uses cache with importAttributes and shortCircuit', async function () {
+  it('registerHooks resolve - uses cache with importAttributes and shortCircuit', async () => {
     let active = true
 
     module.registerHooks({
-      resolve (specifier, context, nextResolve) {
+      resolve(specifier, context, nextResolve) {
         if (active && specifier.startsWith('./now-random.mjs')) {
           const specifierUrl = url.pathToFileURL(path.join(__dirname, 'now-random.mjs'))
           specifierUrl.searchParams.set('testsuite', '3')
@@ -94,17 +94,17 @@ describe('knowledgebase - import caching', function () {
             url: specifierUrl.href, // <- import.meta.url
             format: 'module',
             shortCircuit: true,
-            importAttributes: specifierUrl
+            importAttributes: specifierUrl,
           }
         }
         return nextResolve(specifier, context)
       },
-      load (url, context, nextLoad) {
-        if (active && (new URL(url)).pathname.endsWith('now-random.mjs')) {
+      load(url, context, nextLoad) {
+        if (active && new URL(url).pathname.endsWith('now-random.mjs')) {
           return {
             format: 'module',
             source: 'export default import.meta.url',
-            shortCircuit: true
+            shortCircuit: true,
           }
         }
         return nextLoad(url, context)

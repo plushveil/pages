@@ -1,17 +1,18 @@
+import EventEmitter from 'node:events'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import EventEmitter from 'node:events'
 
-import executeAddons from '../addons/addons.mjs'
-import getUrl from '../utils/getUrl.mjs'
-import getNodesInRange from '../utils/getNodesInRange.mjs'
 import * as utils from '../../../src/utils.mjs'
+import executeAddons from '../addons/addons.mjs'
+import getNodesInRange from '../utils/getNodesInRange.mjs'
+import getUrl from '../utils/getUrl.mjs'
 
-const eventEmitter = global.eventEmitter = global.eventEmitter || new EventEmitter()
+const eventEmitter = (global.eventEmitter = global.eventEmitter || new EventEmitter())
 eventEmitter.setMaxListeners(0)
 
 /**
  * Retrieves a list of pages from a file.
+ *
  * @param {string} file - The file.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
@@ -19,7 +20,7 @@ eventEmitter.setMaxListeners(0)
  * @param {boolean} options.eval - Whether to evaluate the JavaScript code. Defaults to true.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-export default async function pages (file, config, api, options = {}) {
+export default async function pages(file, config, api, options = {}) {
   file = utils.resolve(file, [process.cwd(), path.dirname(url.fileURLToPath(config.fileUrl))], { exists: true, file: true })
   const fileUrl = url.pathToFileURL(file).toString()
   const canonicals = []
@@ -32,7 +33,7 @@ export default async function pages (file, config, api, options = {}) {
    * @param {import('../../../src/config.mjs').Config} config - The configuration.
    * @param {import('../../../src/api.mjs').API} api - The API.
    */
-  function forEachNode (node, nodes, htmlDocument, page, config, api) {
+  function forEachNode(node, nodes, htmlDocument, page, config, api) {
     if (!node.text.match(/rel=['"]canonical['"]/i)) return
     const linkHtmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
     if (linkHtmlNode.tag !== 'link' || linkHtmlNode.attributes.rel.slice(1, -1) !== 'canonical') return
@@ -47,12 +48,12 @@ export default async function pages (file, config, api, options = {}) {
     const hrefNodes = getNodesInRange(start, end, nodes)
     if (hrefNodes[0]?.offset.start !== start) {
       const nodeStart = hrefNodes[0]?.offset.start || end
-      const range = { start: textDocument.positionAt(start), end: textDocument.positionAt(nodeStart), }
+      const range = { start: textDocument.positionAt(start), end: textDocument.positionAt(nodeStart) }
       hrefNodes.unshift({ type: 'tag-open', text: textDocument.getText(range), range, offset: { start, end: nodeStart } })
     }
     if (hrefNodes[hrefNodes.length - 1]?.offset.end !== end) {
       const nodeEnd = hrefNodes[hrefNodes.length - 1]?.offset.end || start
-      const range = { start: textDocument.positionAt(nodeEnd), end: textDocument.positionAt(end), }
+      const range = { start: textDocument.positionAt(nodeEnd), end: textDocument.positionAt(end) }
       hrefNodes.push({ type: 'tag-open', text: textDocument.getText(range), range, offset: { start: nodeEnd, end } })
     }
     canonicals.push({ text, href: hrefNodes, start: linkHtmlNode.start })
@@ -84,11 +85,13 @@ export default async function pages (file, config, api, options = {}) {
   for (const canonical of canonicals) {
     const combinations = getCombinations(canonical.href)
     for (const combination of combinations) {
-      let href = combination.map(part => {
-        if (part.type === 'tag-open') part.value = part.text
-        else if (typeof part.value !== 'string') part.value = typeof part.raw === 'string' ? part.raw : part.text
-        return part.value
-      }).join('')
+      let href = combination
+        .map((part) => {
+          if (part.type === 'tag-open') part.value = part.text
+          else if (typeof part.value !== 'string') part.value = typeof part.raw === 'string' ? part.raw : part.text
+          return part.value
+        })
+        .join('')
       while (href.startsWith('/')) href = href.slice(1)
 
       const page = {
@@ -135,8 +138,8 @@ export default async function pages (file, config, api, options = {}) {
     })
   }
 
-  pages.forEach(page => {
-    page.getSiblings = () => pages.filter(p => p !== page)
+  pages.forEach((page) => {
+    page.getSiblings = () => pages.filter((p) => p !== page)
   })
 
   return pages
@@ -144,47 +147,49 @@ export default async function pages (file, config, api, options = {}) {
 
 /**
  * @typedef {object} HrefPart - A part of a URL.
- * @property {"tag-open"|"template"} type - The type of the part.
+ * @property {'tag-open' | 'template'} type - The type of the part.
  * @property {string} text - The text of the part.
  * @property {string} textUpdate - The template expression evaluation in string form.
- * @property {string|string[]|any} raw - The raw template expression evaluation.
- * @property {{ start: import('vscode-html-languageservice').Position, end: import('vscode-html-languageservice').Position }} range - The range of the part.
- * @property {{ start: number, end: number }} offset - The offset of the part.
+ * @property {string | string[] | any} raw - The raw template expression evaluation.
+ * @property {{ start: import('vscode-html-languageservice').Position; end: import('vscode-html-languageservice').Position }} range - The range of the part.
+ * @property {{ start: number; end: number }} offset - The offset of the part.
  */
 
 /**
  * Returns all combinations of static and dynamic entries.
+ *
  * @param {HrefPart[]} input - The input.
  * @returns {HrefPart[][]} The combinations.
  */
-function getCombinations (input) {
-  const dynamicEntries = input
-    .map((entry, index) => ({ index, entry, }))
-    .filter(({ entry }) => entry.type === 'template' && Array.isArray(entry.raw))
+function getCombinations(input) {
+  const dynamicEntries = input.map((entry, index) => ({ index, entry })).filter(({ entry }) => entry.type === 'template' && Array.isArray(entry.raw))
 
   if (dynamicEntries.length === 0) return [input]
 
   const dynamicValues = dynamicEntries.map(({ entry }) => entry.raw)
   const product = cartesianProduct(dynamicValues)
 
-  return product.map(values => {
-    return input.map((entry, i) => {
+  return product.map((values) =>
+    input.map((entry, i) => {
       const dynamicIndex = dynamicEntries.findIndex(({ index }) => index === i)
       if (dynamicIndex !== -1) return { ...entry, value: `${values[dynamicIndex]}` }
       return { ...entry }
-    })
-  })
+    }),
+  )
 }
 
 /**
  * Returns the Cartesian product of the arrays.
+ *
  * @param {any[]} arrays - The arrays.
- * @returns {Array<Array>} The Cartesian
+ * @returns {Array[]} The Cartesian
  */
-function cartesianProduct (arrays) {
-  return arrays.reduce((acc, array) => {
-    return acc.flatMap(accItem => {
-      return array.map(item => [...accItem, item])
-    })
-  }, [[]])
+function cartesianProduct(arrays) {
+  return arrays.reduce(
+    (acc, array) =>
+      acc.flatMap((accItem) => 
+        array.map((item) => [...accItem, item])
+      ),
+    [[]],
+  )
 }

@@ -1,7 +1,7 @@
-import * as path from 'node:path'
-import * as url from 'node:url'
 import * as fs from 'node:fs'
+import * as path from 'node:path'
 import * as process from 'node:process'
+import * as url from 'node:url'
 
 import * as utils from './utils.mjs'
 
@@ -28,22 +28,23 @@ const protocol = port === '443' ? 'https' : 'http'
 
 /**
  * Retrieve the configuration from a given location hint.
+ *
  * @param {string} file - The name of the configuration.
  * @returns {Promise<Config>} The configuration.
  */
-export default async function getConfig (file = 'pages.config.ts') {
+export default async function getConfig(file = 'pages.config.ts') {
   if (typeof file === 'object' && file) return file
   if (typeof file !== 'string' && file) throw new TypeError('The file must be a string.')
 
   const filepath = utils.resolve(file, [process.cwd()], { exists: false })
   if (fs.existsSync(filepath)) {
     const fileUrl = url.pathToFileURL(filepath)
-    return { ...await import(fileUrl), fileUrl }
+    return { ...(await import(fileUrl)), fileUrl }
   }
 
   if (file === 'pages.config.ts') {
     const fileUrl = url.pathToFileURL(path.resolve(__root, 'pages.config.mjs'))
-    return { ...await import(fileUrl), fileUrl }
+    return { ...(await import(fileUrl)), fileUrl }
   } else {
     throw new Error(`Cannot find configuration: ${file}`)
   }
@@ -51,6 +52,7 @@ export default async function getConfig (file = 'pages.config.ts') {
 
 /**
  * The base URI.
+ *
  * @type {URL}
  */
 export const baseURI = process.env.BASEURI ? new URL(process.env.BASEURI) : new URL(pathname, `${protocol}://${host}${port === '80' || port === '443' ? '' : `:${port}`}`)

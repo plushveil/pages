@@ -1,17 +1,16 @@
 import * as fs from 'node:fs'
 import * as os from 'node:os'
-import * as url from 'node:url'
 import * as path from 'node:path'
+import * as url from 'node:url'
 
+import cssSelect from 'css-select'
 import vsCodeHtmlLanguageService from 'vscode-html-languageservice'
 import { TextDocument } from 'vscode-languageserver-textdocument'
-import cssSelect from 'css-select'
 
+import CSSSelectAdapter from './css-select-adapter.mjs'
 import getTemplateLiterals from './get-template-literals.mjs'
 import getTextNodes from './get-text-nodes.mjs'
 import iterator from './iterator.mjs'
-
-import CSSSelectAdapter from './css-select-adapter.mjs'
 
 const service = vsCodeHtmlLanguageService.getLanguageService()
 
@@ -41,10 +40,11 @@ const service = vsCodeHtmlLanguageService.getLanguageService()
 
 /**
  * Parse the given HTML content
+ *
  * @param {string} fileUrl The HTML content to parse or a fileUrl
  * @returns {HTMLDocument} The parsed HTML document
  */
-export default function parse (fileUrl) {
+export default function parse(fileUrl) {
   if (typeof fileUrl !== 'string') fileUrl = fileUrl.toString()
   const content = fileUrl.startsWith('file://') ? fs.readFileSync(url.fileURLToPath(fileUrl), 'utf-8') : fileUrl
   if (!fileUrl.startsWith('file://')) fileUrl = url.pathToFileURL(path.resolve(os.tmpdir(), 'file.page')).toString()

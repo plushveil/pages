@@ -1,27 +1,31 @@
 {
   "name": "@plushveil/pages",
   "version": "0.0.86",
-  "main": "src/pages.mjs",
-  "type": "module",
+  "keywords": [
+    "engine",
+    "html",
+    "pages",
+    "render",
+    "template"
+  ],
+  "license": "SEE LICENSE IN LICENSE FILE",
+  "author": "Plushveil <plushveil@gray.blue>",
   "bin": {
     "pages": "bin/pages.mjs"
   },
+  "type": "module",
+  "main": "src/pages.mjs",
   "scripts": {
     "preinstall": "node bin/preinstall.mjs",
     "pages": "cli_from_jsdoc",
-    "test": "c8 --config tests/c8.json npm-run-all test:*",
-    "test:lint": "eslint",
+    "lint": "npm run lint:format && npm run lint:lint",
+    "lint:format": "oxfmt",
+    "lint:lint": "oxlint --fix",
+    "test": "npm run test:lint && npm run test:format && npm run test:unit",
+    "test:lint": "oxlint",
+    "test:format": "oxfmt --check",
     "test:unit": "mocha --config tests/mocha.json"
   },
-  "keywords": [
-    "template",
-    "engine",
-    "html",
-    "render",
-    "pages"
-  ],
-  "author": "Plushveil <plushveil@gray.blue>",
-  "license": "SEE LICENSE IN LICENSE FILE",
   "dependencies": {
     "@plushveil/cli_from_jsdoc": "^0.0.10",
     "mime": "^4.1.0"

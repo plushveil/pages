@@ -3,12 +3,13 @@ import * as url from 'node:url'
 
 /**
  * Retrieves a list of pages from a file.
+ *
  * @param {string} file - The file.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/pages.mjs')} api - The API.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-export default async function pages (file, config, api) {
+export default async function pages(file, config, api) {
   const filepath = path.relative(config.root, file).replaceAll(path.sep, '/').replaceAll('../', '').replace(/\.ts$/, '.js')
 
   const results = []
@@ -25,7 +26,7 @@ export default async function pages (file, config, api) {
   }
 
   const map = {
-    url: filepath.endsWith('.js') ? new URL(filepath.replace(/\.js$/, '.map.js'), config.baseURI) : new URL(filepath + '.map', config.baseURI),
+    url: filepath.endsWith('.js') ? new URL(filepath.replace(/\.js$/, '.map.js'), config.baseURI) : new URL(`${filepath}.map`, config.baseURI),
     params: {
       headers: {
         'Content-Type': 'application/json',
@@ -42,17 +43,17 @@ export default async function pages (file, config, api) {
   // Check if this file has auto-discovered contexts from HTML
   const discoveredContexts = config?.js?.__discoveredContexts
   if (discoveredContexts) {
-    const fileUrl = '/' + filepath
+    const fileUrl = `/${filepath}`
     const fileContexts = discoveredContexts[fileUrl]
     if (Array.isArray(fileContexts)) {
-      fileContexts.forEach(ctx => contexts.add(ctx))
+      fileContexts.forEach((ctx) => contexts.add(ctx))
     }
   }
 
   // Fall back to buildContexts for backward compatibility
   const buildContexts = config?.js?.buildContexts
   if (Array.isArray(buildContexts) && buildContexts.length > 0) {
-    buildContexts.forEach(ctx => contexts.add(ctx))
+    buildContexts.forEach((ctx) => contexts.add(ctx))
   }
 
   // Generate context variants for each discovered or configured context
@@ -73,7 +74,7 @@ export default async function pages (file, config, api) {
         headers: {
           'Content-Type': 'application/javascript',
         },
-        ctx: ctxName,  // Pass context to render
+        ctx: ctxName, // Pass context to render
         __resolvedCtx: resolvedCtx,
       },
       fileUrl: url.pathToFileURL(file),

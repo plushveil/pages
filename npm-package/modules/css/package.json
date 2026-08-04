@@ -1,6 +1,6 @@
 {
-  "main": "css.mjs",
   "type": "module",
+  "main": "css.mjs",
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "autoprefixer": "^10.5.4",

@@ -1,6 +1,6 @@
 {
-  "main": "js.mjs",
   "type": "module",
+  "main": "js.mjs",
   "dependencies": {
     "rolldown": "^1.2.0"
   }

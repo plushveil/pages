@@ -1,17 +1,17 @@
 import * as fs from 'node:fs'
-import * as os from 'node:os'
-import * as url from 'node:url'
-import * as path from 'node:path'
 import * as http from 'node:http'
 import * as https from 'node:https'
-import * as threads from 'node:worker_threads'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import process from 'node:process'
+import * as url from 'node:url'
+import * as threads from 'node:worker_threads'
 
 import mime from 'mime'
 
 import getConfig, { port } from './config.mjs'
-import * as utils from './utils.mjs'
 import { pages as getPages } from './pages.mjs'
+import * as utils from './utils.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,12 +30,13 @@ process.on('SIGINT', (event) => {
 
 /**
  * Serves a folder.
+ *
  * @param {string} folder - The folder to build.
  * @param {string} [config] - A specifier that points to the configuration file.
  * @param {boolean} [cache] - Whether to enable caching.
  * @returns {Promise<http.Server>} The server.
  */
-export default async function serve (folder, config, cache = true) {
+export default async function serve(folder, config, cache = true) {
   const root = utils.resolve(folder, undefined, { exists: true, folder: true })
 
   // If no config specified, look for config in the served folder first
@@ -52,13 +53,15 @@ export default async function serve (folder, config, cache = true) {
   const watcher = getPageWatcher(config)
   const parallel = os.cpus().length
   const workers = []
-  const createWorkers = (count) => { while (workers.length < (count || parallel)) workers.push(createWorker(config, workers)) }
+  const createWorkers = (count) => {
+    while (workers.length < (count || parallel)) workers.push(createWorker(config, workers))
+  }
   setInterval(() => createWorkers(), 10000).unref()
   setTimeout(() => createWorkers(), 3000).unref()
   createWorkers(2)
 
   const requestHandler = getRequestHandler(config, watcher, workers, cache)
-  const server = (port === '443') ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
+  const server = port === '443' ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
   const app = await new Promise((resolve, reject) => {
     server.on('error', reject)
     server.listen(Number(port), () => {
@@ -81,37 +84,45 @@ export default async function serve (folder, config, cache = true) {
 
 /**
  * Creates a worker.
+ *
  * @param {import('./config.mjs').Config} config - The configuration.
  * @param {threads.Worker[]} workers - The workers.
  * @returns {threads.Worker} The worker.
  */
-function createWorker (config, workers) {
+function createWorker(config, workers) {
   const worker = new threads.Worker(__worker, { workerData: { config: JSON.stringify(config) } })
   const terminate = worker.terminate.bind(worker)
-  worker.terminate = () => { workers.splice(workers.indexOf(worker), 1); terminate() }
+  worker.terminate = () => {
+    workers.splice(workers.indexOf(worker), 1)
+    terminate()
+  }
   return worker
 }
 
 /**
  * Returns the request handler.
+ *
  * @param {import('./config.mjs').Config} config - The configuration.
- * @param {Promise<{ getPages: import('./pages.mjs').pages, close: () => void }>} watcher - The watcher.
+ * @param {Promise<{ getPages: import('./pages.mjs').pages; close: () => void }>} watcher - The watcher.
  * @param {threads.Worker[]} workers - The workers.
  * @param {boolean} cache - Whether to enable caching.
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
-function getRequestHandler (config, watcher, workers, cache) {
+function getRequestHandler(config, watcher, workers, cache) {
   /**
    * @returns {Promise<threads.Worker>} A free worker.
    */
-  async function getWorker () {
-    const worker = workers.find(worker => !worker.busy)
+  async function getWorker() {
+    const worker = workers.find((worker) => !worker.busy)
     if (worker) return worker
     return new Promise((resolve) => {
       const interval = setInterval(() => {
         if (workers.length) {
-          const worker = workers.find(worker => !worker.busy)
-          if (worker) { clearInterval(interval); resolve(worker) }
+          const worker = workers.find((worker) => !worker.busy)
+          if (worker) {
+            clearInterval(interval)
+            resolve(worker)
+          }
         }
       }, 100).unref()
     })
@@ -119,12 +130,13 @@ function getRequestHandler (config, watcher, workers, cache) {
 
   /**
    * Handles requests.
+   *
    * @param {http.IncomingMessage} req - The request.
    * @param {http.ServerResponse} res - The response.
    */
   return async (req, res) => {
     const reqUrl = new URL(req.url, config.baseURI)
-    const page = (await watcher).getPages().find(page => page.url.pathname === reqUrl.pathname)
+    const page = (await watcher).getPages().find((page) => page.url.pathname === reqUrl.pathname)
     if (!page) {
       res.writeHead(404)
       res.end('Not found')
@@ -168,12 +180,15 @@ function getRequestHandler (config, watcher, workers, cache) {
         worker.terminate()
 
         // Cache the content for 3 minutes
-        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !(data.includes('/*! tailwindcss'))) {
+        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !data.includes('/*! tailwindcss')) {
           const hasQueryParams = Object.keys(queryParams).length > 0
           if (!hasQueryParams) {
             if (page.cache?.timeout) clearTimeout(page.cache.timeout)
             const weakPage = new WeakRef(page)
-            const timeout = setTimeout(() => { const derefPage = weakPage.deref(); if (derefPage) derefPage.cache = null }, 180000).unref()
+            const timeout = setTimeout(() => {
+              const derefPage = weakPage.deref()
+              if (derefPage) derefPage.cache = null
+            }, 180000).unref()
             page.cache = { data, timeout }
           }
         }
@@ -204,7 +219,7 @@ function getRequestHandler (config, watcher, workers, cache) {
     const pageWithContext = {
       ...page,
       params: { ...page.params, ...queryParams, __resolvedCtx: resolvedCtx },
-      cache: undefined
+      cache: undefined,
     }
     worker.postMessage(['pipe', JSON.stringify(pageWithContext)])
   }
@@ -212,10 +227,11 @@ function getRequestHandler (config, watcher, workers, cache) {
 
 /**
  * Watches the configuration root for changes and updates the page list.
+ *
  * @param {import('./config.mjs').Config} config - The configuration.
- * @returns {Promise<{ getPages: () => import('./pages.mjs').Page[], close: () => void }>} The watcher.
+ * @returns {Promise<{ getPages: () => import('./pages.mjs').Page[]; close: () => void }>} The watcher.
  */
-async function getPageWatcher (config) {
+async function getPageWatcher(config) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
   /**
    * @type {import('./pages.mjs').Page[]}
@@ -226,13 +242,10 @@ async function getPageWatcher (config) {
   const watcher = fs.watch(config.root, { recursive: true }, (_event, filename) => getPagesUpdate(filename))
   return { getPages: () => pages, close: () => watcher.close() }
 
-  /**
-   *
-   */
-  async function refreshAll () {
+  async function refreshAll() {
     const files = (await Promise.all(utils.getFilesInFolder(config.root))).filter((file) => {
-      if (['page', 'htms', 'html'].find(ext => file.endsWith(`.${ext}`))) return fs.readFileSync(file, { encoding: 'utf-8' }).includes('canonical')
-      return !(config.build?.ignore && config.build.ignore.some(pattern => file.match(new RegExp(pattern))))
+      if (['page', 'htms', 'html'].find((ext) => file.endsWith(`.${ext}`))) return fs.readFileSync(file, { encoding: 'utf-8' }).includes('canonical')
+      return !(config.build?.ignore && config.build.ignore.some((pattern) => file.match(new RegExp(pattern))))
     })
     const pagesUpdate = []
     for (const file of files) {
@@ -244,10 +257,11 @@ async function getPageWatcher (config) {
 
   /**
    * Deletes cached pages that depend on the changed file.
+   *
    * @param {string} file - The changed file.
    * @param {URL} fileUrl - The changed file URL.
    */
-  async function cachebuster (file, fileUrl) {
+  async function cachebuster(file, fileUrl) {
     const cachMappings = [
       { source: ['.page', '.htms', '.html', '.mjs', '.json'], target: ['.page', '.htms', '.html'], includeComponents: true },
       { source: ['.css'], target: ['.css'] },
@@ -255,7 +269,7 @@ async function getPageWatcher (config) {
       { source: ['.mjs', '.js', '.cjs'], target: ['.mjs', '.js', '.cjs'] },
     ]
     for (const mapping of cachMappings) {
-      if (!(mapping.source.find(ext => file.endsWith(ext)))) continue
+      if (!mapping.source.find((ext) => file.endsWith(ext))) continue
       for (const targetExt of mapping.target) {
         for (const page of pages) {
           if (!page.cache) continue
@@ -281,7 +295,7 @@ async function getPageWatcher (config) {
         page.sources = await getPageSources(page)
         for (const source of page.sources) {
           if (sourcesWatchers[source]) continue
-          if (source.includes('node_modules') || !(fs.existsSync(source))) continue
+          if (source.includes('node_modules') || !fs.existsSync(source)) continue
           const sourceWatcher = fs.watch(source, () => cachebuster(source, url.pathToFileURL(source)))
           sourcesWatchers[source] = sourceWatcher
           sourceWatcher.unref()
@@ -294,18 +308,18 @@ async function getPageWatcher (config) {
      * @param {import('./pages.mjs').Page} page - The page.
      * @returns {Promise<string[]>} The source files that the page depends on.
      */
-    async function getPageSources (page) {
+    async function getPageSources(page) {
       const arg = path.relative(process.cwd(), config.root)
       const pageUrl = page.url.toString()
       if (!(pageUrl.endsWith('.js') || pageUrl.endsWith('.css'))) return []
       if (pageUrl.endsWith('.map.css') || pageUrl.endsWith('.map.js')) {
         const source = pageUrl.replace(/\.map\.(css|js)$/, '.$1')
-        const sourcePage = pages.find(p => p.url.toString() === source)
+        const sourcePage = pages.find((p) => p.url.toString() === source)
         if (sourcePage) return [path.resolve(url.fileURLToPath(sourcePage.fileUrl))]
         return []
       }
       const sourceMapUrl = pageUrl.replace(/(\.js|\.css)$/, '.map$1')
-      const sourceMapPage = pages.find(p => p.url.toString() === sourceMapUrl)
+      const sourceMapPage = pages.find((p) => p.url.toString() === sourceMapUrl)
       if (!sourceMapPage) return []
       try {
         const response = await fetch(sourceMapPage.url)
@@ -329,15 +343,19 @@ async function getPageWatcher (config) {
 
   /**
    * Handles page updates.
+   *
    * @param {string} filename - The changed filename.
    * @returns {Promise<void>}
    */
-  async function getPagesUpdate (filename) {
+  async function getPagesUpdate(filename) {
     const file = path.resolve(config.root, filename)
     const fileUrl = url.pathToFileURL(file).toString()
-    const isIgnored = config.build?.ignore?.some(pattern => file.match(new RegExp(pattern)))
+    const isIgnored = config.build?.ignore?.some((pattern) => file.match(new RegExp(pattern)))
     if (isIgnored) return
-    if (inProgress[filename]) { inProgress[filename] = { repeat: true }; return }
+    if (inProgress[filename]) {
+      inProgress[filename] = { repeat: true }
+      return
+    }
     inProgress[filename] = { repeat: false }
     cachebuster(file, fileUrl)
 
@@ -346,10 +364,10 @@ async function getPageWatcher (config) {
         refreshAll()
       } else {
         const pagesUpdate = (await getPages(file, config)).filter(filter)
-        pages = [...pages.filter(page => page.fileUrl.toString() !== fileUrl), ...pagesUpdate]
+        pages = [...pages.filter((page) => page.fileUrl.toString() !== fileUrl), ...pagesUpdate]
       }
     } else {
-      pages = pages.filter(page => page.fileUrl.toString() !== fileUrl)
+      pages = pages.filter((page) => page.fileUrl.toString() !== fileUrl)
     }
 
     if (inProgress[filename].repeat) {

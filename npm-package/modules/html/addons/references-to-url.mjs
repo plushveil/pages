@@ -5,7 +5,6 @@ import * as thread from 'node:worker_threads'
 
 import getConfig from '../../../src/config.mjs'
 import { pages as getPagesFromWorker } from '../../../src/pages.mjs'
-
 import * as utils from '../../../src/utils.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
@@ -16,14 +15,15 @@ const cache = {}
 const cacheFiles = {}
 
 let workerCount = 0
-const isChildWorker = !!((!thread.isMainThread) && thread.workerData?.file && thread.workerData?.config && thread.workerData?.specifier === __filename)
+const isChildWorker = Boolean(!thread.isMainThread && thread.workerData?.file && thread.workerData?.config && thread.workerData?.specifier === __filename)
 if (isChildWorker) sendPagesToParent().finally(() => process.exit(0))
 
 /**
  * Sends the pages to the parent thread.
+ *
  * @returns {Promise<void>} The promise.
  */
-async function sendPagesToParent () {
+async function sendPagesToParent() {
   try {
     const baseConfig = await getConfig(thread.workerData.config)
     // Restore discovered contexts if provided
@@ -33,7 +33,7 @@ async function sendPagesToParent () {
     }
     const config = { ...baseConfig, root: thread.workerData.configRoot, js: jsConfig }
 
-    const pages = (await getPagesFromWorker(thread.workerData.file, config))
+    const pages = await getPagesFromWorker(thread.workerData.file, config)
     thread.parentPort.postMessage(JSON.stringify(pages))
     process.nextTick(() => process.exit(0))
   } catch (err) {
@@ -43,45 +43,52 @@ async function sendPagesToParent () {
 }
 
 /**
- * forEach is executed for each node when the page is interpreted.
+ * ForEach is executed for each node when the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function beforeAsync (nodes, htmlDocument, page, config, api) {
+export async function beforeAsync(nodes, htmlDocument, page, config, api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
+  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
   cacheFiles[id] = cacheFiles[id] || {}
   if (!pageFile) return
   if (!cacheFiles[id][pageFile]) {
     const dirs = [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))]
-    cacheFiles[id][pageFile] = (await Promise.all(dirs.map(async dir => {
-      const files = await fs.promises.readdir(dir)
-      return files.filter(file => fs.statSync(path.resolve(dir, file)).isFile())
-    }))).flat()
+    cacheFiles[id][pageFile] = (
+      await Promise.all(
+        dirs.map(async (dir) => {
+          const files = await fs.promises.readdir(dir)
+          return files.filter((file) => fs.statSync(path.resolve(dir, file)).isFile())
+        }),
+      )
+    ).flat()
   }
 }
 
 /**
- * forEach is executed for each node when the page is interpreted.
+ * ForEach is executed for each node when the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
  * @param {import('../../../src/pages.mjs').Page} page - The page.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function afterAsync (nodes, htmlDocument, page, config, api) {
+export async function afterAsync(nodes, htmlDocument, page, config, api) {
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
+  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
   if (!pageFile) return
   delete cacheFiles[id][pageFile]
   if (!Object.values(cacheFiles[id]).find(Boolean)) delete cacheFiles[id]
 }
 
 /**
- * forEach is executed for each node when the page is interpreted.
+ * ForEach is executed for each node when the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node} node - The node.
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
@@ -89,16 +96,16 @@ export async function afterAsync (nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
+export async function forEachAsync(node, nodes, htmlDocument, page, config, api) {
   if (node.type !== 'tag-open') return
-  if (!(node.text.match(/[a-zA-Z0-9 ]+=[ ]*["']([^'"]*)["']/gi))) return
+  if (!node.text.match(/[a-zA-Z0-9 ]+=[ ]*["']([^'"]*)["']/gi)) return
   if (isChildWorker) return
 
   const htmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
   if (!htmlNode || !htmlNode.attributes) return
 
   const id = htmlDocument.getId()
-  const pageFile = page.params?.__filename ? page.params.__filename : (page.fileUrl && url.pathToFileURL(page.fileUrl.toString()))
+  const pageFile = page.params?.__filename ? page.params.__filename : page.fileUrl && url.pathToFileURL(page.fileUrl.toString())
   if (!pageFile) return
   const files = cacheFiles[id][pageFile]
 
@@ -114,7 +121,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
     const ctxParam = queryParams?.get('ctx')
 
     // Resolve the base path (without query params)
-    const basePage = files.includes(pathname) ? (await getPage(pathname)) : (resolveAttributes.some(resolveAttribute => pathname.startsWith(resolveAttribute))) ? (await getPage(pathname)) : null
+    const basePage = files.includes(pathname) ? await getPage(pathname) : resolveAttributes.some((resolveAttribute) => pathname.startsWith(resolveAttribute)) ? await getPage(pathname) : null
 
     if (!basePage) continue
 
@@ -129,7 +136,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
         // Parse file:// URL if needed
         const filePath = resolved.startsWith('file://') ? url.fileURLToPath(resolved) : resolved
         const allPagesForFile = await getPages(filePath, config)
-        ctxPage = allPagesForFile.find(p => p.params?.ctx === ctxParam)
+        ctxPage = allPagesForFile.find((p) => p.params?.ctx === ctxParam)
       }
 
       if (ctxPage) {
@@ -153,20 +160,21 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
 
   /**
    * Returns the page object.
+   *
    * @param {string} value - The value.
    * @returns {Promise<import('../../../src/pages.mjs').Page>} The page.
    */
-  async function getPage (value) {
+  async function getPage(value) {
     let resolved
     try {
       resolved = utils.resolve(value, [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))], { exists: true, file: true })
-    } catch (err) {
+    } catch {
       // If .js file not found, try .ts extension (common for TypeScript sources)
       if (value.endsWith('.js')) {
         try {
           const tsValue = value.replace(/\.js$/, '.ts')
           resolved = utils.resolve(tsValue, [path.dirname(pageFile), path.dirname(url.fileURLToPath(config.fileUrl.toString()))], { exists: true, file: true })
-        } catch (tsErr) {
+        } catch {
           return null
         }
       } else {
@@ -180,11 +188,12 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
 
     /**
      * Counts the number of matching properties.
-     * @param {*} paramsA - The first parameters.
-     * @param {*} paramsB  - The second parameters.
+     *
+     * @param {any} paramsA - The first parameters.
+     * @param {any} paramsB - The second parameters.
      * @returns {number} The number of matching properties.
      */
-    function countMatches (paramsA, paramsB) {
+    function countMatches(paramsA, paramsB) {
       let match = 0
       if (paramsA === paramsB) return 1
       if (typeof paramsA !== 'object' || typeof paramsB !== 'object') return match
@@ -195,7 +204,7 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
       return match
     }
 
-    const pageMatch = pages.reduce((a, b) => a ? countMatches(a.params, page.params) >= countMatches(b.params, page.params) ? a : b : b, null)
+    const pageMatch = pages.reduce((a, b) => (a ? (countMatches(a.params, page.params) >= countMatches(b.params, page.params) ? a : b) : b), null)
     return pageMatch
   }
 }
@@ -203,16 +212,17 @@ export async function forEachAsync (node, nodes, htmlDocument, page, config, api
 /**
  * Returns the list of pages.
  * If it's not the main thread, an empty array is returned. No need to resolve nested pages, as the rendered result is discarded.
+ *
  * @param {string} file - The file.
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @returns {Promise<import('../../../src/pages.mjs').Page[]>} The list of pages.
  */
-async function getPages (file, config) {
+async function getPages(file, config) {
   if (cache[file]) return cache[file]
 
   try {
     // eslint-disable-next-line no-unmodified-loop-condition
-    while (workerCount >= 4) await new Promise(resolve => setTimeout(resolve, 100))
+    while (workerCount >= 4) await new Promise((resolve) => setTimeout(resolve, 100))
     workerCount++
     const response = await new Promise((resolve, reject) => {
       const worker = new thread.Worker(__filename, {
@@ -221,17 +231,17 @@ async function getPages (file, config) {
           config: config.fileUrl.toString(),
           configRoot: config.root.toString(),
           discoveredContexts: config.js?.__discoveredContexts,
-          specifier: __filename
-        }
+          specifier: __filename,
+        },
       })
       worker.on('exit', () => workerCount--)
       worker.on('error', reject)
       worker.on('message', resolve)
     })
-    const pages = cache[file] = JSON.parse(response)
+    const pages = (cache[file] = JSON.parse(response))
     return pages
   } catch (err) {
-    const pages = cache[file] = []
+    const pages = (cache[file] = [])
     return pages
   }
 }

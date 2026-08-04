@@ -3,11 +3,12 @@ import * as path from 'node:path'
 
 /**
  * Scans HTML files to discover ?ctx=X references in script/link tags
+ *
  * @param {string[]} htmlFiles - Array of HTML file paths
  * @param {import('../../../src/config.mjs').Config} config - The configuration
  * @returns {Map<string, Set<string>>} Map of JS file URLs to Set of context names
  */
-export default function discoverContexts (htmlFiles, config) {
+export default function discoverContexts(htmlFiles, config) {
   const contextsMap = new Map()
 
   for (const file of htmlFiles) {
@@ -39,7 +40,7 @@ export default function discoverContexts (htmlFiles, config) {
           const htmlDir = path.dirname(file)
           const resolved = path.resolve(htmlDir, pathname)
           const relative = path.relative(config.root, resolved)
-          resolvedPath = '/' + relative.replaceAll(path.sep, '/').replaceAll('../', '')
+          resolvedPath = `/${relative.replaceAll(path.sep, '/').replaceAll('../', '')}`
         } else if (pathname.startsWith('/')) {
           // Absolute from root
           resolvedPath = pathname
@@ -48,7 +49,7 @@ export default function discoverContexts (htmlFiles, config) {
           const htmlDir = path.dirname(file)
           const resolved = path.resolve(htmlDir, pathname)
           const relative = path.relative(config.root, resolved)
-          resolvedPath = '/' + relative.replaceAll(path.sep, '/').replaceAll('../', '')
+          resolvedPath = `/${relative.replaceAll(path.sep, '/').replaceAll('../', '')}`
         }
 
         // Convert .ts to .js for JS files

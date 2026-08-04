@@ -1,8 +1,9 @@
-import * as js from '../../js/js.mjs'
 import * as css from '../../css/css.mjs'
+import * as js from '../../js/js.mjs'
 
 /**
- * forEach is executed for each node when the page is interpreted.
+ * ForEach is executed for each node when the page is interpreted.
+ *
  * @param {import('../parser/iterator.mjs').Node} node - The node.
  * @param {import('../parser/iterator.mjs').Node[]} nodes - All nodes.
  * @param {import('../parser/parse.mjs').HTMLDocument} htmlDocument - The HTML document.
@@ -10,7 +11,7 @@ import * as css from '../../css/css.mjs'
  * @param {import('../../../src/config.mjs').Config} config - The configuration.
  * @param {import('../../../src/api.mjs').API} api - The API.
  */
-export async function forEachAsync (node, nodes, htmlDocument, page, config, api) {
+export async function forEachAsync(node, nodes, htmlDocument, page, config, api) {
   if (node.type !== 'raw' || node.textUpdate === '') return
 
   const htmlNode = htmlDocument.findNodeAt(node.offset.start)

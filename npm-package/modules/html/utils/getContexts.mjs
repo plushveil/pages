@@ -3,7 +3,7 @@
  * @param {import('../parser/parse.mjs').Node} node - The node.
  * @returns {Record<number, string>} The contexts.
  */
-export default function getContexts (htmlDocument, node) {
+export default function getContexts(htmlDocument, node) {
   const contexts = {}
   const scripts = htmlDocument.select('script[target]')
   for (let i = 0; i < scripts.length; i++) {
@@ -18,7 +18,7 @@ export default function getContexts (htmlDocument, node) {
         const textDocument = htmlDocument.getTextDocument()
         const text = textDocument.getText({
           start: textDocument.positionAt(script.startTagEnd),
-          end: textDocument.positionAt(script.endTagStart)
+          end: textDocument.positionAt(script.endTagStart),
         })
         contexts[i] = text
         break

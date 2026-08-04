@@ -1,10 +1,11 @@
-import * as process from 'node:process'
-import * as path from 'node:path'
-import * as url from 'node:url'
 import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as process from 'node:process'
+import * as url from 'node:url'
 
 /**
  * Resolve a specifier to a file path.
+ *
  * @param {string} specifier - The specifier.
  * @param {string[]} [folders] - The folders to search.
  * @param {object} [options] - The options.
@@ -13,7 +14,7 @@ import * as fs from 'node:fs'
  * @param {boolean} [options.folder] - Whether the file must be a folder.
  * @returns {string} The file path.
  */
-export function resolve (specifier, folders = [process.cwd()], options = { exists: true, file: true, folder: false }) {
+export function resolve(specifier, folders = [process.cwd()], options = { exists: true, file: true, folder: false }) {
   if (specifier.startsWith('file://')) specifier = url.fileURLToPath(specifier)
   if (path.isAbsolute(specifier)) {
     if (!options.exists || fs.existsSync(specifier)) return specifier
@@ -36,11 +37,12 @@ export function resolve (specifier, folders = [process.cwd()], options = { exist
 
 /**
  * Recursively gets all files in a folder.
+ *
  * @param {string} folder - The folder.
  * @param {string[]} [iterated] - The files already iterated.
  * @returns {string[]} The files.
  */
-export function getFilesInFolder (folder, iterated = []) {
+export function getFilesInFolder(folder, iterated = []) {
   folder = resolve(folder, undefined, { folder: true })
   return fs.readdirSync(folder).reduce((files, file) => {
     const filepath = fs.realpathSync(path.resolve(folder, file))
@@ -62,14 +64,17 @@ export function getFilesInFolder (folder, iterated = []) {
 
 /**
  * Picks one page from a list of pages that best matches the given page.
+ *
  * @param {import('./pages.mjs').Page[]} pages - The list of pages.
  * @param {import('./pages.mjs').Page} page - The page.
  * @returns {import('./pages.mjs').Page} The best matching page.
  */
-export function getPageMatch (pages, page) {
-  return pages.reduce((scoredPages, p) => {
-    const score = Object.entries(p.params || {}).filter(([key, value]) => page.params[key] === value).length
-    scoredPages.push({ page: p, score })
-    return scoredPages
-  }, []).sort((a, b) => b.score - a.score)[0].page
+export function getPageMatch(pages, page) {
+  return pages
+    .reduce((scoredPages, p) => {
+      const score = Object.entries(p.params || {}).filter(([key, value]) => page.params[key] === value).length
+      scoredPages.push({ page: p, score })
+      return scoredPages
+    }, [])
+    .sort((a, b) => b.score - a.score)[0].page
 }

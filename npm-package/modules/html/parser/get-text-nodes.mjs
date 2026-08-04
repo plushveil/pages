@@ -10,28 +10,31 @@ import { rawTextNodes } from '../config.mjs'
 /**
  * Get all text nodes from an HTML document.
  * Note: This function interprets comment and document type annotations as text nodes.
+ *
  * @param {import('vscode-languageserver-textdocument').TextDocument} textDocument - The text document
  * @param {import('vscode-html-languageservice').HTMLDocument} htmlDocument - The HTML document
  * @returns {TextNode[]} - The text nodes
  */
-export default function getTextNodes (textDocument, htmlDocument) {
+export default function getTextNodes(textDocument, htmlDocument) {
   if (htmlDocument.roots.length === 0) {
-    return [{
-      start: textDocument.positionAt(0),
-      end: textDocument.positionAt(textDocument.getText().length),
-      text: textDocument.getText()
-    }]
+    return [
+      {
+        start: textDocument.positionAt(0),
+        end: textDocument.positionAt(textDocument.getText().length),
+        text: textDocument.getText(),
+      },
+    ]
   }
 
   /**
    * @param {import('vscode-html-languageservice/lib/umd/htmlLanguageTypes').Node} node - The node to traverse
    * @returns {void}
    */
-  function traverse (node) {
+  function traverse(node) {
     if (!node.tag || rawTextNodes.includes(node.tag.toLowerCase())) return
 
     let last = node.startTagEnd
-    for (const child of (node.children || [])) {
+    for (const child of node.children || []) {
       if (child.start > last) {
         const start = textDocument.positionAt(last)
         const end = textDocument.positionAt(child.start)

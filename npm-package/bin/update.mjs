@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import * as path from 'node:path'
-import * as fs from 'node:fs'
-import * as url from 'node:url'
 import * as cmd from 'node:child_process'
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 const __filename = await fs.promises.realpath(url.fileURLToPath(import.meta.url))
 const __dirname = path.dirname(__filename)
@@ -11,10 +11,7 @@ const __root = path.resolve(__dirname, '..')
 
 await main()
 
-/**
- *
- */
-async function main () {
+async function main() {
   const directories = [__root]
   const modulesPath = path.resolve(__root, 'modules')
   for (const moduleName of fs.readdirSync(modulesPath, { withFileTypes: true })) {
@@ -30,10 +27,9 @@ async function main () {
 }
 
 /**
- *
  * @param cwd
  */
-async function updateNodeModules (cwd) {
+async function updateNodeModules(cwd) {
   if (fs.existsSync(path.join(cwd, 'package-lock.json'))) fs.unlinkSync(path.join(cwd, 'package-lock.json'))
   if (fs.existsSync(path.join(cwd, 'node_modules'))) fs.rmSync(path.join(cwd, 'node_modules'), { recursive: true, force: true })
   cmd.execSync('npx npm-check-updates -u && npm install', { cwd, stdio: 'inherit' })

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
+import * as cmd from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
-import * as cmd from 'node:child_process'
 import * as url from 'node:url'
 
 const __filename = url.fileURLToPath(import.meta.url)
@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename)
 
 const __modules = path.resolve(__dirname, '..', 'modules')
 
-const isUpdate = process.argv.find(a => a === '--update-all-modules')
+const isUpdate = process.argv.find((a) => a === '--update-all-modules')
 
 try {
   await main()
@@ -22,12 +22,10 @@ try {
 /**
  * Install all dependencies for all modules.
  */
-async function main () {
+async function main() {
   if (!fs.existsSync(__modules)) return
 
-  const install = fs.readdirSync(__modules, { withFileTypes: true }).map((dirent) => {
-    return dirent.isDirectory() ? installModule(path.resolve(__modules, dirent.name)) : null
-  })
+  const install = fs.readdirSync(__modules, { withFileTypes: true }).map((dirent) => (dirent.isDirectory() ? installModule(path.resolve(__modules, dirent.name)) : null))
 
   await Promise.all(install)
 }
@@ -35,7 +33,7 @@ async function main () {
 /**
  * @param {string} folder - The folder whose dependencies to install.
  */
-async function installModule (folder) {
+async function installModule(folder) {
   const packageJsonFile = path.resolve(folder, 'package-lock.json')
   if (!fs.existsSync(packageJsonFile)) return
   if (!isUpdate) {
