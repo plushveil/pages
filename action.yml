@@ -1,38 +1,38 @@
-name: 'Build Pages'
-description: 'A build tool utilizing JavaScripts template literals to render HTML pages.'
+name: "Build Pages"
+description: "A build tool utilizing JavaScripts template literals to render HTML pages."
 inputs:
   folder:
-    description: 'The folder containing the pages to build.'
+    description: "The folder containing the pages to build."
     required: false
   config:
-    description: 'The configuration file for the build.'
+    description: "The configuration file for the build."
     required: false
 outputs:
   folder:
-    description: 'The folder containing the built pages.'
+    description: "The folder containing the built pages."
     value: ${{ steps.build.outputs.folder }}
 runs:
   using: "composite"
   steps:
-      - uses: actions/setup-node@v4.0.4
-        with:
-          node-version: 'latest'
-      - run: cd ${GITHUB_ACTION_PATH}/npm-package && npm ci --include=dev && npm run build
-        shell: bash
-        env:
-          NODE_ENV: production
-      - run: cd ${GITHUB_ACTION_PATH}/github-action && npm ci --include=dev && npm run build
-        shell: bash
-        env:
-          NODE_ENV: production
-      - id: build
-        run: node ${GITHUB_ACTION_PATH}/github-action/dist/action.js
-        shell: bash
-        env:
-          GITHUB_OUTPUT: $GITHUB_OUTPUT
-          INPUT_FOLDER: ${{ inputs.folder }}
-          INPUT_CONFIG: ${{ inputs.config }}
-          HOST: ${{ env.HOST }}
-          PORT: ${{ env.PORT }}
-          PATHNAME: ${{ env.PATHNAME }}
-          NODE_ENV: production
+    - uses: actions/setup-node@v4.0.4
+      with:
+        node-version: "latest"
+    - run: cd ${GITHUB_ACTION_PATH}/npm-package && npm ci --include=dev && npm run build
+      shell: bash
+      env:
+        NODE_ENV: production
+    - run: cd ${GITHUB_ACTION_PATH}/github-action && npm ci --include=dev && npm run build
+      shell: bash
+      env:
+        NODE_ENV: production
+    - id: build
+      run: node ${GITHUB_ACTION_PATH}/github-action/dist/action.js
+      shell: bash
+      env:
+        GITHUB_OUTPUT: $GITHUB_OUTPUT
+        INPUT_FOLDER: ${{ inputs.folder }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        HOST: ${{ env.HOST }}
+        PORT: ${{ env.PORT }}
+        PATHNAME: ${{ env.PATHNAME }}
+        NODE_ENV: production
