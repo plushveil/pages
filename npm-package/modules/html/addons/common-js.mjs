@@ -9,8 +9,8 @@ import * as fs from 'node:fs'
  * @returns {{ format: string; shortCircuit: boolean; source: string }} - The result object
  * @see https://nodejs.org/api/module.html#caveat-in-the-asynchronous-load-hook
  */
-export async function load(url, context, nextLoad) {
-  const result = await nextLoad(url, context)
-  if (result.format === 'commonjs') result.source ??= await fs.promises.readFile(new URL(result.responseURL ?? url))
+export function load(url, context, nextLoad) {
+  const result = nextLoad(url, context)
+  if (result.format === 'commonjs') result.source ??= fs.readFileSync(new URL(result.responseURL ?? url))
   return result
 }

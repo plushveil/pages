@@ -3,13 +3,16 @@ import * as path from 'node:path'
 import * as url from 'node:url'
 
 import getHtmlDocument from '../utils/getHtmlDocument.mjs'
+import { load as commonJsLoad } from './common-js.mjs'
 
 const __filename = url.fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const activeAddons = ['event-emitter', 'canonical-url', 'minify-inline', 'references-to-url', 'template-literals', 'import-page', 'import-html', 'minify', 'integrity', 'components']
 
-module.register(url.pathToFileURL(path.resolve(__dirname, 'common-js.mjs')))
+module.registerHooks({
+  load: commonJsLoad,
+})
 
 /**
  * Execute all addons for the given config.

@@ -2,6 +2,10 @@
   "type": "module",
   "main": "js.mjs",
   "dependencies": {
-    "rolldown": "^1.2.0"
+    "rolldown": "^1.2.2"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.2.2",
+    "@rolldown/binding-wasm32-wasi": "1.2.2"
   }
 }

@@ -185,11 +185,5 @@ function getCombinations(input) {
  * @returns {Array[]} The Cartesian
  */
 function cartesianProduct(arrays) {
-  return arrays.reduce(
-    (acc, array) =>
-      acc.flatMap((accItem) => 
-        array.map((item) => [...accItem, item])
-      ),
-    [[]],
-  )
+  return arrays.reduce((acc, array) => acc.flatMap((accItem) => array.map((item) => [...accItem, item])), [[]])
 }

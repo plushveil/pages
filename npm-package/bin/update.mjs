@@ -32,5 +32,5 @@ async function main() {
 async function updateNodeModules(cwd) {
   if (fs.existsSync(path.join(cwd, 'package-lock.json'))) fs.unlinkSync(path.join(cwd, 'package-lock.json'))
   if (fs.existsSync(path.join(cwd, 'node_modules'))) fs.rmSync(path.join(cwd, 'node_modules'), { recursive: true, force: true })
-  cmd.execSync('npx npm-check-updates -u && npm install', { cwd, stdio: 'inherit' })
+  cmd.execSync('npx npm-check-updates -u && npm install --include=optional', { cwd, stdio: 'inherit' })
 }
