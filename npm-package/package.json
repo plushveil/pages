@@ -1,6 +1,6 @@
 {
   "name": "@plushveil/pages",
-  "version": "0.0.90",
+  "version": "0.0.91",
   "keywords": [
     "engine",
     "html",
@@ -17,7 +17,6 @@
   "main": "dist/src/pages.js",
   "types": "dist/src/pages.d.ts",
   "scripts": {
-    "preinstall": "node bin/preinstall.js",
     "build": "npm run -s build:types",
     "build:types": "tsc -p tsconfig.build.json",
     "pages": "cli_from_jsdoc",
