@@ -2,7 +2,7 @@ import { webcrypto } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { TextEncoder } from 'node:util'
 
-import getNodesInRange from '../utils/getNodesInRange.js'
+import getNodesInRange, { createNodesInRangeContext } from '../utils/getNodesInRange.js'
 
 const csp = {}
 
@@ -21,6 +21,7 @@ global.eventEmitter.on('csp', (cspUpdate) => {
  * @param {import('../../../src/api.js').API} api - The API.
  */
 export async function afterAsync(nodes, htmlDocument, _page, _config, _api) {
+  const nodesInRangeContext = createNodesInRangeContext(nodes)
   const pageCsp = {}
 
   await Promise.all(
@@ -30,7 +31,7 @@ export async function afterAsync(nodes, htmlDocument, _page, _config, _api) {
         const htmlNode = htmlDocument.findNodeAt(node.offset.start)
 
         if (htmlNode.tag.toLowerCase() === 'script' && !htmlNode.attributes?.src) {
-          const [parent] = getNodesInRange(htmlNode.start, htmlNode.startTagEnd, nodes)
+          const [parent] = getNodesInRange(htmlNode.start, htmlNode.startTagEnd, nodes, nodesInRangeContext)
           if (!parent) return
           const text = typeof node.textUpdate === 'string' ? node.textUpdate : node.text
           const integrity = await generateIntegrityFromStringAsync(text, 'SHA-384')
@@ -57,11 +58,12 @@ export async function afterAsync(nodes, htmlDocument, _page, _config, _api) {
  * @param {import('../../../src/api.js').API} api - The API.
  */
 export async function after(nodes, htmlDocument, _page, _config, _api) {
+  const nodesInRangeContext = createNodesInRangeContext(nodes)
   const meta = htmlDocument.select('meta[http-equiv="Content-Security-Policy"]')
   if (meta.length === 0) return
 
   let next = false
-  const foundNode = getNodesInRange(meta[0].start, meta[0].end, nodes).find((entry) => {
+  const foundNode = getNodesInRange(meta[0].start, meta[0].end, nodes, nodesInRangeContext).find((entry) => {
     if (next) return true
     const text = typeof entry.textUpdate === 'string' ? entry.textUpdate : entry.text
     if (text.match(/content\s*=\s*"$/i)) next = true

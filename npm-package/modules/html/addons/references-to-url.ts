@@ -1,46 +1,14 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as url from 'node:url'
-import * as thread from 'node:worker_threads'
 
-import getConfig from '../../../src/config.js'
 import { pages as getPagesFromWorker } from '../../../src/pages.js'
 import * as utils from '../../../src/utils.js'
-
-const addonFilename = url.fileURLToPath(import.meta.url)
 
 const resolveAttributes = ['./', '../', '/']
 
 const cache = {}
 const cacheFiles = {}
-
-let workerCount = 0
-const isChildWorker = Boolean(!thread.isMainThread && thread.workerData?.file && thread.workerData?.config && thread.workerData?.specifier === addonFilename)
-if (isChildWorker) sendPagesToParent().finally(() => process.exit(0))
-
-/**
- * Sends the pages to the parent thread.
- *
- * @returns {Promise<void>} The promise.
- */
-async function sendPagesToParent() {
-  try {
-    const baseConfig = await getConfig(thread.workerData.config)
-    // Restore discovered contexts if provided
-    const jsConfig = { ...baseConfig.js }
-    if (thread.workerData.discoveredContexts) {
-      jsConfig['__discoveredContexts'] = thread.workerData.discoveredContexts
-    }
-    const config = { ...baseConfig, root: thread.workerData.configRoot, js: jsConfig }
-
-    const pages = await getPagesFromWorker(thread.workerData.file, config)
-    thread.parentPort.postMessage(JSON.stringify(pages))
-    process.nextTick(() => process.exit(0))
-  } catch (err) {
-    console.log(err)
-    thread.parentPort.postMessage([])
-  }
-}
 
 /**
  * ForEach is executed for each node when the page is interpreted.
@@ -99,7 +67,6 @@ export async function afterAsync(nodes, htmlDocument, page, _config, _api) {
 export async function forEachAsync(node, nodes, htmlDocument, page, config, _api) {
   if (node.type !== 'tag-open') return
   if (!node.text.match(/[a-zA-Z0-9 ]+=[ ]*["'][^'"]*["']/gi)) return
-  if (isChildWorker) return
 
   const htmlNode = htmlDocument.findNodeAt(node.offset.start + 1)
   if (!htmlNode || !htmlNode.attributes) return
@@ -223,7 +190,6 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, _api
 
 /**
  * Returns the list of pages.
- * If it's not the main thread, an empty array is returned. No need to resolve nested pages, as the rendered result is discarded.
  *
  * @param {string} file - The file.
  * @param {import('../../../src/config.js').Config} config - The configuration.
@@ -233,27 +199,7 @@ async function getPages(file, config) {
   if (cache[file]) return cache[file]
 
   try {
-    // eslint-disable-next-line no-unmodified-loop-condition
-    while (workerCount >= 4)
-      await new Promise((resolve) => {
-        setTimeout(resolve, 100)
-      })
-    workerCount++
-    const response = await new Promise((resolve, reject) => {
-      const worker = new thread.Worker(addonFilename, {
-        workerData: {
-          file,
-          config: config.fileUrl.toString(),
-          configRoot: config.root.toString(),
-          discoveredContexts: config.js?.['__discoveredContexts'],
-          specifier: addonFilename,
-        },
-      })
-      worker.on('exit', () => workerCount--)
-      worker.on('error', reject)
-      worker.on('message', resolve)
-    })
-    const pages = (cache[file] = JSON.parse(response))
+    const pages = (cache[file] = await getPagesFromWorker(file, config))
     return pages
   } catch {
     const pages = (cache[file] = [])

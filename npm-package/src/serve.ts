@@ -38,6 +38,7 @@ process.on('SIGINT', () => {
  */
 export default async function serve(folder, config, cache = true) {
   const root = utils.resolve(folder, undefined, { exists: true, folder: true })
+  void cache
 
   // If no config specified, look for config in the served folder first
   if (!config) {
@@ -51,16 +52,20 @@ export default async function serve(folder, config, cache = true) {
   config.root = root
 
   const watcher = getPageWatcher(config)
-  const parallel = os.cpus().length
+  const workerCountOverride = Number(process.env.PAGES_SERVE_WORKERS)
+  const defaultWorkerCount = Math.max(2, Math.min(6, os.cpus().length))
+  const parallel = Number.isFinite(workerCountOverride) && workerCountOverride > 0 ? Math.floor(workerCountOverride) : defaultWorkerCount
   const workers = []
+  let closing = false
   const createWorkers = (count) => {
     while (workers.length < (count || parallel)) workers.push(createWorker(config, workers))
   }
-  setInterval(() => createWorkers(), 10000).unref()
-  setTimeout(() => createWorkers(), 3000).unref()
-  createWorkers(2)
+  createWorkers(parallel)
+  setInterval(() => {
+    if (!closing) createWorkers()
+  }, 2000).unref()
 
-  const requestHandler = getRequestHandler(config, watcher, workers, cache)
+  const requestHandler = getRequestHandler(config, watcher, workers)
   const server = port === '443' ? https.createServer(config.ssl, requestHandler) : http.createServer(requestHandler)
   const app = await new Promise((resolve, reject) => {
     server.on('error', reject)
@@ -73,6 +78,7 @@ export default async function serve(folder, config, cache = true) {
 
   const close = app.close.bind(app)
   app.close = () => {
+    closing = true
     while (workers.length) workers.pop().terminate()
     watcher.then((pageWatcher) => pageWatcher.close())
     close()
@@ -91,9 +97,15 @@ export default async function serve(folder, config, cache = true) {
  */
 function createWorker(config, workers) {
   const threadWorker = new threads.Worker(workerEntrypoint, { workerData: { config: JSON.stringify(config) } })
+  const removeWorker = () => {
+    const index = workers.indexOf(threadWorker)
+    if (index !== -1) workers.splice(index, 1)
+  }
+  threadWorker.once('exit', removeWorker)
   const terminate = threadWorker.terminate.bind(threadWorker)
   threadWorker.terminate = () => {
-    workers.splice(workers.indexOf(threadWorker), 1)
+    threadWorker.off('exit', removeWorker)
+    removeWorker()
     terminate()
   }
   return threadWorker
@@ -108,23 +120,35 @@ function createWorker(config, workers) {
  * @param {boolean} cache - Whether to enable caching.
  * @returns {(req: http.IncomingMessage, res: http.ServerResponse) => void} The request handler.
  */
-function getRequestHandler(config, watcher, workers, cache) {
+function getRequestHandler(config, watcher, workers) {
+  const queuedResolvers = []
+
+  /**
+   * Marks a worker as available and wakes one waiter, if any.
+   *
+   * @param {threads.Worker} worker - The worker to release.
+   */
+  function releaseWorker(worker) {
+    const resolver = queuedResolvers.shift()
+    if (resolver) {
+      worker.busy = true
+      resolver(worker)
+      return
+    }
+    worker.busy = false
+  }
+
   /**
    * @returns {Promise<threads.Worker>} A free worker.
    */
   async function getWorker() {
     const freeWorker = workers.find((entry) => !entry.busy)
-    if (freeWorker) return freeWorker
+    if (freeWorker) {
+      freeWorker.busy = true
+      return freeWorker
+    }
     return new Promise((resolve) => {
-      const interval = setInterval(() => {
-        if (workers.length) {
-          const nextWorker = workers.find((entry) => !entry.busy)
-          if (nextWorker) {
-            clearInterval(interval)
-            resolve(nextWorker)
-          }
-        }
-      }, 100).unref()
+      queuedResolvers.push(resolve)
     })
   }
 
@@ -136,7 +160,7 @@ function getRequestHandler(config, watcher, workers, cache) {
    */
   return async (req, res) => {
     const reqUrl = new URL(req.url, config.baseURI)
-    const matchedPage = (await watcher).getPages().find((entry) => entry.url.pathname === reqUrl.pathname)
+    const matchedPage = (await watcher).findByPathname(reqUrl.pathname)
     if (!matchedPage) {
       res.writeHead(404)
       res.end('Not found')
@@ -145,73 +169,44 @@ function getRequestHandler(config, watcher, workers, cache) {
 
     const queryParams = Object.fromEntries(reqUrl.searchParams.entries())
 
-    // ETag-based (entity tag) caching
-    const etag = matchedPage.params?.headers?.ETag
-    if (etag && req.headers['if-none-match'] === etag) {
-      res.writeHead(304)
-      res.end()
-      return
-    }
-
     const headers = matchedPage.params?.headers || {}
     if (!headers['Content-Type']) headers['Content-Type'] = mime.getType(matchedPage.url.pathname)
 
-    // Content cache
-    if (matchedPage.cache?.data) {
-      headers['Content-Length'] = Buffer.byteLength(matchedPage.cache.data)
-      if (etag) headers['ETag'] = etag
-      res.writeHead(200, headers)
-      res.end(matchedPage.cache.data)
-      return
-    }
-
     const worker = await getWorker()
-    worker.busy = true
 
     let done = false
-    worker.on('message', ([type, data]) => {
+    const onMessage = ([type, data]) => {
       if (done) return
       done = true
       if (type === 'content') {
         headers['Content-Length'] = Buffer.byteLength(data)
-        if (matchedPage.params?.headers?.ETag) headers['ETag'] = matchedPage.params.headers.ETag
         res.writeHead(200, headers)
         res.end(data)
-        worker.terminate()
-
-        // Cache the content for 3 minutes
-        if (!(os.totalmem() < 4 * 1024 * 1024 * 1024) && cache && !data.includes('/*! tailwindcss')) {
-          const hasQueryParams = Object.keys(queryParams).length > 0
-          if (!hasQueryParams) {
-            if (matchedPage.cache?.timeout) clearTimeout(matchedPage.cache.timeout)
-            const weakPage = new WeakRef(matchedPage)
-            const timeout = setTimeout(() => {
-              const derefPage = weakPage.deref()
-              if (derefPage) derefPage.cache = null
-            }, 180000).unref()
-            matchedPage.cache = { data, timeout }
-          }
-        }
+        releaseWorker(worker)
       } else if (type === 'stream') {
         headers['Transfer-Encoding'] = 'chunked'
-        headers['ETag'] = matchedPage.params?.headers?.ETag
         res.writeHead(200, headers)
         const rs = fs.createReadStream(url.fileURLToPath(matchedPage.fileUrl))
         rs.pipe(res)
-        worker.busy = false
+        releaseWorker(worker)
       } else {
         res.writeHead(500)
         res.end('Internal server error')
-        worker.busy = false
+        releaseWorker(worker)
       }
-    })
+      worker.off('exit', onExit)
+    }
 
-    worker.on('exit', (code) => {
+    const onExit = (code) => {
+      worker.off('message', onMessage)
       if (code === 0 || done) return
       done = true
       res.writeHead(500)
       res.end('Internal server error')
-    })
+    }
+
+    worker.on('message', onMessage)
+    worker.once('exit', onExit)
 
     // Resolve context before sending to worker (functions can't be serialized)
     const ctxName = queryParams.ctx
@@ -237,10 +232,25 @@ async function getPageWatcher(config) {
    * @type {import('./pages.js').Page[]}
    */
   let pages = []
+  /**
+   * @type {Map<string, import('./pages.js').Page>}
+   */
+  let pagesByPathname = new Map()
   await refreshAll()
   const inProgress = {}
   const watcher = fs.watch(config.root, { recursive: true }, (_unusedEvent, filename) => getPagesUpdate(filename))
-  return { getPages: () => pages, close: () => watcher.close() }
+  return {
+    getPages: () => pages,
+    findByPathname: (pathname) => pagesByPathname.get(pathname),
+    close: () => watcher.close(),
+  }
+
+  function updatePathnameIndex() {
+    pagesByPathname = new Map()
+    for (const page of pages) {
+      if (!pagesByPathname.has(page.url.pathname)) pagesByPathname.set(page.url.pathname, page)
+    }
+  }
 
   async function refreshAll() {
     const files = (await Promise.all(utils.getFilesInFolder(config.root))).filter((file) => {
@@ -253,6 +263,7 @@ async function getPageWatcher(config) {
       for (const page of filePages) if (filter(page)) pagesUpdate.push(page)
     }
     pages = pagesUpdate
+    updatePathnameIndex()
   }
 
   /**
@@ -367,9 +378,11 @@ async function getPageWatcher(config) {
       } else {
         const pagesUpdate = (await getPages(file, config)).filter(filter)
         pages = [...pages.filter((page) => page.fileUrl.toString() !== fileUrl), ...pagesUpdate]
+        updatePathnameIndex()
       }
     } else {
       pages = pages.filter((page) => page.fileUrl.toString() !== fileUrl)
+      updatePathnameIndex()
     }
 
     if (inProgress[filename].repeat) {

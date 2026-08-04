@@ -62,30 +62,24 @@ export default async function build(folder, config, output) {
   // Store all pages in config for HTML reference resolution
   config['__allPages'] = pages
   const parallel = Math.min(os.cpus().length, pages.length)
+  const workerPool = createBuildWorkerPool(config, parallel)
+  const totalPages = pages.length
 
   let done = 0
-  let inProgress = []
-  while (pages.length || inProgress.length) {
-    const page = pages.shift()
-    if (page) {
-      const promise = render(output, config, page)
-        .finally(() => {
-          promise.done = true
-        })
-        .catch((err) => {
-          console.log('')
-          console.error(err)
-          process.exit(1)
-        })
-      inProgress.push(promise)
-    }
-
-    inProgress = inProgress.filter((promise) => !promise.done)
-    if (inProgress.length < parallel && pages.length) continue
-    if (!inProgress.length) break
-    await Promise.race(inProgress)
-    done += 1
-    updateProgress(done, pages.length + done)
+  try {
+    await Promise.all(
+      pages.map(async (page) => {
+        await renderWithWorker(workerPool, output, config, page)
+        done += 1
+        updateProgress(done, totalPages)
+      }),
+    )
+  } catch (err) {
+    console.log('')
+    console.error(err)
+    process.exit(1)
+  } finally {
+    await workerPool.close()
   }
 
   console.log('')
@@ -95,14 +89,121 @@ export default async function build(folder, config, output) {
 }
 
 /**
- * Renders a page.
+ * Creates a worker pool for build rendering.
+ *
+ * @param {import('./config.js').Config} config - The configuration.
+ * @param {number} size - The pool size.
+ * @returns {{ acquire: () => Promise<threads.Worker>; release: (worker: threads.Worker) => void; close: () => Promise<void> }} The pool.
+ */
+function createBuildWorkerPool(config, size) {
+  /**
+   * @type {threads.Worker[]}
+   */
+  const workers = []
+  const queuedResolvers = []
+  const serializableConfig = getSerializableConfig(config)
+  const workerUrl = url.pathToFileURL(workerEntrypoint)
+
+  for (let i = 0; i < size; i += 1) {
+    workers.push(new threads.Worker(workerUrl, { workerData: { config: JSON.stringify(serializableConfig) } }))
+  }
+
+  function release(worker) {
+    const resolver = queuedResolvers.shift()
+    if (resolver) {
+      worker.busy = true
+      resolver(worker)
+      return
+    }
+    worker.busy = false
+  }
+
+  return {
+    async acquire() {
+      const freeWorker = workers.find((entry) => !entry.busy)
+      if (freeWorker) {
+        freeWorker.busy = true
+        return freeWorker
+      }
+
+      return new Promise((resolve) => {
+        queuedResolvers.push(resolve)
+      })
+    },
+    release,
+    async close() {
+      await Promise.all(
+        workers.map(async (worker) => {
+          try {
+            await worker.terminate()
+          } catch {
+            // ignore worker termination errors during cleanup
+          }
+        }),
+      )
+    },
+  }
+}
+
+/**
+ * Renders a page using a pooled worker.
+ *
+ * @param {{ acquire: () => Promise<threads.Worker>; release: (worker: threads.Worker) => void }} workerPool - The worker pool.
+ * @param {string} output - The output folder.
+ * @param {import('./config.js').Config} config - The configuration.
+ * @param {import('./pages.js').Page} page - The page.
+ * @returns {Promise<void>} A promise that resolves when the page has been rendered.
+ */
+async function renderWithWorker(workerPool, output, config, page) {
+  const worker = await workerPool.acquire()
+  const file = getOutputFile(output, config, page)
+
+  await new Promise((resolve, reject) => {
+    let settled = false
+
+    const cleanup = () => {
+      worker.off('message', onMessage)
+      worker.off('error', onError)
+      worker.off('exit', onExit)
+    }
+
+    const resolveOnce = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      workerPool.release(worker)
+      resolve()
+    }
+
+    const rejectOnce = (err) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      reject(err)
+    }
+
+    const onMessage = () => resolveOnce()
+    const onError = (err) => rejectOnce(err)
+    const onExit = (code) => {
+      if (!settled && code !== 0) rejectOnce(new Error(`Worker stopped with exit code ${code}`))
+    }
+
+    worker.on('message', onMessage)
+    worker.once('error', onError)
+    worker.once('exit', onExit)
+    worker.postMessage(['pageToFile', JSON.stringify(page), file])
+  })
+}
+
+/**
+ * Returns the output file for the page.
  *
  * @param {string} output - The output folder.
  * @param {import('./config.js').Config} config - The configuration.
  * @param {import('./pages.js').Page} page - The page.
- * @returns {Promise} A promise that resolves when the page has been rendered.
+ * @returns {string} The output file.
  */
-function render(output, config, page) {
+function getOutputFile(output, config, page) {
   let pathname = page.url.pathname.slice(config.baseURI.pathname.length)
   while (pathname.startsWith('/')) pathname = pathname.slice(1)
   let file = path.resolve(output, pathname)
@@ -112,54 +213,32 @@ function render(output, config, page) {
     else if (!file.split('/').pop().includes('.')) file += '/index.html'
   }
 
-  return new Promise((resolve, reject) => {
-    let done = false
-    const cb =
-      (fn) =>
-      (...args) =>
-        done
-          ? null
-          : (() => {
-              done = true
-              return fn(...args)
-            })()
-    // Prepare config for serialization - fileUrl needs to be a string
-    const serializableConfig = {
-      ...config,
-      baseURI: config.baseURI.toString(),
-      fileUrl: config.fileUrl ? config.fileUrl.toString() : undefined,
-      // Pass all pages for HTML reference resolution (convert URLs to strings)
-      __allPages: config['__allPages']?.map((p) => ({
-        ...p,
-        url: p.url.toString(),
-        fileUrl: p.fileUrl ? p.fileUrl.toString() : undefined,
-      })),
-      // Pass discovered contexts to worker so JS files can be rendered with correct variants
-      js: {
-        ...config.js,
-        __discoveredContexts: config.js?.['__discoveredContexts'],
-      },
-    }
-    const worker = new threads.Worker(url.pathToFileURL(workerEntrypoint), { workerData: { config: JSON.stringify(serializableConfig) } })
-    worker.on(
-      'message',
-      cb((message) => {
-        resolve(message)
-        worker.terminate()
-      }),
-    )
-    worker.on(
-      'error',
-      cb((err) => worker.terminate() || reject(err)),
-    )
-    worker.on(
-      'exit',
-      cb((code) => reject(new Error(`Worker stopped with exit code ${code}`))),
-    )
+  return file
+}
 
-    // Context is now set in pages.js based on buildContexts
-    worker.postMessage(['pageToFile', JSON.stringify(page), file])
-  })
+/**
+ * Converts config into a worker-safe serializable object.
+ *
+ * @param {import('./config.js').Config} config - The configuration.
+ * @returns {object} The serializable config.
+ */
+function getSerializableConfig(config) {
+  return {
+    ...config,
+    baseURI: config.baseURI.toString(),
+    fileUrl: config.fileUrl ? config.fileUrl.toString() : undefined,
+    // Pass all pages for HTML reference resolution (convert URLs to strings)
+    __allPages: config['__allPages']?.map((p) => ({
+      ...p,
+      url: p.url.toString(),
+      fileUrl: p.fileUrl ? p.fileUrl.toString() : undefined,
+    })),
+    // Pass discovered contexts to worker so JS files can be rendered with correct variants
+    js: {
+      ...config.js,
+      __discoveredContexts: config.js?.['__discoveredContexts'],
+    },
+  }
 }
 
 /**

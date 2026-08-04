@@ -32,6 +32,37 @@ function flatten(obj, prefix = '') {
  */
 export default function createContextTransformPlugin(ctx) {
   const flat = flatten(ctx)
+  const flatKeys = Object.keys(flat)
+
+  // Precompile reusable matchers once per plugin instance.
+  const localCtxDeclarationRegex = /(?:^|[;\n])\s*(?:const|let|var)\s+ctx\s*[=;]/
+
+  const arrayValueMap = new Map()
+  const allPathAlternatives = []
+  const arrayPathAlternatives = []
+
+  for (const key of flatKeys) {
+    const escaped = escapeRegex(key)
+    allPathAlternatives.push(escaped)
+    if (Array.isArray(flat[key])) {
+      arrayPathAlternatives.push(escaped)
+      arrayValueMap.set(key, flat[key])
+    }
+  }
+
+  // Prefer longer paths so `a.b` wins over `a` when both exist.
+  allPathAlternatives.sort((a, b) => b.length - a.length)
+  arrayPathAlternatives.sort((a, b) => b.length - a.length)
+
+  const directReplaceRegex = allPathAlternatives.length ? new RegExp(`\\bctx\\??\\.(?<path>${allPathAlternatives.join('|')})\\b`, 'g') : null
+
+  const arrayMethodRegex = arrayPathAlternatives.length
+    ? new RegExp(
+        `ctx\\??\\.(?<path>${arrayPathAlternatives.join('|')})` +
+          `\\.(?:includes\\((?<quote>['"\\x60])(?<literal>[^'"\\x60]+)\\k<quote>\\)|some\\([^)]*startsWith\\((?<quote2>['"\\x60])(?<literal2>[^'"\\x60]+)\\k<quote2>\\)\\))`,
+        'g',
+      )
+    : null
 
   return {
     name: 'inline-ctx-advanced',
@@ -44,34 +75,30 @@ export default function createContextTransformPlugin(ctx) {
 
       // Skip if ctx is being declared locally (const/let/var ctx)
       // This prevents transforming user's own ctx variables
-      if (/(?:^|[;\n])\s*(?:const|let|var)\s+ctx\s*[=;]/.test(code)) return
+      if (localCtxDeclarationRegex.test(code)) return
 
-      for (const key in flat) {
-        if (!Object.hasOwn(flat, key)) continue
-        const value = flat[key]
-        const pathRegex = escapeRegex(key)
+      if (arrayMethodRegex) {
+        code = code.replace(arrayMethodRegex, (match, ...rest) => {
+          const groups = rest[rest.length - 1]
+          const path = groups?.path
+          const value = arrayValueMap.get(path)
+          if (!value) return match
 
-        // allow ctx, ctx? (but not window.ctx to avoid namespace pollution)
-        const base = `ctx\\??\\.${pathRegex}`
+          if (match.includes('.includes(')) {
+            return value.includes(groups.literal) ? 'true' : 'false'
+          }
 
-        // --- ARRAY HANDLING ---
-        if (Array.isArray(value)) {
-          // includes('literal')
-          code = code.replace(new RegExp(`${base}\\.includes\\((?<quote>['"\`])(?<literal>[^'"\\\`]+)\\k<quote>\\)`, 'g'), (_, __, literal) => (value.includes(literal) ? 'true' : 'false'))
+          return 'false'
+        })
+      }
 
-          // startsWith('literal') (if array of strings)
-          code = code.replace(
-            new RegExp(`${base}\\.some\\([^)]*startsWith\\((['"\`])([^'"\\\`]+)\\1\\)\\)`, 'g'),
-            () =>
-              // too complex to safely eval → skip
-              'false',
-          )
-
-          // direct replacement
-          code = code.replace(new RegExp(`\\b${base}\\b`, 'g'), JSON.stringify(value))
-        } else {
-          code = code.replace(new RegExp(`\\b${base}\\b`, 'g'), JSON.stringify(value))
-        }
+      if (directReplaceRegex) {
+        code = code.replace(directReplaceRegex, (match, ...rest) => {
+          const groups = rest[rest.length - 1]
+          const path = groups?.path
+          if (!path) return match
+          return JSON.stringify(flat[path])
+        })
       }
 
       return {

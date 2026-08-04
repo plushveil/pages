@@ -6,7 +6,7 @@ import * as url from 'node:url'
 import ts from '@typescript/typescript6'
 
 import getExports from '../utils/getExports.js'
-import getNodesInRange from '../utils/getNodesInRange.js'
+import getNodesInRange, { createNodesInRangeContext } from '../utils/getNodesInRange.js'
 
 const templateLiteralsFilename = url.fileURLToPath(import.meta.url)
 const templateLiteralsDirname = path.dirname(templateLiteralsFilename)
@@ -27,6 +27,7 @@ module.registerHooks({
         format: 'module',
         url: specifier,
         importAttributes: {
+          ...context.importAttributes,
           specifier,
           parentURL: import.meta.url,
         },
@@ -74,6 +75,11 @@ const idNodeScriptsMap = {}
 const idPreflightStopPositionMap = {}
 
 /**
+ * @type {{ [key: string]: Map<number, import('../parser/iterator.js').Node> }}
+ */
+const idIteratorNodeByOffsetStartMap = {}
+
+/**
  * BeforeAsync is executed before the page is interpreted.
  *
  * @param {import('../parser/iterator.js').Node[]} iterator - The iterator
@@ -85,9 +91,12 @@ const idPreflightStopPositionMap = {}
 export function beforeAsync(iterator, htmlDocument, _page, _config, _api) {
   const textDocument = htmlDocument.getTextDocument()
   const id = htmlDocument.getId()
+  const nodesInRangeContext = createNodesInRangeContext(iterator)
   const scripts = htmlDocument.select('script[target]')
   const [head] = htmlDocument.select('link[rel="canonical"]')
   idPreflightStopPositionMap[id] = head?.end || 0
+
+  idIteratorNodeByOffsetStartMap[id] = new Map(iterator.map((entry) => [entry.offset.start, entry]))
 
   idNodeScriptsMap[id] = {}
   for (const [i, script] of scripts.entries()) {
@@ -103,7 +112,7 @@ export function beforeAsync(iterator, htmlDocument, _page, _config, _api) {
     }
 
     // remove the targeted scripts from the output
-    for (const node of getNodesInRange(script.start, script.end, iterator)) {
+    for (const node of getNodesInRange(script.start, script.end, iterator, nodesInRangeContext)) {
       node.textUpdate = ''
     }
   }
@@ -140,13 +149,12 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
     if (node.offset.start >= stop) return
   }
 
-  const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
-  const hash = `#${htmlDocument.getId()}|${Date.now()}${Math.random()}${ia ? `|${ia}` : ''}`
+  const execModuleSpecifier = getExecModuleSpecifier(htmlDocument, page)
 
   /**
    * @type {import('../utils/exec.js').default}
    */
-  const execFn = (await import(htmlDocument.getTextDocument().uri + hash)).default
+  const execFn = (await import(execModuleSpecifier)).default
   const scripts = getScriptsForNode(node, nodes, htmlDocument)
 
   let result = await execFn(node.text.slice(2, -1), scripts, page, config, api)
@@ -154,6 +162,21 @@ export async function forEachAsync(node, nodes, htmlDocument, page, config, api)
   if (typeof result === 'function') result = await result()
   node.raw = result
   node.textUpdate = `${node.raw}`
+}
+
+/**
+ * Builds a deterministic specifier for the template execution module.
+ * Reusing this per render context allows the module cache to be reused.
+ *
+ * @param {import('../parser/parse.js').HTMLDocument} htmlDocument - The HTML document.
+ * @param {import('../../../src/pages.js').Page} page - The page.
+ * @returns {string} The specifier used to import the exec module.
+ */
+function getExecModuleSpecifier(htmlDocument, page) {
+  const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
+  const id = encodeURIComponent(htmlDocument.getId())
+  const iaPart = ia ? `|${encodeURIComponent(ia)}` : ''
+  return `${htmlDocument.getTextDocument().uri}#${id}${iaPart}`
 }
 
 /**
@@ -185,6 +208,7 @@ function getCode(code) {
 export function after(_iterator, htmlDocument, _page, _config, _api) {
   const id = htmlDocument.getId()
   delete idNodeScriptsMap[id]
+  delete idIteratorNodeByOffsetStartMap[id]
 }
 
 /**
@@ -199,9 +223,10 @@ function getScriptsForNode(node, nodes, htmlDocument) {
   const id = htmlDocument.getId()
   const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
   const scripts = idNodeScriptsMap[id][closestHtmlNode] || []
+  const iterNodeByOffsetStart = idIteratorNodeByOffsetStartMap[id]
   return scripts
     .map((scriptDetails) => {
-      const iterNode = nodes.find((entry) => entry.offset.start === scriptDetails.htmlNode.startTagEnd)
+      const iterNode = iterNodeByOffsetStart.get(scriptDetails.htmlNode.startTagEnd)
       iterNode.code = getCode(iterNode.text)
       return { ...scriptDetails, node: iterNode }
     })

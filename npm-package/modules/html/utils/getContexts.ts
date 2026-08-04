@@ -12,9 +12,10 @@ export default function getContexts(htmlDocument, node) {
     if (!target) continue
 
     const elements = htmlDocument.select(target)
+    const elementSet = new Set(elements)
     let element = node
     while (element) {
-      if (elements.includes(element)) {
+      if (elementSet.has(element)) {
         const textDocument = htmlDocument.getTextDocument()
         const text = textDocument.getText({
           start: textDocument.positionAt(script.startTagEnd),

@@ -6,8 +6,50 @@ import { pages as getJsPages } from '../../js/js.js'
 import render from '../src/render.js'
 
 const tags = ['enable-components']
+const tagsSet = new Set(tags)
 const componentCache = {}
 const components = {}
+const RESOLVE_BATCH_SIZE = 8
+
+function getTagNameFromTagOpenText(text) {
+  return text.match(/^<(?<tag>[^> ]+)/)?.groups?.tag || ''
+}
+
+function getTagNameFromTagCloseText(text) {
+  return text.match(/^<\/(?<tag>[^> ]+)/)?.groups?.tag || ''
+}
+
+function ensureRunIndexes(run, nodes) {
+  if (run.indexesBuiltFor === nodes) return
+
+  run.indexesBuiltFor = nodes
+  run.nodeIndexByNode = new WeakMap()
+  run.closeIndexByOpenNode = new WeakMap()
+
+  const openStackByTag = new Map()
+  for (let i = 0; i < nodes.length; i += 1) {
+    const currentNode = nodes[i]
+    run.nodeIndexByNode.set(currentNode, i)
+
+    if (currentNode.type === 'tag-open') {
+      const openTagName = getTagNameFromTagOpenText(currentNode.text)
+      if (!openTagName.includes('-')) continue
+      const stack = openStackByTag.get(openTagName) || []
+      stack.push(currentNode)
+      openStackByTag.set(openTagName, stack)
+    }
+
+    if (currentNode.type === 'tag-close') {
+      const closeTagName = getTagNameFromTagCloseText(currentNode.text.toLowerCase())
+      if (!closeTagName.includes('-')) continue
+      const stack = openStackByTag.get(closeTagName)
+      if (!stack || stack.length === 0) continue
+      const openNode = stack.pop()
+      if (!openNode) continue
+      run.closeIndexByOpenNode.set(openNode, i)
+    }
+  }
+}
 
 /**
  * Before is executed before the page is interpreted.
@@ -28,6 +70,12 @@ export async function beforeAsync(nodes, htmlDocument, page, config, _api) {
     path: fs.existsSync(componentsPath) ? componentsPath : null,
     nodes: [],
     containers: [],
+    nodeByKey: new Map(),
+    pendingByKey: new Map(),
+    containerSet: new Set(),
+    nodeIndexByNode: new WeakMap(),
+    closeIndexByOpenNode: new WeakMap(),
+    indexesBuiltFor: null,
     parallel: 0,
   }
   components[id].parallel += 1
@@ -48,13 +96,26 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
   const id = page?.url?.toString() || htmlDocument.getId()
   if (!components[id] || components[id].path === null) return
 
+  const run = components[id]
+  ensureRunIndexes(run, nodes)
+
   if (node.type === 'template') {
     const names = (node.textUpdate || node.text).matchAll(/<(?<name>[a-zA-Z0-9]+-[^> ]+)(?<attributes>[^>]*)>.*?<\/\k<name>>/g)
+    const templateComponents = []
     for (const match of names) {
       const attributeString = match.groups?.attributes || ''
       const attributes = getAttributesFromString(attributeString)
       const component = { name: match.groups?.name || '', attributeString, attributes }
-      await addComponent(component, node, id, page, config, api)
+      templateComponents.push(component)
+    }
+
+    for (let i = 0; i < templateComponents.length; i += RESOLVE_BATCH_SIZE) {
+      const batch = templateComponents.slice(i, i + RESOLVE_BATCH_SIZE)
+      const resolvedBatch = await Promise.all(batch.map((component) => resolveComponentData(component, id, page, config, api)))
+
+      for (const [j, component] of batch.entries()) {
+        await addComponent(component, node, id, page, config, api, [], resolvedBatch[j])
+      }
     }
   }
 
@@ -62,14 +123,17 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
     const nameMatch = (node.textUpdate || node.text).match(/^<(?<tag>[^> ]+)/)
     if (nameMatch) {
       const tagName = nameMatch.groups?.tag || ''
-      if (tags.includes(tagName)) {
-        components[id].containers.push(node)
+      if (tagsSet.has(tagName)) {
+        if (!run.containerSet.has(node)) {
+          run.containerSet.add(node)
+          run.containers.push(node)
+        }
       } else if (tagName.includes('-')) {
         const attributeString = (node.textUpdate || node.text).match(/^<[^> ]+(?<attributes>(?:\s+[^=> ]+(?:=(?:"[^"]*"|'[^']*'|[^"'\s>]+))?)*)\s*>/)?.groups?.attributes || ''
         const attributes = getAttributesFromString(attributeString)
         const component = { name: tagName, attributeString, attributes }
-        const nodeIndex = nodes.indexOf(node)
-        const endIndex = nodes.findIndex((n, i) => i > nodeIndex && n.type === 'tag-close' && n.text.toLowerCase().startsWith(`</${tagName}`))
+        const nodeIndex = run.nodeIndexByNode.get(node) ?? -1
+        const endIndex = run.closeIndexByOpenNode.get(node) ?? -1
 
         const componentNodes = endIndex !== -1 ? nodes.slice(nodeIndex + 1, endIndex) : []
 
@@ -87,7 +151,7 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
     }
   }
 
-  if (node.type === 'tag-close' && tags.find((tag) => node.text.toLowerCase() === `</${tag}>`)) {
+  if (node.type === 'tag-close' && tagsSet.has(getTagNameFromTagCloseText(node.text.toLowerCase()))) {
     node.textUpdate = ''
   }
 }
@@ -118,11 +182,27 @@ export function after(iterator, htmlDocument, page, _config, _api) {
     return
   }
 
-  run.nodes = run.nodes.filter((c, index, self) => self.findIndex((t) => t.name === c.name) === index)
+  const uniqueComponentsByName = []
+  const seenComponentNames = new Set()
+  for (const component of run.nodes) {
+    if (seenComponentNames.has(component.name)) continue
+    seenComponentNames.add(component.name)
+    uniqueComponentsByName.push(component)
+  }
+
+  const uniqueContainers = []
+  const seenContainers = new Set()
+  for (const container of run.containers) {
+    if (seenContainers.has(container)) continue
+    seenContainers.add(container)
+    uniqueContainers.push(container)
+  }
+
+  run.nodes = uniqueComponentsByName
   for (const component of run.nodes) {
     const js = component.js && `<script src="${component.js}" async></script>`
     const css = component.css && `<link rel="stylesheet" href="${component.css}">`
-    for (const node of run.containers.filter((v, i, a) => a.indexOf(v) === i)) {
+    for (const node of uniqueContainers) {
       if (js && (!node.textUpdate || !node.textUpdate.includes(js))) node.textUpdate = (node.textUpdate || '') + js
       if (css && (!node.textUpdate || !node.textUpdate.includes(css))) node.textUpdate = (node.textUpdate || '') + css
     }
@@ -144,25 +224,44 @@ export function after(iterator, htmlDocument, page, _config, _api) {
  * @param api
  * @param {import('../parser/iterator.js').Node} contentNodes - The node to update.
  */
-async function addComponent(component, node, id, page, config, api, contentNodes = []) {
-  const exists = components[id].nodes.find((c) => c.name === component.name && c.attributeString === component.attributeString)
+async function addComponent(component, node, id, page, config, api, contentNodes = [], resolvedComponent = null) {
+  const run = components[id]
+  const key = `${component.name}#${component.attributeString}`
+
+  const exists = run.nodeByKey.get(key)
   if (exists) {
     node.textUpdate = (node.textUpdate || node.text) + (exists.html || '')
     return
   }
 
-  const cached = componentCache[`${component.name}#${component.attributeString}`]
+  const cached = componentCache[key]
   if (cached) {
     node.textUpdate = (node.textUpdate || node.text) + (cached.html || '')
     node.attributeString = cached.attributeString
-    components[id].nodes.push(cached)
+    run.nodeByKey.set(key, cached)
+    run.nodes.push(cached)
     return
   }
 
-  const htmlFile = path.resolve(components[id].path, component.name, `${component.name}.html`)
-  if (fs.existsSync(htmlFile)) {
-    const rendered = await renderComponent(htmlFile, page, config, api, component.attributes)
-    component.html = rendered.content
+  const resolved = resolvedComponent || (await resolveComponentData(component, id, page, config, api))
+
+  const existsAfterResolve = run.nodeByKey.get(key)
+  if (existsAfterResolve) {
+    node.textUpdate = (node.textUpdate || node.text) + (existsAfterResolve.html || '')
+    return
+  }
+
+  const cachedAfterResolve = componentCache[key]
+  if (cachedAfterResolve) {
+    node.textUpdate = (node.textUpdate || node.text) + (cachedAfterResolve.html || '')
+    node.attributeString = cachedAfterResolve.attributeString
+    run.nodeByKey.set(key, cachedAfterResolve)
+    run.nodes.push(cachedAfterResolve)
+    return
+  }
+
+  if (resolved.htmlFileExists) {
+    component.html = resolved.html
     if (node.type === 'template') {
       const tag = `<${component.name}${component.attributeString}>`
       node.textUpdate = (node.textUpdate || node.text).replaceAll(tag, `${tag}${component.html}`)
@@ -179,42 +278,94 @@ async function addComponent(component, node, id, page, config, api, contentNodes
       }
     }
 
-    if (rendered.classString) {
+    if (resolved.classString) {
       const classMatch = (node.textUpdate || node.text).match(/class=["'](?<classValue>.*?)["']/)
       if (classMatch) {
         const existingClasses = classMatch.groups?.classValue || ''
-        const newClasses = `${existingClasses} ${rendered.classString}`.trim()
+        const newClasses = `${existingClasses} ${resolved.classString}`.trim()
         node.textUpdate = (node.textUpdate || node.text).replace(classMatch[0], `class="${newClasses}"`)
       } else {
-        node.textUpdate = (node.textUpdate || node.text).replace(/<[^> ]+/, (match) => `${match} class="${rendered.classString}"`)
+        node.textUpdate = (node.textUpdate || node.text).replace(/<[^> ]+/, (match) => `${match} class="${resolved.classString}"`)
       }
     }
   }
 
-  const jsExt = ['.ts', '.js']
-  for (const ext of jsExt) {
-    const jsFile = path.resolve(components[id].path, component.name, `${component.name}${ext}`)
-    if (fs.existsSync(jsFile)) {
-      const pages = await getJsPages(jsFile, config, api)
-      if (pages.length > 0) {
+  component.html = resolved.html
+  component.js = resolved.js
+  component.css = resolved.css
+  componentCache[key] = component
+  run.nodeByKey.set(key, component)
+  run.nodes.push(component)
+}
+
+/**
+ * Resolves component assets without mutating shared output structures.
+ *
+ * @param {object} component - The component.
+ * @param {string} id - The page ID.
+ * @param {import('../../../src/pages.js').Page} page - The page.
+ * @param config
+ * @param api
+ * @returns {Promise<object>} - Resolved component data.
+ */
+async function resolveComponentData(component, id, page, config, api) {
+  const run = components[id]
+  const key = `${component.name}#${component.attributeString}`
+  const existingPending = run.pendingByKey.get(key)
+  if (existingPending) return existingPending
+
+  const resolvePromise = (async () => {
+    const resolved = {
+      html: component.html,
+      js: component.js,
+      css: component.css,
+      classString: '',
+      htmlFileExists: false,
+    }
+
+    const htmlFile = path.resolve(run.path, component.name, `${component.name}.html`)
+    if (fs.existsSync(htmlFile)) {
+      const rendered = await renderComponent(htmlFile, page, config, api, component.attributes)
+      resolved.html = rendered.content
+      resolved.classString = rendered.classString
+      resolved.htmlFileExists = true
+    }
+
+    const jsExt = ['.ts', '.js']
+    const jsPageCandidates = await Promise.all(
+      jsExt.map(async (ext) => {
+        const jsFile = path.resolve(run.path, component.name, `${component.name}${ext}`)
+        if (!fs.existsSync(jsFile)) return null
+        const pages = await getJsPages(jsFile, config, api)
+        if (pages.length === 0) return null
         const jsPage = pages.find((p) => p.params.headers?.['Content-Type']?.includes('application/javascript')) || pages[0]
-        component.js = jsPage.url.toString()
-        break
+        return { ext, url: jsPage.url.toString() }
+      }),
+    )
+
+    for (const ext of jsExt) {
+      const candidate = jsPageCandidates.find((result) => result?.ext === ext)
+      if (!candidate) continue
+      resolved.js = candidate.url
+      break
+    }
+
+    const cssFile = path.resolve(run.path, component.name, `${component.name}.css`)
+    if (fs.existsSync(cssFile)) {
+      const pages = await getCssPages(cssFile, config, api)
+      if (pages.length > 0) {
+        const cssPage = pages.find((p) => p.params.headers?.['Content-Type']?.includes('text/css')) || pages[0]
+        resolved.css = cssPage.url.toString()
       }
     }
-  }
 
-  const cssFile = path.resolve(components[id].path, component.name, `${component.name}.css`)
-  if (fs.existsSync(cssFile)) {
-    const pages = await getCssPages(cssFile, config, api)
-    if (pages.length > 0) {
-      const cssPage = pages.find((p) => p.params.headers?.['Content-Type']?.includes('text/css')) || pages[0]
-      component.css = cssPage.url.toString()
-    }
-  }
+    return resolved
+  })().finally(() => {
+    run.pendingByKey.delete(key)
+  })
 
-  componentCache[`${component.name}#${component.attributeString}`] = component
-  components[id].nodes.push(component)
+  run.pendingByKey.set(key, resolvePromise)
+  return resolvePromise
 }
 
 /**

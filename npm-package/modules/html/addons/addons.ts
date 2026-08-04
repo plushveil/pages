@@ -9,6 +9,7 @@ const addonsFilename = url.fileURLToPath(import.meta.url)
 const addonsDirname = path.dirname(addonsFilename)
 
 const activeAddons = ['event-emitter', 'canonical-url', 'minify-inline', 'references-to-url', 'template-literals', 'import-page', 'import-html', 'minify', 'integrity', 'components']
+let addonsPromise = null
 
 module.registerHooks({
   load: commonJsLoad,
@@ -25,7 +26,10 @@ module.registerHooks({
 export default async function executeAddons(page, config, api) {
   const htmlDocument = getHtmlDocument(page)
   const iterator = htmlDocument.iterator()
-  const addons = await Promise.all(activeAddons.map((addonName) => import(url.pathToFileURL(path.join(addonsDirname, `${addonName}.js`)).href)))
+  if (!addonsPromise) {
+    addonsPromise = Promise.all(activeAddons.map((addonName) => import(url.pathToFileURL(path.join(addonsDirname, `${addonName}.js`)).href)))
+  }
+  const addons = await addonsPromise
 
   // uniquely identify the execution across all addons and stages
   const id = `${Date.now()}-${Math.random()}`

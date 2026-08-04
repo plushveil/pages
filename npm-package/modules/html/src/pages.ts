@@ -4,7 +4,7 @@ import * as url from 'node:url'
 
 import * as utils from '../../../src/utils.js'
 import executeAddons from '../addons/addons.js'
-import getNodesInRange from '../utils/getNodesInRange.js'
+import getNodesInRange, { createNodesInRangeContext } from '../utils/getNodesInRange.js'
 import getUrl from '../utils/getUrl.js'
 
 global.eventEmitter ||= new EventEmitter()
@@ -25,6 +25,7 @@ export default async function pages(file, config, api, _options = {}) {
   file = utils.resolve(file, [process.cwd(), path.dirname(url.fileURLToPath(config.fileUrl))], { exists: true, file: true })
   const fileUrl = url.pathToFileURL(file).toString()
   const canonicals = []
+  let nodesInRangeContext = null
 
   /**
    * @param {import('../parser/iterator.js').Node} node - The node
@@ -46,7 +47,8 @@ export default async function pages(file, config, api, _options = {}) {
     if (!match) return
     const start = linkHtmlNode.start + match.index + match[0].length
     const end = start + linkHtmlNode.attributes.href.length - 2
-    const hrefNodes = getNodesInRange(start, end, nodes)
+    nodesInRangeContext ||= createNodesInRangeContext(nodes)
+    const hrefNodes = getNodesInRange(start, end, nodes, nodesInRangeContext)
     if (hrefNodes[0]?.offset.start !== start) {
       const nodeStart = hrefNodes[0]?.offset.start || end
       const range = { start: textDocument.positionAt(start), end: textDocument.positionAt(nodeStart) }
@@ -86,13 +88,7 @@ export default async function pages(file, config, api, _options = {}) {
   for (const canonical of canonicals) {
     const combinations = getCombinations(canonical.href)
     for (const combination of combinations) {
-      let href = combination
-        .map((part) => {
-          if (part.type === 'tag-open') part.value = part.text
-          else if (typeof part.value !== 'string') part.value = typeof part.raw === 'string' ? part.raw : part.text
-          return part.value
-        })
-        .join('')
+      let href = combination.map((part) => (typeof part.value === 'string' ? part.value : part.text)).join('')
       while (href.startsWith('/')) href = href.slice(1)
 
       const page = {
@@ -163,28 +159,46 @@ export default async function pages(file, config, api, _options = {}) {
  * @returns {HrefPart[][]} The combinations.
  */
 function getCombinations(input) {
-  const dynamicEntries = input.map((entry, index) => ({ index, entry })).filter(({ entry }) => entry.type === 'template' && Array.isArray(entry.raw))
+  /**
+   * @type {HrefPart[][]}
+   */
+  let combinations = [[]]
 
-  if (dynamicEntries.length === 0) return [input]
+  for (const entry of input) {
+    if (entry.type === 'template' && Array.isArray(entry.raw)) {
+      /**
+       * @type {HrefPart[][]}
+       */
+      const nextCombinations = []
+      for (const combination of combinations) {
+        for (const value of entry.raw) {
+          nextCombinations.push([...combination, { ...entry, value: `${value}` }])
+        }
+      }
+      combinations = nextCombinations
+      continue
+    }
 
-  const dynamicValues = dynamicEntries.map(({ entry }) => entry.raw)
-  const product = cartesianProduct(dynamicValues)
+    const preparedEntry = prepareHrefPart(entry)
+    for (const combination of combinations) {
+      combination.push(preparedEntry)
+    }
+  }
 
-  return product.map((values) =>
-    input.map((entry, i) => {
-      const dynamicIndex = dynamicEntries.findIndex(({ index }) => index === i)
-      if (dynamicIndex !== -1) return { ...entry, value: `${values[dynamicIndex]}` }
-      return { ...entry }
-    }),
-  )
+  return combinations
 }
 
 /**
- * Returns the Cartesian product of the arrays.
+ * Prepares an href part with the same value normalization semantics used when rendering canonical combinations.
  *
- * @param {any[]} arrays - The arrays.
- * @returns {Array[]} The Cartesian
+ * @param {HrefPart} part - The href part.
+ * @returns {HrefPart} The prepared href part.
  */
-function cartesianProduct(arrays) {
-  return arrays.reduce((acc, array) => acc.flatMap((accItem) => array.map((item) => [...accItem, item])), [[]])
+function prepareHrefPart(part) {
+  if (part.type === 'tag-open') {
+    return typeof part.value === 'string' && part.value === part.text ? part : { ...part, value: part.text }
+  }
+
+  if (typeof part.value === 'string') return part
+  return { ...part, value: typeof part.raw === 'string' ? part.raw : part.text }
 }

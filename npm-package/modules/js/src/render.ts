@@ -6,7 +6,6 @@ import { rolldown } from 'rolldown'
 
 import { render as renderPage } from '../../../src/pages.js'
 import createContextTransformPlugin from './createContextTransformPlugin.js'
-import getPages from './pages.js'
 
 const VIRTUAL_ENTRY_ID = '\0pages-virtual-entry'
 
@@ -23,6 +22,11 @@ export default async function render(page, config, api) {
     const file = page.fileUrl && url.fileURLToPath(page.fileUrl)
     if (file && !fs.existsSync(file)) return ''
     if (!file && !page.content) return ''
+
+    const pageUrlString = page.url?.toString() || ''
+    const isHtmlOrInline = !page.fileUrl || ['.html', '.htms', '.page'].some((ext) => page.fileUrl.toString().endsWith(ext))
+    const isMapRequest = !isHtmlOrInline && pageUrlString.endsWith('.map.js')
+    const mapUrl = !isHtmlOrInline && !isMapRequest ? `${pageUrlString.replace(/\.js$/, '.map.js')}` : ''
 
     // Config
     const minify = Boolean(config?.js?.minify)
@@ -50,36 +54,24 @@ export default async function render(page, config, api) {
       },
     })
 
-    if (!page.fileUrl || ['.html', '.htms', '.page'].find((ext) => page.fileUrl.toString().endsWith(ext))) {
+    try {
       const { output } = await bundle.generate({
         format: 'iife',
-        sourcemap: false,
+        sourcemap: isMapRequest,
         minify,
       })
-      await bundle.close()
-      return output[0].code
-    } else {
-      const pages = await getPages(file, config, api)
-      const map = pages.find((entry) => entry.params.headers['Content-Type'] === 'application/json')
-
-      if (page.url.toString() === map.url.toString()) {
-        const { output } = await bundle.generate({
-          format: 'iife',
-          sourcemap: true,
-          minify,
-        })
-        await bundle.close()
+      if (isMapRequest) {
         if (!output[0].map) return '{}'
         return output[0].map.toString()
       }
 
-      const { output } = await bundle.generate({
-        format: 'iife',
-        sourcemap: false,
-        minify,
-      })
+      if (isHtmlOrInline) {
+        return output[0].code
+      }
+
+      return `${output[0].code}\n//# sourceMappingURL=${mapUrl}\n`
+    } finally {
       await bundle.close()
-      return `${output[0].code}\n//# sourceMappingURL=${map.url}\n`
     }
   } catch (err) {
     console.log(page)

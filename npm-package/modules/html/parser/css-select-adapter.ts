@@ -125,16 +125,26 @@ export default class CSSSelectAdapter {
    * @returns {import('vscode-html-languageservice').Node[]}
    */
   removeSubsets(nodes) {
-    /**
-     * @param {import('vscode-html-languageservice').Node} node
-     * @param {import('vscode-html-languageservice').Node} other
-     * @returns {boolean}
-     */
-    function contains(node, other) {
-      return node.start <= other.start && node.end >= other.end
+    if (!nodes || nodes.length <= 1) return nodes || []
+
+    const sorted = nodes.map((node, index) => ({ node, index })).sort((a, b) => a.node.start - b.node.start || b.node.end - a.node.end)
+
+    const keptIndices = new Set()
+    const stack = []
+
+    for (const entry of sorted) {
+      while (stack.length > 0 && entry.node.start >= stack[stack.length - 1].end) {
+        stack.pop()
+      }
+
+      // If still inside an open interval, this node is a subset (or duplicate).
+      if (stack.length > 0 && entry.node.end <= stack[stack.length - 1].end) continue
+
+      keptIndices.add(entry.index)
+      stack.push(entry.node)
     }
 
-    return nodes.filter((node, i) => !nodes.some((other, j) => i !== j && contains(node, other)))
+    return nodes.filter((_node, index) => keptIndices.has(index))
   }
 
   /**
