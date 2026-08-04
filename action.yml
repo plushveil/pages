@@ -17,11 +17,11 @@ runs:
       - uses: actions/setup-node@v4.0.4
         with:
           node-version: 'latest'
-      - run: cd ${GITHUB_ACTION_PATH}/npm-package && npm ci && npm run build
+      - run: cd ${GITHUB_ACTION_PATH}/npm-package && npm ci --include=dev && npm run build
         shell: bash
         env:
           NODE_ENV: production
-      - run: cd ${GITHUB_ACTION_PATH}/github-action && npm ci && npm run build
+      - run: cd ${GITHUB_ACTION_PATH}/github-action && npm ci --include=dev && npm run build
         shell: bash
         env:
           NODE_ENV: production

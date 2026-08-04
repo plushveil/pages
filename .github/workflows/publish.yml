@@ -80,13 +80,11 @@ jobs:
 
       - name: Publish extension
         run: |
-          cd npm-package && npm install && cd ..
-          cd vscode-extension && npm install
-          npm install -g @vscode/vsce
+          cd npm-package && npm ci --include=dev && cd ..
+          cd vscode-extension && npm ci --include=dev
+          npm install -g @vscode/vsce --allow-scripts=@vscode/vsce-sign,keytar
           vsce package
           vsce publish --pat ${{ secrets.VSCODE_TOKEN }} || true
-        env:
-          NODE_ENV: production
 
 
   publish-website:

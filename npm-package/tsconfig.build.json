@@ -4,6 +4,7 @@
     "noEmit": false,
     "allowJs": false,
     "checkJs": false,
+    "types": [],
     "declaration": true,
     "emitDeclarationOnly": false,
     "declarationMap": true,
