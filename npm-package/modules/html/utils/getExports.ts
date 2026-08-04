@@ -1,4 +1,4 @@
-import ts from 'typescript'
+import ts from '@typescript/typescript6'
 
 /**
  * Retrieve the exports from a given code string using TypeScript parser.
