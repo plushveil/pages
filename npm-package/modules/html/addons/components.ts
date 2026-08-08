@@ -227,6 +227,7 @@ export function after(iterator, htmlDocument, page, _config, _api) {
 async function addComponent(component, node, id, page, config, api, contentNodes = [], resolvedComponent = null) {
   const run = components[id]
   const key = `${component.name}#${component.attributeString}`
+  const globalCacheKey = `${id}::${key}`
 
   const exists = run.nodeByKey.get(key)
   if (exists) {
@@ -234,7 +235,7 @@ async function addComponent(component, node, id, page, config, api, contentNodes
     return
   }
 
-  const cached = componentCache[key]
+  const cached = componentCache[globalCacheKey]
   if (cached) {
     node.textUpdate = (node.textUpdate || node.text) + (cached.html || '')
     node.attributeString = cached.attributeString
@@ -251,7 +252,7 @@ async function addComponent(component, node, id, page, config, api, contentNodes
     return
   }
 
-  const cachedAfterResolve = componentCache[key]
+  const cachedAfterResolve = componentCache[globalCacheKey]
   if (cachedAfterResolve) {
     node.textUpdate = (node.textUpdate || node.text) + (cachedAfterResolve.html || '')
     node.attributeString = cachedAfterResolve.attributeString
@@ -293,7 +294,7 @@ async function addComponent(component, node, id, page, config, api, contentNodes
   component.html = resolved.html
   component.js = resolved.js
   component.css = resolved.css
-  componentCache[key] = component
+  componentCache[globalCacheKey] = component
   run.nodeByKey.set(key, component)
   run.nodes.push(component)
 }

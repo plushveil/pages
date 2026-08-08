@@ -51,7 +51,6 @@ export default async function serve(folder, config, cache = true) {
   config = await getConfig(config)
   config.root = root
 
-  const watcher = getPageWatcher(config)
   const workerCountOverride = Number(process.env.PAGES_SERVE_WORKERS)
   const defaultWorkerCount = Math.max(2, Math.min(6, os.cpus().length))
   const parallel = Number.isFinite(workerCountOverride) && workerCountOverride > 0 ? Math.floor(workerCountOverride) : defaultWorkerCount
@@ -60,6 +59,15 @@ export default async function serve(folder, config, cache = true) {
   const createWorkers = (count) => {
     while (workers.length < (count || parallel)) workers.push(createWorker(config, workers))
   }
+  const recycleWorkers = () => {
+    // Clear worker-local module caches after source updates.
+    const oldWorkers = [...workers]
+    workers.length = 0
+    createWorkers(parallel)
+    for (const worker of oldWorkers) worker.terminate()
+  }
+
+  const watcher = getPageWatcher(config, recycleWorkers)
   createWorkers(parallel)
   setInterval(() => {
     if (!closing) createWorkers()
@@ -205,7 +213,7 @@ function getRequestHandler(config, watcher, workers) {
       res.end('Internal server error')
     }
 
-    worker.on('message', onMessage)
+    worker.once('message', onMessage)
     worker.once('exit', onExit)
 
     // Resolve context before sending to worker (functions can't be serialized)
@@ -226,7 +234,7 @@ function getRequestHandler(config, watcher, workers) {
  * @param {import('./config.js').Config} config - The configuration.
  * @returns {Promise<{ getPages: () => import('./pages.js').Page[]; close: () => void }>} The watcher.
  */
-async function getPageWatcher(config) {
+async function getPageWatcher(config, recycleWorkers) {
   const filter = (page) => page.params?.headers?.['X-Partial'] !== 'true'
   /**
    * @type {import('./pages.js').Page[]}
@@ -389,6 +397,8 @@ async function getPageWatcher(config) {
       inProgress[filename] = false
       return getPagesUpdate(filename)
     }
+
+    if (typeof recycleWorkers === 'function') recycleWorkers()
 
     delete inProgress[filename]
   }
