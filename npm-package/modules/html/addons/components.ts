@@ -64,7 +64,7 @@ export async function beforeAsync(nodes, htmlDocument, page, config, _api) {
   if (!config.root) return
   if (page?.params?.headers?.['X-Partial'] === 'true') return
 
-  const id = page?.url?.toString() || htmlDocument.getId()
+  const id = page?.params?.['__componentRunId'] || htmlDocument.getId()
   const componentsPath = path.resolve(config.root, 'components')
   components[id] ||= {
     path: fs.existsSync(componentsPath) ? componentsPath : null,
@@ -93,7 +93,7 @@ export async function beforeAsync(nodes, htmlDocument, page, config, _api) {
  */
 export async function forEach(node, nodes, htmlDocument, page, config, api) {
   if (page?.params?.headers?.['X-Partial'] === 'true') return
-  const id = page?.url?.toString() || htmlDocument.getId()
+  const id = page?.params?.['__componentRunId'] || htmlDocument.getId()
   if (!components[id] || components[id].path === null) return
 
   const run = components[id]
@@ -166,7 +166,7 @@ export async function forEach(node, nodes, htmlDocument, page, config, api) {
  * @param {import('../../../src/api.js').API} api - The API.
  */
 export function after(iterator, htmlDocument, page, _config, _api) {
-  const id = page?.url?.toString() || htmlDocument.getId()
+  const id = page?.params?.['__componentRunId'] || htmlDocument.getId()
   if (!components[id]) return
   if (page?.params?.headers?.['X-Partial'] === 'true') return
 
@@ -326,7 +326,7 @@ async function resolveComponentData(component, id, page, config, api) {
 
     const htmlFile = path.resolve(run.path, component.name, `${component.name}.html`)
     if (fs.existsSync(htmlFile)) {
-      const rendered = await renderComponent(htmlFile, page, config, api, component.attributes)
+      const rendered = await renderComponent(htmlFile, page, config, api, component.attributes, id)
       resolved.html = rendered.content
       resolved.classString = rendered.classString
       resolved.htmlFileExists = true
@@ -398,7 +398,7 @@ function getAttributesFromString(attributeString) {
  * @param {object} attributes - The component attributes.
  * @returns {Promise<string>} - The rendered component.
  */
-async function renderComponent(component, page, config, api, attributes) {
+async function renderComponent(component, page, config, api, attributes, runId) {
   const name = path.basename(component, path.extname(component))
 
   let content = await fs.promises.readFile(component, 'utf-8')
@@ -420,6 +420,7 @@ async function renderComponent(component, page, config, api, attributes) {
       __filename: component,
       __dirname: path.dirname(component),
       __attributes: attributes,
+      __componentRunId: runId,
     },
   }
 
