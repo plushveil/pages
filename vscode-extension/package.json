@@ -1,7 +1,7 @@
 {
   "name": "pages",
   "displayName": "Pages",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Syntax Highlighting for HTML and JavaScript in Page files",
   "categories": [
     "Linters"
@@ -25,7 +25,7 @@
     "test:integration": "vscode-test"
   },
   "dependencies": {
-    "@plushveil/pages": "^0.0.100",
+    "@plushveil/pages": "^0.0.101",
     "@typescript/typescript6": "^6.0.2",
     "vscode-html-languageservice": "^5.6.2",
     "vscode-languageclient": "^11.0.0",
