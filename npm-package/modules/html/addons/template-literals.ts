@@ -176,7 +176,8 @@ function getExecModuleSpecifier(htmlDocument, page) {
   const ia = page.importAttributes && (page.importAttributes.startsWith('#') ? page.importAttributes.slice(1) : page.importAttributes)
   const id = encodeURIComponent(htmlDocument.getId())
   const iaPart = ia ? `|${encodeURIComponent(ia)}` : ''
-  return `${htmlDocument.getTextDocument().uri}#${id}${iaPart}`
+  const source = page.params?.['__filename'] ? url.pathToFileURL(page.params['__filename']).href : page.fileUrl?.toString() || htmlDocument.getTextDocument().uri
+  return `${source}#${id}${iaPart}`
 }
 
 /**

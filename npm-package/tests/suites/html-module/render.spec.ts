@@ -1,8 +1,12 @@
 /* eslint no-template-curly-in-string: "off" */
 
 import * as assert from 'node:assert'
+import * as fs from 'node:fs'
 import * as module from 'node:module'
+import * as os from 'node:os'
+import * as path from 'node:path'
 import { describe, it } from 'node:test'
+import * as fileUrl from 'node:url'
 
 import render from '../../../dist/modules/html/src/render.js'
 
@@ -38,5 +42,19 @@ describe('modules/html - render', () => {
 
   it('minify', async () => {
     assert.deepStrictEqual(await render({ content: '<html></html>' }, { html: { minify: {} } }, {}), '<html></html>')
+  })
+
+  it('resolves inline script imports relative to the source HTML file', async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'pages-relative-import-'))
+    const filename = path.join(directory, 'component.html')
+    fs.writeFileSync(path.join(directory, 'helper.mjs'), "export const value = 'from sibling'\n")
+    try {
+      const page = { fileUrl: fileUrl.pathToFileURL(filename), params: { __filename: filename } }
+      const config = { fileUrl: fileUrl.pathToFileURL(filename) }
+      assert.match(await render({ ...page, content: `<script target="main">import { value } from "./helper.mjs"; export { value }</script><main>\${value}</main>` }, config, {}), /<main>from sibling<\/main>/)
+      assert.match(await render({ ...page, content: `<script target="main">export { value } from "./helper.mjs"</script><main>\${value}</main>` }, config, {}), /<main>from sibling<\/main>/)
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true })
+    }
   })
 })
