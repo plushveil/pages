@@ -7,6 +7,7 @@ import * as languageServerTextDocument from 'vscode-languageserver-textdocument'
 import * as languageServer from 'vscode-languageserver/node'
 
 import getCompletions from './languageservice-ts'
+import { definitionAt } from './navigation'
 
 const connection = languageServer.createConnection(languageServer.ProposedFeatures.all)
 const documents = new languageServer.TextDocuments(languageServerTextDocument.TextDocument)
@@ -40,7 +41,7 @@ connection.onDocumentFormatting(
       return
     }
 
-    const format = (await import('../../npm-package/dist/modules/html/src/format.js')).default
+    const format = (await import('@plushveil/pages/dist/modules/html/src/format.js')).default
     const [page, config, api] = await getPageConfigApi(textDocument)
     const textEdits = await format(page, config, api)
 
@@ -68,10 +69,11 @@ connection.onCompletion(
 
     if (settings?.pages?.suggestions) {
       const document = documents.get(event.textDocument.uri)
+      if (!document || document.languageId !== 'pages') return { isIncomplete: false, items: [] }
       const { position } = event
       const offset = document.offsetAt(position)
       const text = document.getText()
-      const parse = (await import('../../npm-package/dist/modules/html/parser/parse.js')).default
+      const parse = (await import('@plushveil/pages/dist/modules/html/parser/parse.js')).default
       const htmlDocument = parse(text)
 
       const node = htmlDocument
@@ -152,8 +154,8 @@ async function getScriptCompletions(node: any, htmlDocument: any, offset: number
   const position = offset - node.offset.start - 2
   const closestHtmlNode = htmlDocument.findNodeAt(node.offset.start)
 
-  const getContexts = (await import('../../npm-package/dist/modules/html/utils/getContexts.js')).default
-  const getExports = (await import('../../npm-package/dist/modules/html/utils/getExports.js')).default
+  const getContexts = (await import('@plushveil/pages/dist/modules/html/utils/getContexts.js')).default
+  const getExports = (await import('@plushveil/pages/dist/modules/html/utils/getExports.js')).default
 
   const exported: string[] = []
   const importToCodeMap: Record<string, string> = {}
@@ -220,6 +222,14 @@ async function getScriptCompletions(node: any, htmlDocument: any, offset: number
 
 connection.onCompletionResolve(throwable((item: any) => item))
 
+connection.onDefinition(
+  throwableAsync(async (event: languageServer.DefinitionParams) => {
+    const document = documents.get(event.textDocument.uri)
+    if (!document) return null
+    return definitionAt(document, document.offsetAt(event.position))
+  }),
+)
+
 connection.onRequest(
   'textDocument/diagnostic',
   throwableAsync(async (event: any) => {
@@ -228,7 +238,7 @@ connection.onRequest(
       return
     }
 
-    const diagnose = (await import('../../npm-package/dist/modules/html/src/diagnose.js')).default
+    const diagnose = (await import('@plushveil/pages/dist/modules/html/src/diagnose.js')).default
     const [page, config, api] = await getPageConfigApi(textDocument)
     const diagnostics = (await diagnose(page, config, api)).map((problem: any) => {
       if (problem.offset) {
@@ -253,6 +263,7 @@ connection.onInitialize(
       completionProvider: {
         resolveProvider: true,
       },
+      definitionProvider: true,
       documentFormattingProvider: true,
       diagnosticProvider: {
         identifier: 'pages',
@@ -268,8 +279,8 @@ documents.listen(connection)
 connection.listen()
 
 async function getPageConfigApi(textDocument: any) {
-  const getConfig = (await import('../../npm-package/dist/src/config.js')).default
-  const getApi = (await import('../../npm-package/dist/src/api.js')).default
+  const getConfig = (await import('@plushveil/pages/dist/src/config.js')).default
+  const getApi = (await import('@plushveil/pages/dist/src/api.js')).default
   const file = url.fileURLToPath(textDocument.uri)
   const api = await getApi()
   const config = await getConfig()

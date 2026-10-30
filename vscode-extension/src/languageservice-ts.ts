@@ -1,7 +1,7 @@
 import * as path from 'node:path'
 import * as url from 'node:url'
 
-import * as ts from 'typescript'
+import * as ts from '@typescript/typescript6'
 
 const scripts = new Map<string, string>()
 let folder = path.resolve('.')

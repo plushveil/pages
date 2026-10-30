@@ -56,7 +56,10 @@ function enableLanguageServer(context: vscode.ExtensionContext) {
       run: { args: [serverPath, '--stdio'], command: process.execPath },
     },
     {
-      documentSelector: [{ language: 'pages', scheme: 'file' }],
+      documentSelector: [
+        { language: 'pages', scheme: 'file' },
+        { language: 'html', scheme: 'file' },
+      ],
     },
   )
   context.subscriptions.push(client)

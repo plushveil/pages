@@ -2,10 +2,10 @@
   "type": "module",
   "main": "../../dist/modules/js/js.js",
   "dependencies": {
-    "rolldown": "^1.2.2"
+    "rolldown": "^1.2.16"
   },
   "optionalDependencies": {
-    "@rolldown/binding-linux-x64-gnu": "1.2.2",
-    "@rolldown/binding-wasm32-wasi": "1.2.2"
+    "@rolldown/binding-linux-x64-gnu": "1.2.16",
+    "@rolldown/binding-wasm32-wasi": "1.2.16"
   }
 }
